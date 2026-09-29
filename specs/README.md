@@ -22,8 +22,8 @@ sostenibilidad aspiracional al estilo jshERP (código libre siempre; convenienci
 | `001-research-global.md` | Research global (India, Filipinas, Indonesia, China, Brasil): Peddlr, Khatabook, jshERP, Packworks. Lecciones L1–L8, decisiones D10–D14 | ✅ Completo |
 | `002-especificacion-funcional.md` | **Spec v1**: visión, personas, 11 capacidades con criterios Gherkin, NFRs medibles, métricas de éxito, preguntas abiertas P1–P5 | ✅ Completo — requiere revisión/acceptance del dueño |
 | `005-prompt-opendesigner.md` | Prompt maestro de prototipado, decisión de sistema de color (Radix/Teal/Sand/Amber, S8), protocolo de iteración en 4 fases | ✅ Completo — ejecutar con OpenDesigner para generar fundaciones + mockups |
-| `003-plan-tecnico.md` | Stack final, arquitectura offline/sync, modelo de datos, estrategia de pruebas | ⏳ **No escrito — siguiente tarea** |
-| `004-roadmap.md` | Hitos, fases, tareas, plan de adopción | ⏳ No escrito |
+| `003-plan-tecnico.md` | **Plan técnico v1**: stack (Preact/Fastify/Postgres+RLS), arquitectura offline/sync (outbox + LWW por campo + ledger append-only), modelo de datos, seguridad, presupuesto de rendimiento, estrategia de pruebas y hitos M0–M4 | ✅ Completo — requiere revisión del dueño |
+| `004-roadmap.md` | Hitos, fases, tareas, plan de adopción | ⏳ **Siguiente tarea** |
 
 ## 3. Decisiones cerradas en conversación (no repetidas en los docs)
 
@@ -44,26 +44,25 @@ sostenibilidad aspiracional al estilo jshERP (código libre siempre; convenienci
 Fase: Spec Driven Development
 ├── Research de mercado y prior art .......... ✅ (000, 001)
 ├── Especificación funcional v1 ............. ✅ (002) — pendiente de aceptación formal
-├── Preguntas abiertas P1–P5 ................ ⏳ decidir antes del plan técnico
-├── Plan técnico (003) ...................... ⏳ SIGUIENTE PASO
-├── Roadmap/milestones (004) ................ ⏳ después de 003
+├── Preguntas abiertas P1–P5 ................ ⏳ abiertas (P1 licencia y P2 login impactan el plan técnico)
+├── Plan técnico (003) ...................... ✅ escrito — pendiente de revisión del dueño
+├── Roadmap/milestones (004) ................ ⏳ SIGUIENTE PASO
 └── Implementación .......................... ❌ no iniciada
+
+Fase: Diseño (OpenDesigner) — artefactos en design/
+├── F1 Fundaciones (tokens DTCG + DESIGN.md + decisions.md) ..... ✅ aprobado
+├── F2 Componentes (preview.html, 9 núcleo) .................... ✅ aprobado
+├── F3 Pantallas (13 pantallas, 60 marcos, lotes 1–3) ........... ✅ entregado
+└── F4 Cierre (ACCESSIBILITY.md · WCAG 2.2 AA + qa.py) .......... ✅ entregado
 ```
 
 ## 5. Para retomar en una sesión nueva
 
-1. Lee `002-especificacion-funcional.md` (el spec es la fuente de verdad).
-2. Resuelve/resuelve con el dueño P1–P5 (licencia, login de empleados, multi-bodega, OFF, límites de fiado).
-3. Escribe `003-plan-tecnico.md` — insumos que ya están decididos y NO reabrir:
-   PWA mobile-first, offline-first (IndexedDB + outbox sync, last-write-wins por campo), escaneo con
-   BarcodeDetector API + fallback ZXing/WASM, Open Food Facts como acelerador no dependencia, libro de
-   movimientos inmutable como fuente de verdad del stock y de los fiados, RLS por negocio, docker-compose
-   de 1 comando + demo sembrada, presupuesto de rendimiento (JS inicial ≤150KB gzip, TTI ≤3s en gama baja),
-   tests unitarios de stock/fiados/sync + e2e offline obligatorios. Incorporar los tokens DTCG y
-   `DESIGN.md` producidos por OpenDesigner (ver `005-prompt-opendesigner.md`).
-4. Luego `004-roadmap.md` con hitos M0–M4 y el plan de adopción D11.
-5. Prototipado de diseño: ejecutar el prompt maestro de `005-prompt-opendesigner.md` con OpenDesigner
-   cargado en el repo (fases F1 fundaciones → F4 cierre, aprobando cada lote).
+1. Lee `002-especificacion-funcional.md` (fuente de verdad del producto) y `003-plan-tecnico.md` (cómo se construye).
+2. Cierra con el dueño las preguntas P1–P5 (licencia, login de empleados, multi-bodega, OFF, límite de fiado); **P1 (licencia) y P2 (login)** impactan directo el plan técnico.
+3. Revisa/aprueba `003-plan-tecnico.md` (stack, arquitectura offline/sync, modelo de datos, seguridad, pruebas).
+4. Escribe `004-roadmap.md` con hitos M0–M4 (borrador ya en `003` §13) y el plan de adopción D11.
+5. El diseño ya está entregado (fases F1–F4 en `design/`). Para verlo: `python3 -m http.server` y abre `design/preview.html` o `design/screens/03-inicio.html`. La accesibilidad (WCAG 2.2 AA) está en `design/ACCESSIBILITY.md`.
 
 ## 6. Reglas de proyecto
 
