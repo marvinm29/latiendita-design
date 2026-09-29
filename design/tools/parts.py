@@ -161,3 +161,95 @@ def difference_chip(diff):
         return f'<span class="chip chip-warning">{icon("package_minus", "w-4 h-4")}Faltan {abs(diff)}</span>'
     return f'<span class="chip chip-pending">{icon("check", "w-4 h-4")}Sin diferencia</span>'
 
+
+def movement_row(kind, desc, amount, when, *, user="", pending_sync=False):
+    """Fiados ledger row. kind in cargo (ámbar, sube la deuda) | abono (verde, la baja)."""
+    tone, ic, sign = (
+        ("text-credit-text", "coins", "+") if kind == "cargo"
+        else ("text-success-text", "check", "−")
+    )
+    pend = f'<div class="mt-2">{pending()}</div>' if pending_sync else ""
+    who = f" · {user}" if user else ""
+    return (
+        '<article class="card mb-2">'
+        '<div class="flex items-start gap-3">'
+        f'<span class="{tone}">{icon(ic, "w-icon h-icon")}</span>'
+        '<div class="min-w-0 flex-1">'
+        f'<p class="card-title">{desc}</p>'
+        f'<p class="card-meta">{when}{who}</p>{pend}</div>'
+        f'<p class="{tone} tabular font-bold whitespace-nowrap">{sign}{amount}</p>'
+        "</div></article>"
+    )
+
+
+def employee_row(name, role, detail):
+    """Employee/owner row with a neutral role chip (never color-only: label carries it)."""
+    return (
+        '<article class="card mb-2">'
+        '<div class="flex items-center gap-3">'
+        '<div class="min-w-0 flex-1">'
+        f'<h3 class="card-title">{name}</h3>'
+        f'<p class="card-meta">{detail}</p></div>'
+        f'<span class="chip chip-pending">{icon("users", "w-4 h-4")}{role}</span>'
+        "</div></article>"
+    )
+
+
+def invite_code_card(code, days=7):
+    """One-time invite code (C1.2). Requires connectivity to be generated (DS-25)."""
+    return (
+        '<div class="card">'
+        '<div class="flex items-start justify-between gap-3">'
+        '<div class="min-w-0"><p class="card-title">Código de invitación</p>'
+        f'<p class="card-meta mt-1">Para que tu empleado se una. Sirve una sola vez.</p></div>'
+        f'<span class="chip chip-pending">{icon("clock", "w-4 h-4")}{days} días</span></div>'
+        '<p class="mt-3 rounded-md border border-strong bg-muted py-3 text-center text-2xl '
+        f'font-bold tabular">{code}</p>'
+        '<div class="flex flex-col gap-2 mt-3">'
+        f'<button class="btn btn-primary w-full">{icon("share_2", "w-4 h-4")}Compartir código</button>'
+        '<button class="btn btn-secondary w-full">Copiar código</button>'
+        "</div></div>"
+    )
+
+
+def rank_row(name, meta, value):
+    """'Lo que más se movió' ranking row."""
+    return (
+        '<article class="card mb-2">'
+        '<div class="flex items-start justify-between gap-3">'
+        '<div class="min-w-0"><h3 class="card-title">{}</h3>'
+        '<p class="card-meta">{}</p></div>'
+        '<p class="tabular font-bold whitespace-nowrap">{}</p>'
+        "</div></article>"
+    ).format(name, meta, value)
+
+
+def action_row(icon_name, title, meta, *, href="#", chevron=True, tone=""):
+    """Settings-style row: icon + title + meta, whole row tappable (≥48px)."""
+    chev = icon("chevron_right", "w-icon h-icon card-chevron") if chevron else ""
+    return (
+        f'<a class="card mb-2 card-row" href="{href}">'
+        f'<span class="{tone or "text-muted-foreground"}">{icon(icon_name, "w-icon h-icon")}</span>'
+        '<span class="min-w-0 flex-1">'
+        f'<span class="card-title block">{title}</span>'
+        f'<span class="card-meta block">{meta}</span></span>{chev}</a>'
+    )
+
+
+def share_preview(name, message):
+    """Generated-locally account statement (C6.5) — no messaging backend."""
+    return (
+        '<div class="card">'
+        '<div class="flex items-start gap-3">'
+        f'<span class="text-link">{icon("message_circle", "w-icon h-icon")}</span>'
+        '<div class="min-w-0 flex-1"><p class="card-title">Estado de cuenta para ' + name + "</p>"
+        '<p class="card-meta mt-1">Se arma en tu teléfono, sin internet. Tú eliges a quién enviarlo.</p>'
+        "</div></div>"
+        '<div class="mt-3 rounded-md border border-strong bg-muted p-3">'
+        f'<p class="card-meta" style="white-space:pre-line">{message}</p></div>'
+        '<div class="flex flex-col gap-2 mt-3">'
+        f'<button class="btn btn-primary w-full">{icon("share_2", "w-4 h-4")}Compartir por WhatsApp</button>'
+        '<button class="btn btn-secondary w-full">Copiar mensaje</button>'
+        "</div></div>"
+    )
+

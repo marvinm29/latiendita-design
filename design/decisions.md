@@ -143,9 +143,24 @@ Decision: add `screens/05-productos.html` as the *Productos* destination (search
 Outcome: no dead nav destination; the catalog reuses the Phase-3 product row/status chips and carries the same 5 states (default · vacío · sin conexión · sin resultados · error). **Flagged as a proposed spec amendment** under the project rule “spec first, design second”.
 
 ### DS-27 · In-screen segmented controls are 48px and single-line
-Context: the 3-option filter (“Todos · Bajo mínimo · Agotados”) wrapped at 360px with default button padding; the harness theme toggle deliberately uses 40px chrome buttons.
-Decision: product segmented controls use the standard `.btn` 48px min-height with reduced horizontal padding (`!px-2`) and `whitespace-nowrap`; only mockup harness chrome may use 40px.
-Outcome: every in-screen segmented option measured 48px on one line with no overflow at 360px — nothing below the 48px touch floor ships in product UI (DS-13 holds).
+Context: the 3-option filter (“Todos · Bajo mínimo · Agotados”) wrapped/overflowed at 360px with the default 20px button padding; the harness theme toggle deliberately uses 40px chrome buttons.
+Decision: product segmented controls use the standard `.btn` 48px min-height with a dedicated compact modifier `.btn-segment` (horizontal padding `--space-2`, `min-width:0`) plus `whitespace-nowrap`; only mockup harness chrome may use 40px.
+Outcome: every in-screen segmented option measured 48px on one line with no overflow at 360px — nothing below the 48px touch floor ships in product UI (DS-13 holds). Note: the first attempt used Tailwind’s `!px-2` important utility, which the vendored runtime does not emit; the deterministic `.btn-segment` class replaced it (deviation recorded).
+
+### DS-28 · Fiados ledger rows encode direction with sign *and* tone
+Context: batch 3 adds the customer detail screen (C6.4) — a list of cargos (debt up) and abonos (debt down) that must read at a glance and without relying on color (never color-alone).
+Decision: each row is icon + description + date + person + a signed amount; **cargo** = amber (`text-credit-text`, `coins`, `+`), **abono** = green (`text-success-text`, `check`, `−`). Amber stays money-only (DS-09).
+Outcome: direction is carried by the sign and icon, not the hue; a color-blind user reads +/− the same way. The balance card above uses the same `balance-amount` amber as the fiados book.
+
+### DS-29 · Inviting an employee is the only batch-3 action that needs internet
+Context: DS-25 established that joining needs the server. Batch 3 adds the owner side of that same exchange (generate a one-time code, C1.2); generating it must validate server-side.
+Decision: the *Empleados* screen states plainly that generating a code requires connection (neutral info card + Reintentar, button pattern), while the employee list keeps working offline. Reports (12) and export/backup (13) are explicitly local.
+Outcome: the offline exception stays a single, explained, blameless moment — the sibling of DS-25, not a new rule.
+
+### DS-30 · Reports and export/backup are computed locally (no new network dependency)
+Context: C11 (reports) and C10 (CSV/JSON export, full backup) could tempt a server round-trip; that would break the offline promise and the “puerta de salida sagrada”.
+Decision: reports are derived from the local ledger; export/backup files are assembled on the device. Both screens carry the banner and a “works without internet” note rather than any disabled state.
+Outcome: C10/C11 add zero connectivity requirements; the only connected flows remain join (2) and invite (11), both stated in-copy.
 
 ---
 
@@ -158,14 +173,15 @@ Outcome: every in-screen segmented option measured 48px on one line with no over
 | JSON is valid DTCG-ish (typed values) | `python3 -c "import json; json.load(open('design/tokens/tokens.json'))"` | ok |
 | Phase-4 batch 1 (screens 01–04, 17 frames) | `python3 design/tools/batch1.py` + browser QA | 0 broken icons / dup ids / orphan labels / external URLs |
 | Phase-4 batch 2 (screens 05–09, 24 frames) | `python3 design/tools/batch2.py` + browser QA | same: all clean; segmented 48px, keys 56px, nav 64px |
-| Screenshot record (light + dark) | chrome-devtools full-page capture | `design/screens/*-light.png` + `03-inicio-dark`, `04-escanear-dark`, `07-movimiento-dark` |
+| Phase-4 batch 3 (screens 10–13, 19 frames) | `python3 design/tools/batch3.py` + `qa.py` | all clean: 0 findings |
+| Static screen QA (13 screens, 60 frames) | `python3 design/tools/qa.py` | 0 icon / id / label / external-URL findings |
+| Screenshot record (light + dark) | Chromium headless full-page capture | `design/screens/*-light.png` + `03-inicio-dark`, `04-escanear-dark`, `07-movimiento-dark`, `10-cliente-hero-dark` |
 
 ## Open for Phase 4 (screens, batch 3)
 
-1. Build screens 10–13: detalle de cliente (+ compartir por WhatsApp, C6.5), empleados (código de invitación + PIN, C1.2/C7), reportes mínimos (C11), respaldo/exportar CSV-JSON (C10).
-2. Nav “Más” → `12-reportes.html` 404 until batch 3 lands (expected, phased).
-3. Owner review of **DS-26** (Productos catalog) — propose as a spec amendment to `005` §4.
-4. Product card “sin mínimo” variant (product with no minimum configured) still undesigned — surfaced in Phase-3 notes; decide before Phase 5.
-5. Cosmetic: raised center FAB overlaps the last list row at 360px when scrolled to the bottom; batch-2 nav screens use `pb-20` to clear it — confirm it's enough with real data.
+1. Owner review of **DS-26** (Productos catalog) — propose as a spec amendment to `005` §4.
+2. Product card “sin mínimo” variant (product with no minimum configured) still undesigned — surfaced in Phase-3 notes; decide before Phase 5.
+3. Cosmetic: raised center FAB overlaps the last list row at 360px when scrolled to the bottom; nav screens use `pb-20` to clear it — confirm it's enough with real data.
+4. Batch 3 done (screens 10–13); nav “Más” → `12-reportes.html` now resolves (no more 404). Remaining for Phase 4: the Phase-5 WCAG checklist (`design/ACCESSIBILITY.md`), covering every component. See that file for the per-component criteria and evidence.
 
 

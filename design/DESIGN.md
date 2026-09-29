@@ -22,8 +22,13 @@
 | `assets/` | Fonts (Atkinson WOFF2), `icons.svg` Lucide sprite (42 symbols), `base.css`, `ui.css`, browser `theme.js`, vendored `tailwind.js`. |
 | `preview.html` | Phase-3 component gallery (all 9 core components × states, theme toggle). |
 | `screens/` | Phase-4 screen mockups, one HTML per screen (360×640 state frames) + screenshots. |
+| `ACCESSIBILITY.md` | Phase-4 close: WCAG 2.2 AA checklist per criterion and per component + pending manual checks. |
 | `tools/shell.py` | Shared screen-shell renderer (header/banner/content/CTA/nav, token-only). |
+| `tools/parts.py` | Reusable mockup parts (cards, chips, keypad, ledger rows, settings rows). |
 | `tools/batch1.py` | Batch-1 screen definitions (01–04). `python3 tools/batch1.py` regenerates them. |
+| `tools/batch2.py` | Batch-2 screen definitions (05–09). `python3 tools/batch2.py` regenerates them. |
+| `tools/batch3.py` | Batch-3 screen definitions (10–13). `python3 tools/batch3.py` regenerates them. |
+| `tools/qa.py` | Static QA of screens (icons, ids, labels, no external URLs). Lint: `python3 tools/qa.py`. |
 
 **Rule: components use semantic roles only (`--color-action`, `--color-danger-text`, …), never
 raw steps (`--teal-9`), and never hex.** Raw steps exist for generation and audit.
@@ -291,7 +296,8 @@ Mockups live in `screens/`, reuse the Phase-3 components only, and render at **3
 with four states each (default · vacío · sin conexión · error; extras where the flow needs
 them). Composition is fixed: **header → (offline banner) → scrollable content → sticky CTA →
 bottom nav**; the banner is a layout sibling under the header, never an overlay (DS-23).
-Regenerate with `python3 tools/batch1.py`; verify every state in both themes.
+Regenerate with `python3 tools/batch1.py`, `batch2.py` or `batch3.py`; verify every state in both
+themes and run `python3 tools/qa.py`.
 
 | # | Screen | File | States |
 |---|---|---|---|
@@ -304,8 +310,13 @@ Regenerate with `python3 tools/batch1.py`; verify every state in both themes.
 | 7 | Movimiento rápido | `screens/07-movimiento.html` | entrada · salida · vacío · sin conexión · error de stock |
 | 8 | Conteo asistido | `screens/08-conteo.html` | contando · vacío · sin conexión · código desconocido · resumen |
 | 9 | Libro de fiados | `screens/09-fiados.html` | default · vacío · sin conexión · error de carga |
-| 10–13 | Cliente · empleados · reportes · respaldo | batch 3 | pending |
+| 10 | Detalle de cliente | `screens/10-cliente.html` | default · vacío · sin conexión · compartir · error de carga |
+| 11 | Empleados | `screens/11-empleados.html` | default · vacío · código generado · sin conexión · error |
+| 12 | Reportes mínimos | `screens/12-reportes.html` | default · vacío · sin conexión · error |
+| 13 | Respaldo y datos | `screens/13-respaldo.html` | default · respaldo listo · importar · sin conexión · error |
 
 Content rules: state labels and copy in Spanish (tú neutro, §9); empty states teach the first
 step (DS-24); the join screen is the only flow that requires connectivity and says so (DS-25);
-the catalog (5) is an added screen to cover the permanent nav destination (DS-26).
+the catalog (5) is an added screen to cover the permanent nav destination (DS-26). Batch 3 covers
+the fiados drill-down (C6.4/C6.5), roles/invitations (C1.2/C7), reports (C11) and the data exit
+(C10) — see `decisions.md` DS-28…DS-30.

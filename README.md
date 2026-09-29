@@ -67,13 +67,12 @@ manda sobre el diseño (si algo contradice el spec, se cambia el spec primero).
 | Prompt de prototipado / sistema de color | `specs/005` | ✅ completo |
 | **F1 · Fundaciones** | tokens DTCG light/dark + Tailwind + `DESIGN.md` + `decisions.md` | ✅ aprobado |
 | **F2 · Componentes** | `preview.html` con los 9 componentes núcleo | ✅ aprobado |
-| **F3 · Pantallas** | 9 pantallas × estados (41 marcos a 360×640) | ✅ lote 1 y lote 2 |
-| F3 · lote 3 | pantallas 10–13 (cliente, empleados, reportes, respaldo) | ⏳ siguiente |
-| **F4 · Cierre** | checklist WCAG 2.2 por componente + lint + cobertura | ⏳ pendiente |
+| **F3 · Pantallas** | 13 pantallas × estados (60 marcos a 360×640) | ✅ lotes 1, 2 y 3 |
+| **F4 · Cierre** | checklist WCAG 2.2 AA (`ACCESSIBILITY.md`) + lint + cobertura | ✅ entregado |
 | Plan técnico (implementación) | `specs/003-plan-tecnico.md` | ⏳ no escrito |
 
-Números actuales: **60/60 pares de contraste AA** en ambos modos, **9 pantallas / 41 marcos**,
-**42 iconos** Lucide, **0 hallazgos** bloqueantes en la QA de navegador.
+Números actuales: **60/60 pares de contraste AA** en ambos modos, **13 pantallas / 60 marcos**,
+**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`).
 
 ---
 
@@ -139,6 +138,30 @@ en ambos temas donde aplica.
 <a href="design/screens/09-fiados-light.png">hoja de estados →</a>
 </td>
 </tr>
+<tr>
+<td align="center" width="33%">
+<img src="design/screens/10-cliente-hero.png" width="260"><br>
+<b>10 · Detalle de cliente</b><br><sub>default · vacío · offline · compartir · error</sub><br>
+<a href="design/screens/10-cliente-light.png">hoja de estados →</a>
+</td>
+<td align="center" width="33%">
+<img src="design/screens/11-empleados-hero.png" width="260"><br>
+<b>11 · Empleados</b><br><sub>default · vacío · código generado · offline · error</sub><br>
+<a href="design/screens/11-empleados-light.png">hoja de estados →</a>
+</td>
+<td align="center" width="33%">
+<img src="design/screens/12-reportes-hero.png" width="260"><br>
+<b>12 · Reportes mínimos</b><br><sub>default · vacío · sin conexión · error</sub><br>
+<a href="design/screens/12-reportes-light.png">hoja de estados →</a>
+</td>
+</tr>
+<tr>
+<td align="center" width="33%">
+<img src="design/screens/13-respaldo-hero.png" width="260"><br>
+<b>13 · Respaldo y datos</b><br><sub>default · respaldo listo · importar · offline · error</sub><br>
+<a href="design/screens/13-respaldo-light.png">hoja de estados →</a>
+</td>
+</tr>
 </table>
 
 **Tema oscuro** (se activa por sistema o con el interruptor bajo «Más»):
@@ -146,6 +169,7 @@ en ambos temas donde aplica.
 <p>
 <img src="design/screens/03-inicio-hero-dark.png" width="220">
 <img src="design/screens/04-escanear-hero-dark.png" width="220">
+<img src="design/screens/10-cliente-hero-dark.png" width="220">
 </p>
 
 La galería de **componentes** de la fase 2 está en [`design/preview.html`](design/preview.html)
@@ -211,14 +235,17 @@ generación y auditoría.
     │   ├── theme.js                  Interruptor de tema (claro/oscuro/sistema)
     │   └── tailwind.js               Tailwind vendorizado (runtime, sin CDN)
     ├── preview.html               # F2 · galería de los 9 componentes núcleo
-    ├── screens/                   # F3 · 9 pantallas (HTML 360×640) + capturas
-    ├── tools/                     # Generadores y render del shell compartido
+    ├── screens/                   # F3 · 13 pantallas (HTML 360×640) + capturas
+    ├── tools/                     # Generadores, render del shell y QA
     │   ├── shell.py                  Render del armazón (encabezado/banner/CTA/nav)
-    │   ├── parts.py                  Piezas reutilizables (tarjetas, keypad, etc.)
+    │   ├── parts.py                  Piezas reutilizables (tarjetas, keypad, filas…)
     │   ├── batch1.py                 Pantallas 01–04
-    │   └── batch2.py                 Pantallas 05–09
+    │   ├── batch2.py                 Pantallas 05–09
+    │   ├── batch3.py                 Pantallas 10–13
+    │   └── qa.py                     QA estática (iconos, ids, etiquetas, offline)
     ├── DESIGN.md                  # Sistema de diseño completo (§0–§12)
-    └── decisions.md               # Bitácora DS-01…DS-27 + ledger de verificación
+    ├── ACCESSIBILITY.md           # Fase 4 · checklist WCAG 2.2 AA + verificación pendiente
+    └── decisions.md               # Bitácora DS-01…DS-30 + ledger de verificación
 ```
 
 Todo el árbol es **HTML/CSS/JS plano**: no hay bundler, framework ni paso de compilación.
@@ -253,6 +280,10 @@ python3 design/tokens/verify_contrast.py
 # 3) Pantallas: regenerar los mockups HTML
 python3 design/tools/batch1.py     # pantallas 01–04
 python3 design/tools/batch2.py     # pantallas 05–09
+python3 design/tools/batch3.py     # pantallas 10–13
+
+# 4) QA estática de las pantallas (iconos, ids, etiquetas, sin URLs externas)
+python3 design/tools/qa.py         # 13 pantallas · 60 marcos · 0 hallazgos
 ```
 
 Las capturas se generan con Chromium headless (captura de página completa a 500px de ancho, en
@@ -263,45 +294,48 @@ están vendorizados para que funcione sin conexión.
 
 ## Accesibilidad y verificación
 
-La accesibilidad no es un repaso final: es un contrato que se verifica automáticamente.
+La accesibilidad no es un repaso final: es un contrato que se verifica automáticamente. El checklist
+completo, criterio por criterio (WCAG 2.2 AA) y componente por componente, está en
+[`design/ACCESSIBILITY.md`](design/ACCESSIBILITY.md).
 
 | Verificación | Comando | Resultado |
 |---|---|---|
 | Matriz de contraste WCAG 2.2 AA (60 pares, 2 modos) | `python3 design/tokens/verify_contrast.py` | **0 fallos** (peor texto 4.71:1) |
 | Generación de tokens reproducible | `python3 design/tokens/generate.py` | determinista desde `vendor/radix/` |
 | JSON válido (DTCG con valores tipados) | `python3 -c "import json;json.load(open('design/tokens/tokens.json'))"` | ok |
-| QA de pantallas (navegador) | lote 1 + lote 2 | 0 iconos rotos · 0 ids duplicados · 0 etiquetas huérfanas · 0 URLs externas |
+| QA estática de pantallas (13 pantallas, 60 marcos) | `python3 design/tools/qa.py` | 0 iconos rotos · 0 ids duplicados · 0 etiquetas huérfanas · 0 URLs externas |
 
 Puntos duros de accesibilidad e interacción:
 
-- Objetivos táctiles **≥48px** (filas 56px, navegación 64px).
-- **Nunca sólo color**: cada estado lleva icono + texto o forma, no únicamente un tinte.
-- Anillo de foco de **2px con offset de 2px** (teal-11) obligatorio.
+- Objetivos táctiles **≥48px** (filas 56px, navegación 64px, teclas 56px).
+- **Nunca sólo color**: cada estado lleva icono + texto o signo (`+`/`−` en fiados), no únicamente un tinte.
+- Anillo de foco de **2px con offset de 2px** (teal-11) obligatorio; banner/CTA/nav son hermanos del layout, así que el foco no queda tapado.
+- Etiquetas **siempre visibles** (nunca sólo placeholder); errores con icono, texto y `aria-invalid`/`aria-describedby`.
 - Respeto de `prefers-reduced-motion` (movimiento → 0ms) y **light/dark** por sistema o interruptor.
 - Aviso de conexión persistente y un badge «por sincronizar» en tono neutro, no alarmista.
 
-Detalle completo de la matriz en `DESIGN.md` §2.3 y el ledger en `decisions.md`.
+Detalle de la matriz en `DESIGN.md` §2.3, el checklist AA en `ACCESSIBILITY.md` y el ledger en `decisions.md`.
 
 ---
 
 ## Trazabilidad: capacidades → pantallas
 
-El spec define 11 capacidades (C1–C11). Las pantallas ya diseñadas cubren las siguientes; el resto
-llega en el lote 3.
+El spec define 11 capacidades (C1–C11). Las 13 pantallas diseñadas cubren todas las capacidades de
+interfaz de la v1.
 
 | Capacidad (spec `002`) | Pantalla(s) |
 |---|---|
-| C1 · Negocio, cuentas y accesos | 1 Crear tienda · 2 Unirse con código |
+| C1 · Negocio, cuentas y accesos | 1 Crear tienda · 2 Unirse con código · 11 Empleados |
 | C2 · Catálogo de productos | 5 Productos · 6 Producto nuevo |
 | C3 · Escaneo de códigos de barras | 4 Escáner (cámara + entrada manual) |
 | C4 · Movimientos de inventario | 7 Movimiento rápido |
 | C5 · Stock, alertas y conteo | 3 Inicio («qué te falta») · 8 Conteo asistido |
-| C6 · Fiados | 9 Libro de fiados |
-| C7 · Roles y permisos | 2 Unirse con código (rol empleado) |
+| C6 · Fiados | 9 Libro de fiados · 10 Detalle de cliente (+ compartir C6.5) |
+| C7 · Roles y permisos | 2 Unirse con código (rol empleado) · 11 Empleados |
 | C8 · Offline-first y sincronización | presente en todas (banner + badge) |
 | C9 · PWA | transversal (interfaz mobile-first fullscreen) |
-| C10 · Respaldo y salida (CSV/JSON) | 13 (lote 3) |
-| C11 · Reportes mínimos | 12 (lote 3) |
+| C10 · Respaldo y salida (CSV/JSON) | 13 Respaldo y datos |
+| C11 · Reportes mínimos | 12 Reportes mínimos |
 
 ---
 
@@ -318,6 +352,8 @@ Las decisiones están registradas y justificadas una por una en [`design/decisio
 - **DS-23…DS-27** — pantallas: frame 360×640, estados honestos, vacíos que enseñan, unirse requiere
   internet y lo dice, pantalla **Productos** añadida (hueco del spec, ver DS-26), controles
   segmentados de 48px en una línea.
+- **DS-28…DS-30** — lote 3: filas de fiados con signo + tono (cargo ámbar / abono verde), invitar es
+  lo único que requiere internet, y reportes/respaldo se calculan localmente.
 
 > **Pendiente de revisión del dueño:** DS-26 propone añadir «Productos» como enmienda al spec `005`.
 
@@ -325,16 +361,18 @@ Las decisiones están registradas y justificadas una por una en [`design/decisio
 
 ## Hoja de ruta
 
-1. **Lote 3 de pantallas (10–13):** detalle de cliente (compartir estado de cuenta por WhatsApp, C6.5),
-   empleados (código de invitación + PIN, C1.2/C7), reportes mínimos (C11) y respaldo/exportar CSV-JSON (C10).
-2. **Fase 4 · cierre:** checklist WCAG 2.2 por componente, lint y cobertura — sin hallazgos bloqueantes.
-3. **`specs/003-plan-tecnico.md`:** PWA offline-first (IndexedDB + outbox sync, last-write-wins por campo),
-   escaneo con `BarcodeDetector` + fallback ZXing/WASM, libro de movimientos inmutable, RLS por negocio,
-   `docker-compose` de 1 comando, presupuesto JS ≤150KB gzip / TTI ≤3s en gama baja.
-4. **`specs/004-roadmap.md`:** hitos M0–M4 y plan de adopción.
+1. **Implementación — `specs/003-plan-tecnico.md`:** PWA offline-first (IndexedDB + outbox sync,
+   last-write-wins por campo), escaneo con `BarcodeDetector` + fallback ZXing/WASM, libro de
+   movimientos inmutable, RLS por negocio, `docker-compose` de 1 comando, presupuesto JS ≤150KB gzip /
+   TTI ≤3s en gama baja. Incluye la QA de accesibilidad con lector de pantalla real y zoom 200%
+   listada en `ACCESSIBILITY.md` §4.
+2. **`specs/004-roadmap.md`:** hitos M0–M4 y plan de adopción.
 
-Pendientes abiertos registrados: variante «sin mínimo» de la tarjeta de producto, y confirmar que el
-padding inferior de la navegación despeja el FAB central con datos reales.
+Todas las fases de diseño (F1 fundaciones, F2 componentes, F3 pantallas con lotes 1–3, F4 cierre
+WCAG) están **entregadas**; el proyecto pasa a la fase de implementación.
+
+Pendientes abiertos registrados: variante «sin mínimo» de la tarjeta de producto, revisión de DS-26
+por el dueño, y confirmar que el padding inferior de la navegación despeja el FAB central con datos reales.
 
 ---
 
@@ -369,8 +407,9 @@ PWA for small neighborhood stores in El Salvador. It targets low-digital-literac
 entirely offline, and keeps Spanish as the first language.
 
 What's here: a token-driven design system built on **Radix Colors v3** (Teal action / Sand neutrals /
-Amber for money), self-hosted **Atkinson Hyperlegible Next**, a **Lucide** icon sprite, and **9 screen
-mockups** (41 states at 360×640) rendered as plain HTML/CSS/JS with **no build step**.
+Amber for money), self-hosted **Atkinson Hyperlegible Next**, a **Lucide** icon sprite, and **13 screen
+mockups** (60 states at 360×640) rendered as plain HTML/CSS/JS with **no build step**. A full WCAG 2.2
+AA checklist lives in `design/ACCESSIBILITY.md`.
 
 Verification: a **60-pair WCAG 2.2 AA contrast matrix** (`design/tokens/verify_contrast.py`) passes in
 both light and dark modes, and the design is fully reproducible from the scripts in `design/tools/`.
