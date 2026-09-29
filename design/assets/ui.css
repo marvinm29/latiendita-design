@@ -1,0 +1,245 @@
+/* LaTiendita — component classes (Phase 3 preview / Phase 4 screens)
+ * Contract (DESIGN.md §10): semantic tokens only · light+dark free · ≥48px targets ·
+ * focus ring 2px+2px offset · never color-alone · Spanish copy, tú neutro.
+ */
+
+/* ============ Buttons ============ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--size-touch-min);
+  min-width: var(--size-touch-min);
+  padding: 0 var(--space-5);
+  border: var(--border-hairline) solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-base);
+  cursor: pointer;
+  text-align: center;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+.btn-primary { background: var(--color-action); color: var(--color-text-on-action); }
+.btn-primary:hover, .btn-primary.is-hover { background: var(--color-action-hover); }
+.btn-secondary {
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+.btn-secondary:hover, .btn-secondary.is-hover { background: var(--color-surface-hover); }
+.btn-icon {
+  padding: 0;
+  width: var(--size-touch-min);
+  color: var(--color-text);
+}
+.btn-icon:hover, .btn-icon.is-hover { background: var(--color-surface-hover); }
+/* In-frame segmented control: compact padding so 3 options fit one 360px line (DS-27) */
+.btn-segment {
+  padding: 0 var(--space-2);
+  min-width: 0;
+}
+.btn:disabled, .btn.is-disabled {
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+  border-color: var(--color-border-card);
+  cursor: not-allowed;
+}
+
+/* ============ Form field ============ */
+.field { display: flex; flex-direction: column; gap: var(--space-1); }
+.field-label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+.field-input {
+  width: 100%;
+  min-height: var(--size-touch-min);
+  padding: 0 var(--space-3);
+  background: var(--color-surface-sunken);
+  border: var(--border-hairline) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+}
+.field-input::placeholder { color: var(--color-text-muted); }
+.field-help { font-size: var(--font-size-sm); line-height: var(--line-height-sm); color: var(--color-text-muted); }
+.field.is-error .field-input { border-color: var(--color-danger-accent); }
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: var(--color-danger-text);
+}
+.field-input:disabled { color: var(--color-text-muted); cursor: not-allowed; }
+
+/* ============ Chips / badges (status + pending sync) ============ */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+.chip-success { background: var(--color-success-bg); color: var(--color-success-text); }
+.chip-warning { background: var(--color-warning-bg); color: var(--color-warning-text); }
+.chip-danger { background: var(--color-danger-bg); color: var(--color-danger-text); }
+.chip-credit { background: var(--color-credit); color: var(--color-text-on-credit); }
+/* "por sincronizar" — neutral on purpose (DS-17): sync state ≠ money ≠ error */
+.chip-pending {
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+  border: var(--border-hairline) solid var(--color-border-strong);
+  font-weight: var(--font-weight-regular);
+}
+
+/* ============ Offline banner (persistent, layout-reserved) ============ */
+.offline-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface-sunken);
+  border-bottom: var(--border-hairline) solid var(--color-border-strong);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+}
+.offline-banner strong { font-weight: var(--font-weight-bold); }
+
+/* ============ Cards ============ */
+.card {
+  background: var(--color-surface-card);
+  border: var(--border-hairline) solid var(--color-border-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+.card-row { display: flex; align-items: center; gap: var(--space-3); width: 100%; text-align: left; }
+.card-title { font-size: var(--font-size-lg); line-height: var(--line-height-lg); font-weight: var(--font-weight-bold); }
+.card-meta { font-size: var(--font-size-sm); line-height: var(--line-height-sm); color: var(--color-text-muted); }
+.card-amount {
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-xl);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.card-chevron { color: var(--color-text-muted); margin-left: auto; }
+
+/* product card specifics */
+.product-price { font-size: var(--font-size-lg); line-height: var(--line-height-lg); font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; }
+
+/* customer card specifics (fiados) */
+.balance-label { font-size: var(--font-size-sm); line-height: var(--line-height-sm); color: var(--color-text-muted); }
+.balance-amount { color: var(--color-credit-text); }
+.balance-amount .icon { color: var(--color-credit-accent); }
+
+/* ============ Numeric keypad (amounts) ============ */
+.keypad { display: flex; flex-direction: column; gap: var(--space-3); }
+.keypad-display {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--size-row-min);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-sunken);
+  border: var(--border-hairline) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-3xl);
+  line-height: var(--line-height-3xl);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.keypad-display .currency { font-size: var(--font-size-lg); color: var(--color-text-muted); }
+.keypad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
+.key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--size-key);
+  background: var(--color-surface-sunken);
+  border: var(--border-hairline) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+.key:hover, .key.is-hover { background: var(--color-surface-hover); }
+.key:disabled, .key.is-disabled { color: var(--color-text-muted); border-color: var(--color-border-card); cursor: not-allowed; }
+
+/* ============ Scan FAB ============ */
+.fab-scan {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-fab);
+  height: var(--size-fab);
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-action);
+  color: var(--color-text-on-action);
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+.fab-scan:hover, .fab-scan.is-hover { background: var(--color-action-hover); }
+
+/* ============ Bottom navigation ============ */
+.bottom-nav {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: stretch;
+  width: 100%;
+  min-height: var(--size-nav-h);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--color-surface-page);
+  border-top: var(--border-hairline) solid var(--color-border-card);
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: var(--size-nav-h);
+  padding: var(--space-1);
+  border-radius: var(--radius-lg);
+  margin: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+.nav-item:hover, .nav-item.is-hover { background: var(--color-surface-hover); }
+/* active: teal-2 pill + teal-12 text (icon inherits label color — 11.47:1 verified ≥3:1 for icon) */
+.nav-item.is-active {
+  background: var(--color-nav-active-bg);
+  color: var(--color-nav-active-text);
+}
+.nav-center { justify-content: flex-end; gap: var(--space-1); }
+.nav-center .fab-scan { margin-top: calc(var(--size-fab) / -2 - var(--space-1)); }
+.nav-center .nav-label { padding-bottom: var(--space-1); }
+
+/* ============ Segmented options (sort, movement type, period) ============ */
+[aria-pressed="true"].btn {
+  background: var(--color-nav-active-bg);
+  color: var(--color-nav-active-text);
+  border-color: var(--color-border-card);
+}

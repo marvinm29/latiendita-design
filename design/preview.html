@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LaTiendita — Componentes (Fase 3)</title>
+<!--
+  Phase 3 preview — core components, ONLY design tokens.
+  Chain: tokens/tokens.css (colors/dims) → assets/base.css (font/focus) →
+         assets/ui.css (component classes) → assets/theme.js (Tailwind bridge, layout utilities only).
+  Tailwind is vendored locally (assets/tailwind.js) so the file works offline.
+  It is a preview tool, not product JS — the ≤150KB gzip budget applies to app code.
+-->
+<link rel="stylesheet" href="tokens/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/ui.css">
+<script src="assets/tailwind.js"></script>
+<script src="assets/theme.js"></script>
+</head>
+<body>
+
+<!-- Lucide icons — ISC license — lucide-static v1.48.0 — generated sprite -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+<symbol id="i-alert_triangle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+  <path d="M12 9v4" />
+  <path d="M12 17h.01" /></symbol>
+<symbol id="i-arrow_left_right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4" />
+  <path d="M4 7h16" />
+  <path d="m16 21 4-4-4-4" />
+  <path d="M20 17H4" /></symbol>
+<symbol id="i-arrow_left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7" />
+  <path d="M19 12H5" /></symbol>
+<symbol id="i-bar_chart_3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16" />
+  <path d="M18 17V9" />
+  <path d="M13 17V5" />
+  <path d="M8 17v-3" /></symbol>
+<symbol id="i-barcode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14" />
+  <path d="M8 5v14" />
+  <path d="M12 5v14" />
+  <path d="M17 5v14" />
+  <path d="M21 5v14" /></symbol>
+<symbol id="i-book_open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v16" />
+  <path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" /></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z" />
+  <circle cx="12" cy="13" r="3" /></symbol>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></symbol>
+<symbol id="i-chevron_right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></symbol>
+<symbol id="i-circle_alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" />
+  <line x1="12" x2="12" y1="8" y2="12" />
+  <line x1="12" x2="12.01" y1="16" y2="16" /></symbol>
+<symbol id="i-circle_check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" />
+  <path d="m16 9-5.5 5.5L8 12" /></symbol>
+<symbol id="i-clipboard_list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+  <path d="M12 11h4" />
+  <path d="M12 16h4" />
+  <path d="M8 11h.01" />
+  <path d="M8 16h.01" /></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" />
+  <path d="M12 6v6l4 2" /></symbol>
+<symbol id="i-coins" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.744 17.736a6 6 0 1 1-7.48-7.48" />
+  <path d="M15 6h1v4" />
+  <path d="m6.134 14.768.866-.5 2 3.464" />
+  <circle cx="16" cy="8" r="6" /></symbol>
+<symbol id="i-delete" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 0 0-1.344.519l-6.328 5.74a1 1 0 0 0 0 1.481l6.328 5.741A2 2 0 0 0 10 19h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z" />
+  <path d="m12 9 6 6" />
+  <path d="m18 9-6 6" /></symbol>
+<symbol id="i-file_down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
+  <path d="M14 2v5a1 1 0 0 0 1 1h5" />
+  <path d="M12 18v-6" />
+  <path d="m9 15 3 3 3-3" /></symbol>
+<symbol id="i-flashlight" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 13v1" />
+  <path d="M17 2a1 1 0 0 1 1 1v4a3 3 0 0 1-.6 1.8l-.6.8A4 4 0 0 0 16 12v8a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-8a4 4 0 0 0-.8-2.4l-.6-.8A3 3 0 0 1 6 7V3a1 1 0 0 1 1-1z" />
+  <path d="M6 6h12" /></symbol>
+<symbol id="i-house" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+  <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></symbol>
+<symbol id="i-keyboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 8h.01" />
+  <path d="M12 12h.01" />
+  <path d="M14 8h.01" />
+  <path d="M16 12h.01" />
+  <path d="M18 8h.01" />
+  <path d="M6 8h.01" />
+  <path d="M7 16h10" />
+  <path d="M8 12h.01" />
+  <rect width="20" height="16" x="2" y="4" rx="2" /></symbol>
+<symbol id="i-log_out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 17 5-5-5-5" />
+  <path d="M21 12H9" />
+  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16" />
+  <path d="M4 12h16" />
+  <path d="M4 19h16" /></symbol>
+<symbol id="i-message_circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" /></symbol>
+<symbol id="i-more_horizontal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1" />
+  <circle cx="19" cy="12" r="1" />
+  <circle cx="5" cy="12" r="1" /></symbol>
+<symbol id="i-package_check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12" />
+  <path d="m16 17 2 2 4-4" />
+  <path d="M21 11.127V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.32-.753" />
+  <path d="M3.29 7 12 12l8.71-5" />
+  <path d="m7.5 4.27 8.997 5.148" /></symbol>
+<symbol id="i-package_minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12" />
+  <path d="M16 17h6" />
+  <path d="M21 13V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.675-.955" />
+  <path d="M3.29 7 12 12l8.71-5" />
+  <path d="m7.5 4.27 8.997 5.148" /></symbol>
+<symbol id="i-package_plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12" />
+  <path d="M16 17h6" />
+  <path d="M19 14v6" />
+  <path d="M21 10.535V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.675-.955" />
+  <path d="M3.29 7 12 12l8.71-5" />
+  <path d="m7.5 4.27 8.997 5.148" /></symbol>
+<symbol id="i-package_x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12" />
+  <path d="m16.5 14.5 5 5" />
+  <path d="m16.5 19.5 5-5" />
+  <path d="M21 10.5V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l.13-.074" />
+  <path d="M3.29 7 12 12l8.71-5" />
+  <path d="m7.5 4.27 8.997 5.148" /></symbol>
+<symbol id="i-package" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" />
+  <path d="M12 22V12" />
+  <polyline points="3.29 7 12 12 20.71 7" />
+  <path d="m7.5 4.27 9 5.15" /></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+  <path d="m15 5 4 4" /></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" /></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" />
+  <path d="M12 5v14" /></symbol>
+<symbol id="i-refresh_cw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+  <path d="M21 3v5h-5" />
+  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+  <path d="M8 16H3v5" /></symbol>
+<symbol id="i-scan_barcode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2" />
+  <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+  <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+  <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+  <path d="M8 7v10" />
+  <path d="M12 7v10" />
+  <path d="M17 7v10" /></symbol>
+<symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34" />
+  <circle cx="11" cy="11" r="8" /></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
+  <circle cx="12" cy="12" r="3" /></symbol>
+<symbol id="i-share_2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3" />
+  <circle cx="6" cy="12" r="3" />
+  <circle cx="18" cy="19" r="3" />
+  <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" />
+  <line x1="15.41" x2="8.59" y1="6.51" y2="10.49" /></symbol>
+<symbol id="i-trash_2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6" />
+  <path d="M14 11v6" />
+  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+  <path d="M3 6h18" />
+  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></symbol>
+<symbol id="i-triangle_alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+  <path d="M12 9v4" />
+  <path d="M12 17h.01" /></symbol>
+<symbol id="i-user_plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+  <circle cx="9" cy="7" r="4" />
+  <line x1="19" x2="19" y1="8" y2="14" />
+  <line x1="22" x2="16" y1="11" y2="11" /></symbol>
+<symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+  <path d="M16 3.128a4 4 0 0 1 0 7.744" />
+  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+  <circle cx="9" cy="7" r="4" /></symbol>
+<symbol id="i-wifi_off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01" />
+  <path d="M8.5 16.429a5 5 0 0 1 7 0" />
+  <path d="M5 12.859a10 10 0 0 1 5.17-2.69" />
+  <path d="M19 12.859a10 10 0 0 0-2.007-1.523" />
+  <path d="M2 8.82a15 15 0 0 1 4.177-2.643" />
+  <path d="M22 8.82a15 15 0 0 0-11.288-3.764" />
+  <path d="m2 2 20 20" /></symbol>
+<symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" />
+  <path d="m6 6 12 12" /></symbol>
+</svg>
+
+<div class="mx-auto w-full max-w-[420px] px-4 pb-16">
+
+  <!-- ===== Header ===== -->
+  <header class="pt-6 pb-4">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-bold">LaTiendita</h1>
+        <p class="demo-note">Componentes · Fase 3 · solo tokens</p>
+      </div>
+      <div class="flex rounded-md border border-strong p-1" role="group" aria-label="Tema">
+        <button type="button" data-theme-btn class="btn btn-secondary !px-3 text-sm" data-value="auto" aria-pressed="true">Auto</button>
+        <button type="button" data-theme-btn class="btn btn-secondary !px-3 text-sm" data-value="light" aria-pressed="false">Claro</button>
+        <button type="button" data-theme-btn class="btn btn-secondary !px-3 text-sm" data-value="dark" aria-pressed="false">Oscuro</button>
+      </div>
+    </div>
+    <p class="demo-note mt-3">
+      Cambia el tema y verifica cada componente en ambos modos.
+      Contraste: <strong>60/60 pares WCAG 2.2 AA</strong> → <code>tokens/verify_contrast.py</code>
+    </p>
+  </header>
+
+  <main class="stack">
+
+    <!-- ===== 1. Botones ===== -->
+    <section aria-labelledby="s-botones">
+      <h2 id="s-botones" class="text-xl font-bold mb-1">Botones</h2>
+      <p class="demo-note mb-3">Altura mínima 48px · etiqueta siempre visible · 16/700</p>
+
+      <span class="demo-label">Primario</span>
+      <div class="flex flex-wrap items-end gap-3 mb-4">
+        <div>
+          <button type="button" class="btn btn-primary">Guardar producto</button>
+          <span class="demo-label mt-1">normal</span>
+        </div>
+        <div>
+          <button type="button" class="btn btn-primary is-hover">Guardar producto</button>
+          <span class="demo-label mt-1">hover (teal-10)</span>
+        </div>
+        <div>
+          <button type="button" class="btn btn-primary is-focus">Guardar producto</button>
+          <span class="demo-label mt-1">foco (anillo 2+2)</span>
+        </div>
+        <div>
+          <button type="button" class="btn btn-primary" disabled>Guardar producto</button>
+          <span class="demo-label mt-1">deshabilitado</span>
+        </div>
+      </div>
+
+      <span class="demo-label">Secundario</span>
+      <div class="flex flex-wrap items-end gap-3 mb-4">
+        <div>
+          <button type="button" class="btn btn-secondary">Cancelar</button>
+          <span class="demo-label mt-1">normal</span>
+        </div>
+        <div>
+          <button type="button" class="btn btn-secondary is-hover">Cancelar</button>
+          <span class="demo-label mt-1">hover</span>
+        </div>
+        <div>
+          <button type="button" class="btn btn-secondary is-focus">Cancelar</button>
+          <span class="demo-label mt-1">foco</span>
+        </div>
+        <div>
+          <button type="button" class="btn btn-secondary" disabled>Cancelar</button>
+          <span class="demo-label mt-1">deshabilitado</span>
+        </div>
+      </div>
+
+      <span class="demo-label">Icono (siempre con nombre accesible)</span>
+      <div class="flex flex-wrap items-end gap-3">
+        <div>
+          <button type="button" class="btn btn-icon" aria-label="Agregar producto">
+            <svg class="w-icon h-icon"><use href="#i-plus"></use></svg>
+          </button>
+          <span class="demo-label mt-1">normal</span>
+        </div>
+        <div>
+          <button type="button" class="btn btn-icon is-hover" aria-label="Editar">
+            <svg class="w-icon h-icon"><use href="#i-pencil"></use></svg>
+          </button>
+          <span class="demo-label mt-1">hover</span>
+        </div>
+        <div>
+          <button type="button" class="btn btn-icon is-focus" aria-label="Compartir por WhatsApp">
+            <svg class="w-icon h-icon"><use href="#i-share_2"></use></svg>
+          </button>
+          <span class="demo-label mt-1">foco</span>
+        </div>
+        <div>
+          <button type="button" class="btn btn-icon" aria-label="Eliminar" disabled>
+            <svg class="w-icon h-icon"><use href="#i-trash_2"></use></svg>
+          </button>
+          <span class="demo-label mt-1">deshabilitado</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 2. Campo de formulario ===== -->
+    <section aria-labelledby="s-campo">
+      <h2 id="s-campo" class="text-xl font-bold mb-1">Campo de formulario</h2>
+      <p class="demo-note mb-3">Etiqueta visible siempre (nunca solo placeholder) · 48px · ayuda o error en texto</p>
+
+      <div class="grid gap-4">
+        <div class="field">
+          <label class="field-label" for="f-nombre">Nombre del producto</label>
+          <input class="field-input" id="f-nombre" type="text" value="Galletas Charme" autocomplete="off">
+          <span class="field-help">Así se verá en la lista y en el escaneo.</span>
+        </div>
+
+        <div class="field is-error">
+          <label class="field-label" for="f-precio">Precio de venta</label>
+          <input class="field-input" id="f-precio" type="text" inputmode="decimal" value="1," aria-invalid="true" aria-describedby="f-precio-err">
+          <span class="field-error" id="f-precio-err">
+            <svg class="w-icon-sm h-icon-sm" aria-hidden="true"><use href="#i-circle_alert"></use></svg>
+            Ingresa un precio válido, por ejemplo 1.25
+          </span>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="f-codigo">Código de barras</label>
+          <input class="field-input" id="f-codigo" type="text" value="7501234567890" disabled>
+          <span class="field-help">Se llenó al escanear — no se puede editar aquí.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 3. Teclado numérico ===== -->
+    <section aria-labelledby="s-teclado">
+      <h2 id="s-teclado" class="text-xl font-bold mb-1">Teclado numérico</h2>
+      <p class="demo-note mb-3">Para montos (fiados, abonos, conteos) · teclas 56px · dígitos grandes y tabulares</p>
+
+      <div class="keypad max-w-[320px]">
+        <div class="keypad-display" role="status" aria-live="polite" aria-label="Monto: 12 dólares con 50 centavos">
+          <span class="currency">$</span><span>12.50</span>
+        </div>
+        <div class="keypad-grid">
+          <button type="button" class="key">1</button>
+          <button type="button" class="key">2</button>
+          <button type="button" class="key">3</button>
+          <button type="button" class="key">4</button>
+          <button type="button" class="key is-hover">5</button>
+          <button type="button" class="key">6</button>
+          <button type="button" class="key">7</button>
+          <button type="button" class="key">8</button>
+          <button type="button" class="key">9</button>
+          <button type="button" class="key" aria-label="Punto decimal">.</button>
+          <button type="button" class="key">0</button>
+          <button type="button" class="key" aria-label="Borrar último dígito">
+            <svg class="w-icon h-icon"><use href="#i-delete"></use></svg>
+          </button>
+        </div>
+      </div>
+      <p class="demo-note mt-2">La tecla “5” muestra el estado hover. Foco: anillo teal 2px + 2px de separación.</p>
+    </section>
+
+    <!-- ===== 4. Tarjeta de producto ===== -->
+    <section aria-labelledby="s-producto">
+      <h2 id="s-producto" class="text-xl font-bold mb-1">Tarjeta de producto</h2>
+      <p class="demo-note mb-3">Nivel de stock con icono + texto (nunca solo color) · 3 estados</p>
+
+      <div class="grid gap-3">
+        <article class="card">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <h3 class="card-title">Refresco Big Cola 355ml</h3>
+              <p class="card-meta">Bebidas · por unidad</p>
+            </div>
+            <span class="chip chip-success">
+              <svg class="w-4 h-4" aria-hidden="true"><use href="#i-package_check"></use></svg>
+              En stock
+            </span>
+          </div>
+          <div class="flex items-center justify-between gap-3 mt-3">
+            <span class="product-price">$0.75</span>
+            <span class="card-meta tabular">12 uds</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <h3 class="card-title">Harina Selecta 5 lb</h3>
+              <p class="card-meta">Abarrotes · por unidad</p>
+            </div>
+            <span class="chip chip-warning">
+              <svg class="w-4 h-4" aria-hidden="true"><use href="#i-alert_triangle"></use></svg>
+              Bajo mínimo
+            </span>
+          </div>
+          <div class="flex items-center justify-between gap-3 mt-3">
+            <span class="product-price">$1.10</span>
+            <span class="card-meta tabular">3 uds · mínimo 5</span>
+          </div>
+          <div class="mt-3">
+            <span class="chip chip-pending">
+              <svg class="w-4 h-4" aria-hidden="true"><use href="#i-clock"></use></svg>
+              por sincronizar
+            </span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <h3 class="card-title">Leche Doña Vera 1 L</h3>
+              <p class="card-meta">Lácteos · por unidad</p>
+            </div>
+            <span class="chip chip-danger">
+              <svg class="w-4 h-4" aria-hidden="true"><use href="#i-package_x"></use></svg>
+              Agotado
+            </span>
+          </div>
+          <div class="flex items-center justify-between gap-3 mt-3">
+            <span class="product-price">$0.95</span>
+            <span class="card-meta tabular">0 uds</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===== 5. Tarjeta de cliente ===== -->
+    <section aria-labelledby="s-cliente">
+      <h2 id="s-cliente" class="text-xl font-bold mb-1">Tarjeta de cliente (fiados)</h2>
+      <p class="demo-note mb-3">Saldo con ámbar = dinero adeudado · antigüedad en texto · toque abre el historial</p>
+
+      <div class="grid gap-3">
+        <article class="card">
+          <button type="button" class="card-row" aria-label="Doña Rosa, debe 12 dólares con 50 centavos, último movimiento hace 12 días. Ver detalle.">
+            <div class="min-w-0 flex-1">
+              <h3 class="card-title">Doña Rosa</h3>
+              <p class="balance-label">Saldo</p>
+              <p class="card-amount balance-amount flex items-center gap-2">
+                <svg class="w-icon h-icon icon" aria-hidden="true"><use href="#i-coins"></use></svg>
+                $12.50
+              </p>
+              <p class="card-meta mt-1">Último movimiento hace 12 días</p>
+            </div>
+            <svg class="w-icon h-icon card-chevron" aria-hidden="true"><use href="#i-chevron_right"></use></svg>
+          </button>
+        </article>
+
+        <article class="card">
+          <button type="button" class="card-row" aria-label="Don Carlos, saldo al día. Ver detalle.">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="card-title">Don Carlos</h3>
+                <span class="chip chip-pending">
+                  <svg class="w-4 h-4" aria-hidden="true"><use href="#i-clock"></use></svg>
+                  por sincronizar
+                </span>
+              </div>
+              <p class="balance-label">Saldo</p>
+              <p class="card-amount flex items-center gap-2">
+                <span class="chip chip-success">
+                  <svg class="w-4 h-4" aria-hidden="true"><use href="#i-check"></use></svg>
+                  Al día
+                </span>
+              </p>
+              <p class="card-meta mt-1">Abonó $5.00 hoy</p>
+            </div>
+            <svg class="w-icon h-icon card-chevron" aria-hidden="true"><use href="#i-chevron_right"></use></svg>
+          </button>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===== 6. Estados de conexión ===== -->
+    <section aria-labelledby="s-conexion">
+      <h2 id="s-conexion" class="text-xl font-bold mb-1">Estados de conexión</h2>
+      <p class="demo-note mb-3">Siempre visibles · neutrales (no ámbar ni rojo: eso es para fiados y problemas)</p>
+
+      <span class="demo-label">Banner persistente (va bajo el encabezado, siempre reservado en el layout)</span>
+      <div class="rounded-lg border border-strong overflow-hidden mb-4">
+        <div class="offline-banner" role="status">
+          <svg class="w-icon-sm h-icon-sm" aria-hidden="true"><use href="#i-wifi_off"></use></svg>
+          <span><strong>Sin conexión</strong> — se sincronizará al reconectar</span>
+        </div>
+        <div class="p-4 card-meta">El contenido sigue visible y editable aquí.</div>
+      </div>
+
+      <span class="demo-label">Insignia “por sincronizar” (dato guardado en el teléfono, sin confirmar)</span>
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="chip chip-pending">
+          <svg class="w-4 h-4" aria-hidden="true"><use href="#i-clock"></use></svg>
+          por sincronizar
+        </span>
+        <span class="demo-note">Se pone en la fila o tarjeta afectada, con texto + icono.</span>
+      </div>
+    </section>
+
+    <!-- ===== 7. Navegación ===== -->
+    <section aria-labelledby="s-nav">
+      <h2 id="s-nav" class="text-xl font-bold mb-1">Navegación inferior y FAB</h2>
+      <p class="demo-note mb-3">5 destinos máx · Escanear al centro y al pulgar · icono + etiqueta siempre</p>
+
+      <span class="demo-label">FAB de escaneo (56px — en uso va sobre la barra, con etiqueta visible)</span>
+      <div class="flex items-end gap-4 mb-5">
+        <button type="button" class="fab-scan" aria-label="Escanear código de barras">
+          <svg class="w-icon-lg h-icon-lg"><use href="#i-scan_barcode"></use></svg>
+        </button>
+        <span class="demo-note">Teal-9 + texto oscuro (5.31:1) · borde contra página 3.02:1</span>
+      </div>
+
+      <span class="demo-label">Barra completa — Inicio activo</span>
+      <nav class="bottom-nav mb-4" aria-label="Navegación principal (demo 1)">
+        <a href="#" class="nav-item is-active" aria-current="page">
+          <svg class="w-icon-sm h-icon-sm" aria-hidden="true"><use href="#i-house"></use></svg>
+          Inicio
+        </a>
+        <a href="#" class="nav-item">
+          <svg class="w-icon-sm h-icon-sm" aria-hidden="true"><use href="#i-package"></use></svg>
+          Productos
+        </a>
+        <a href="#" class="nav-item nav-center">
+          <span class="fab-scan" aria-hidden="true">
+            <svg class="w-icon-lg h-icon-lg"><use href="#i-scan_barcode"></use></svg>
+          </span>
+          <span class="nav-label">Escanear</span>
+        </a>
+        <a href="#" class="nav-item">
+          <svg class="w-icon-sm h-icon-sm" aria-hidden="true"><use href="#i-book_open"></use></svg>
+          Fiados
+        </a>
+        <a href="#" class="nav-item">
+          <svg class="w-icon-sm h-icon-sm" aria-hidden="true"><use href="#i-menu"></use></svg>
+          Más
+        </a>
+      </nav>
+
+      <span class="demo-label">Barra completa — Fiados activo</span>
+      <nav class="bottom-nav" aria-label="Navegación principal (demo 2)">
+        <a href="#" class="nav-item">
+          <svg class="w-icon-sm h-icon-sm" aria-hidden="true"><use href="#i-house"></use></svg>
+          Inicio
+        </a>
+        <a href="#" class="nav-item">
+          <svg class="w-icon-sm h-icon-sm" aria-hidden="true"><use href="#i-package"></use></svg>
+          Productos
+        </a>
+        <a href="#" class="nav-item nav-center" aria-current="page">
+          <span class="fab-scan" aria-hidden="true">
+            <svg class="w-icon-lg h-icon-lg"><use href="#i-scan_barcode"></use></svg>
+          </span>
+          <span class="nav-label">Escanear</span>
+        </a>
+        <a href="#" class="nav-item is-active" aria-current="page">
+          <svg class="w-icon-sm h-icon-sm" aria-hidden="true"><use href="#i-book_open"></use></svg>
+          Fiados
+        </a>
+        <a href="#" class="nav-item">
+          <svg class="w-icon-sm h-icon-sm" aria-hidden="true"><use href="#i-menu"></use></svg>
+          Más
+        </a>
+      </nav>
+    </section>
+
+  </main>
+
+  <footer class="mt-10 pt-4 border-t border-card demo-note">
+    <p>Fase 3 de 5. Docs: <a class="text-link underline" href="DESIGN.md">DESIGN.md</a> ·
+      <a class="text-link underline" href="decisions.md">decisions.md</a> ·
+      lint: <code>python3 tokens/verify_contrast.py</code></p>
+  </footer>
+</div>
+
+<script>
+  // Tema: Auto = sin data-theme (prefers-color-scheme) · Claro/Oscuro = data-theme explícito
+  const btns = document.querySelectorAll('[data-theme-btn]');
+  function applyTheme(v) {
+    if (v === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', v);
+    btns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.value === v)));
+  }
+  btns.forEach(b => b.addEventListener('click', () => applyTheme(b.dataset.value)));
+</script>
+</body>
+</html>
