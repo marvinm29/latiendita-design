@@ -11,13 +11,19 @@
       "default": "./src/index.ts"
     }
   },
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "devDependencies": {
+    "fake-indexeddb": "^6.2.5",
     "typescript": "^5.7.2",
     "vitest": "^3.0.2"
+  },
+  "dependencies": {
+    "dexie": "^4.4.6"
   }
 }
