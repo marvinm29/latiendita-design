@@ -73,11 +73,11 @@ manda sobre el diseño (si algo contradice el spec, se cambia el spec primero).
 | Plan técnico (implementación) | `specs/003-plan-tecnico.md` | ✅ escrito — pendiente de revisión |
 | Roadmap / adopción | `specs/004-roadmap.md` | ✅ escrito — pendiente de revisión |
 | **M0 · Cimientos** | monorepo pnpm (`apps/`, `packages/`, `infra/`) + CI + RLS base | ✅ scaffold (Lighthouse/size-limit placeholders) |
-| **M1 · Núcleo offline** | dominio puro `packages/core` (libro, stock, unidades, fiados, outbox) | 🟡 64 tests — falta Dexie + UI C2–C5 |
+| **M1 · Núcleo offline** | dominio puro `packages/core` + capa Dexie + UI C2–C5 (catálogo, producto, movimiento, conteo, escáner) | 🟡 83 tests — falta movimientos UI→Dexie, ZXing fallback, e2e offline |
 | Decisiones P1/P2/DS-26 | issues #1–#5 en GitHub | ⏳ abiertas (P1 rec. AGPL-3.0) |
 
 Números actuales: **60/60 pares de contraste AA** en ambos modos, **13 pantallas / 60 marcos**,
-**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **64 tests** de dominio.
+**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **83 tests** de dominio y repos.
 
 ---
 

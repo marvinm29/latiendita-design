@@ -36,11 +36,11 @@ el **plan técnico + roadmap**, y el **monorepo de implementación** (M0 scaffol
 | Plan técnico (`003`) | ✅ escrito — pendiente de revisión del dueño |
 | Roadmap (`004`) | ✅ escrito — pendiente de revisión del dueño |
 | **M0 · Cimientos** | ✅ scaffold monorepo + CI + RLS base + docker-compose (placeholders Lighthouse/size-limit) |
-| **M1 · Núcleo offline** | 🟡 dominio puro en `packages/core` (libro/stock/unidades/fiados/outbox, 64 tests) — falta Dexie + UI C2–C5 |
+| **M1 · Núcleo offline** | 🟡 dominio puro (64 tests) + **capa Dexie** (19 tests, transacción libro+outbox) + **UI C2–C5** (catálogo/producto/movimiento/conteo/escáner con BarcodeDetector lazy + teclado manual; catálogo ya sobre Dexie) — falta: movimientos UI→Dexie, ZXing-wasm fallback, e2e offline C2–C5 |
 | **M2+** | ⏳ no iniciada — **P2 (login)** bloquea M2 |
 | Licencia del proyecto | ⏳ sin definir (**P1** = issue [#2](https://github.com/marvinm29/latiendita-design/issues/2), rec. AGPL-3.0). **No hay `LICENSE` a propósito.** |
 
-Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · 64 tests core.
+Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · 83 tests core.
 
 ## 3. Decisiones cerradas — NO reabrir
 
@@ -92,7 +92,7 @@ No committear sin pedirlo explícitamente.
 ## 6. Próximos pasos sugeridos
 
 - **(1)** Cerrar **P1/P2** vía issues [#2](https://github.com/marvinm29/latiendita-design/issues/2)/[#1](https://github.com/marvinm29/latiendita-design/issues/1) (comentar decisión) → añadir `LICENSE`.
-- **(2)** Seguir **M1**: repos Dexie + `storage.persist()`, catálogo/escáner/movimiento/conteo con UI (pantallas 4–8), e2e offline C2–C5.
+- **(2)** Seguir **M1**: movimientos/fiados UI → repos Dexie de core, ZXing-wasm perezoso (fallback BarcodeDetector), e2e offline C2–C5 con Playwright `setOffline`.
 - **(3)** Endurecer **M0**: size-limit y Lighthouse reales en CI (hoy placeholders), ESLint, `drizzle-kit`.
 - **(4)** Aprobar **DS-26** (issue #3) y diseñar tarjeta “sin mínimo” (#4).
 

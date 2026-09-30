@@ -47,8 +47,8 @@ Fase: Spec Driven Development
 ├── Preguntas abiertas P1–P5 ................ ⏳ abiertas — issues #1 (P2), #2 (P1); P3–P5 asumidos
 ├── Plan técnico (003) ...................... ✅ escrito — pendiente de revisión del dueño
 ├── Roadmap/milestones (004) ................ ✅ escrito — pendiente de revisión del dueño
-└── Implementación .......................... 🟡 M0 scaffold ✅ · M1 dominio core ✅ (64 tests) ·
-                                              Dexie/UI pendientes · M2 bloqueado por P2 (issue #1)
+└── Implementación .......................... 🟡 M0 scaffold ✅ · M1: dominio core (64) + Dexie (19)
+                                              + UI C2–C5 ✅ — falta e2e offline · M2 bloqueado por P2 (issue #1)
 
 Fase: Diseño (OpenDesigner) — artefactos en design/
 ├── F1 Fundaciones (tokens DTCG + DESIGN.md + decisions.md) ..... ✅ aprobado
