@@ -1,0 +1,113 @@
+/* Movimiento rápido (C4) — estilos sobre design/assets/ui.css. Sólo tokens. */
+
+/* Buscador y lista de productos (patrón compartido con 05-productos). */
+.buscador {
+  position: relative;
+}
+
+.buscador-icono {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.buscador .field-input {
+  padding-left: calc(var(--space-3) + var(--size-icon) + var(--space-2));
+}
+
+.lista-productos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.mov-selector-cuerpo {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Cabecera del producto seleccionado: nombre + botón Cambiar. */
+.mov-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.mov-cabecera-titulos {
+  min-width: 0;
+}
+
+.mov-stock {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
+/* Sentido del ajuste (Sumar/Restar) bajo el teclado. */
+.mov-signo {
+  margin-top: var(--space-2);
+}
+
+/* Preview del stock resultante (icono + texto, nunca color solo). */
+.mov-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+/* Aviso local “por sincronizar”. */
+.mov-aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Historial append-only: tipo + cantidad + fecha + nota + Corregir. */
+.mov-historial {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: var(--border-hairline) solid var(--color-border-card);
+}
+
+.mov-fila {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.mov-fila-icono {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.mov-fila-icono.mov-tipo-entrada {
+  color: var(--color-success-text);
+}
+
+.mov-fila-icono.mov-tipo-salida {
+  color: var(--color-warning-text);
+}
+
+.mov-fila-cuerpo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.mov-fila .btn {
+  flex-shrink: 0;
+}

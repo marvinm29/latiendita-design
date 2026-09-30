@@ -1,0 +1,123 @@
+/* Conteo asistido (C5.2) — estilos sobre design/assets/ui.css. Sólo tokens. */
+
+/* Buscador y lista de productos (patrón compartido con 05-productos). */
+.buscador {
+  position: relative;
+}
+
+.buscador-icono {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.buscador .field-input {
+  padding-left: calc(var(--space-3) + var(--size-icon) + var(--space-2));
+}
+
+.lista-productos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.conteo-selector-cuerpo {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Línea de “sin conexión” del mockup (el banner global vive en App). */
+.conteo-offline {
+  text-align: center;
+}
+
+/* Aviso de código desconocido */
+.conteo-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+/* Progreso “n de m productos”. */
+.conteo-progreso {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* Producto en espera de captura. */
+.conteo-actual {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.conteo-pregunta {
+  margin-top: var(--space-2);
+}
+
+.conteo-capturar {
+  margin-top: var(--space-3);
+}
+
+/* Lista de diferencias (icono + texto, nunca color solo). */
+.conteo-fila {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.conteo-fila-cuerpo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* Acciones de fase (Guardar ajustes / Seguir contando, etc.). */
+.conteo-acciones {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.conteo-acciones .btn {
+  flex: 1;
+  min-width: 140px;
+}
+
+/* Confirmación previa (3.3.4). */
+.conteo-dialogo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border: var(--border-hairline) solid var(--color-border-strong);
+}
+
+.conteo-dialogo-acciones {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.conteo-dialogo-acciones .btn {
+  flex: 1;
+}
+
+/* Bloque de elección de producto desde la lista. */
+.conteo-elegir {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.conteo-resumen-texto {
+  line-height: 1.5;
+}

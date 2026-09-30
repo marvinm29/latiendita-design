@@ -1,8 +1,25 @@
 import type { VNode } from "preact";
-import { isSectionActive, matchPath, navigate, useLocation, type PathParams } from "./router";
+import { useEffect } from "preact/hooks";
+import {
+  isSectionActive,
+  matchPath,
+  navigate,
+  onNavClick,
+  useLocation,
+  type PathParams,
+} from "./router";
+import { BannerOffline } from "./componentes/BannerOffline";
+import { ListaProductos } from "./paginas/productos/ListaProductos";
+import { FormProducto } from "./paginas/productos/FormProducto";
+import { Escanear } from "./paginas/escanear/Escanear";
+import { Movimiento } from "./paginas/movimiento/Movimiento";
+import { Conteo } from "./paginas/conteo/Conteo";
 
 type PageProps = { params: PathParams };
 type Page = (props: PageProps) => VNode;
+
+/** Acción del header (un solo botón, espejo de design/tools/shell.py). */
+type HeaderAccion = { href: string; etiqueta: string; icono: string };
 
 type Route = {
   path: string;
@@ -10,6 +27,12 @@ type Route = {
   /** Muestra la nav inferior (5 destinos) en esta ruta. */
   nav: boolean;
   page: Page;
+  /** Botón “← Volver” a la izquierda del header (flujos centrados). */
+  volver?: string;
+  /** Acción única a la derecha del header (p. ej. “+” Agregar producto). */
+  accion?: HeaderAccion;
+  /** La página trae CTA pegajoso al pie: el contenido ocupa todo el bajo. */
+  pie?: boolean;
 };
 
 function Placeholder({ title, note }: { title: string; note: string }): VNode {
@@ -19,14 +42,6 @@ function Placeholder({ title, note }: { title: string; note: string }): VNode {
       <p class="card-meta">{note}</p>
     </section>
   );
-}
-
-/** Navegación SPA en cualquier `<a href="/…">` del shell. */
-function onNavClick(event: MouseEvent): void {
-  const anchor = event.currentTarget as HTMLAnchorElement;
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-  event.preventDefault();
-  navigate(anchor.pathname);
 }
 
 const welcome: Page = () => (
@@ -64,40 +79,19 @@ const inicio: Page = () => (
   </>
 );
 
-const escanear: Page = () => (
-  <Placeholder
-    title="Escanear"
-    note="Pantalla 4 — BarcodeDetector → ZXing-wasm perezoso → teclado manual (T-06). Chunk perezoso en M1."
-  />
-);
+const escanear: Page = () => <Escanear />;
 
-const productos: Page = () => (
-  <Placeholder
-    title="Productos"
-    note="Pantalla 5 — catálogo local con búsqueda sin internet (C2). Alta y edición en M1."
-  />
-);
+const productos: Page = () => <ListaProductos />;
 
-const productoNuevo: Page = () => (
-  <Placeholder
-    title="Producto nuevo"
-    note="Pantalla 6 — alta escaneada o manual, sin bloquear si no hay red (D3/P4, métrica 2)."
-  />
-);
+const productoNuevo: Page = () => <FormProducto params={{}} />;
 
-const movimiento: Page = () => (
-  <Placeholder
-    title="Movimiento"
-    note="Pantalla 7 — entrada/salida/ajuste con conversión bulto↔unidad (C2.3 / C4)."
-  />
-);
+const productoEditar: Page = ({ params }) => <FormProducto params={params} />;
 
-const conteo: Page = () => (
-  <Placeholder
-    title="Conteo"
-    note="Pantalla 8 — conteo asistido que genera los ajustes del diferencial (C5.2)."
-  />
-);
+const movimiento: Page = () => <Movimiento params={{}} />;
+
+const movimientoDirecto: Page = ({ params }) => <Movimiento params={params} />;
+
+const conteo: Page = () => <Conteo />;
 
 const fiados: Page = () => (
   <Placeholder
@@ -169,9 +163,15 @@ const routes: Route[] = [
   { path: "/unirse", title: "Unirme a una tienda", nav: false, page: unirse },
   { path: "/inicio", title: "Hola, Marta", nav: true, page: inicio },
   { path: "/escanear", title: "Escanear", nav: true, page: escanear },
-  { path: "/productos", title: "Productos", nav: true, page: productos },
-  { path: "/productos/nuevo", title: "Producto nuevo", nav: true, page: productoNuevo },
+  { path: "/productos", title: "Productos", nav: true, page: productos, accion: {
+    href: "/productos/nuevo",
+    etiqueta: "Agregar producto",
+    icono: "i-plus",
+  } },
+  { path: "/productos/nuevo", title: "Producto nuevo", nav: false, page: productoNuevo, volver: "/productos", pie: true },
+  { path: "/productos/:id", title: "Editar producto", nav: false, page: productoEditar, volver: "/productos", pie: true },
   { path: "/movimiento", title: "Movimiento", nav: true, page: movimiento },
+  { path: "/movimiento/:id", title: "Movimiento", nav: true, page: movimientoDirecto },
   { path: "/conteo", title: "Conteo", nav: true, page: conteo },
   { path: "/fiados", title: "Fiados", nav: true, page: fiados },
   { path: "/fiados/:id", title: "Cliente", nav: true, page: cliente },
@@ -212,7 +212,7 @@ function BottomNav({ pathname }: { pathname: string }): VNode {
       {navDestinations.map((dest) => {
         const active = isSectionActive(pathname, dest.href);
         const icon = (
-          <svg class="w-icon h-icon" aria-hidden="true">
+          <svg class="icono" aria-hidden="true">
             <use href={`#${dest.icon}`} />
           </svg>
         );
@@ -268,16 +268,59 @@ function NotFound(): VNode {
 export function App(): VNode {
   const { pathname } = useLocation();
   const match = findRoute(pathname);
-  const title = match?.route.title ?? "LaTiendita";
-  const showNav = match?.route.nav ?? false;
-  const Page = match?.route.page;
+  const route = match?.route;
+  const title = route?.title ?? "LaTiendita";
+  const showNav = route?.nav ?? false;
+  const Page = route?.page;
+
+  // Título de la pestaña por ruta (DESIGN: una pantalla = un título).
+  useEffect(() => {
+    document.title = title === "LaTiendita" ? title : `${title} · LaTiendita`;
+  }, [title]);
+
+  const rutaVolver = route?.volver;
+  const volver = rutaVolver ? (
+    <button
+      type="button"
+      class="btn btn-icon"
+      aria-label="Volver"
+      onClick={() => navigate(rutaVolver)}
+    >
+      <svg class="icono" aria-hidden="true">
+        <use href="#i-arrow_left" />
+      </svg>
+    </button>
+  ) : null;
+
+  const accion = route?.accion ? (
+    <a
+      class="btn btn-icon"
+      href={route.accion.href}
+      aria-label={route.accion.etiqueta}
+      onClick={onNavClick}
+    >
+      <svg class="icono" aria-hidden="true">
+        <use href={`#${route.accion.icono}`} />
+      </svg>
+    </a>
+  ) : null;
+
+  const relleno = <span class="header-relleno" aria-hidden="true" />;
 
   return (
     <div class="app">
       <header class="page-header">
+        {volver ?? (accion ? relleno : null)}
         <h1>{title}</h1>
+        {accion ?? (volver ? relleno : null)}
       </header>
-      <main class={showNav ? "app-main" : "app-main no-nav"} id="contenido">
+      <BannerOffline />
+      <main
+        class={
+          (showNav ? "app-main" : "app-main no-nav") + (route?.pie ? " con-pie" : "")
+        }
+        id="contenido"
+      >
         {Page && match ? <Page params={match.params} /> : <NotFound />}
       </main>
       {showNav ? <BottomNav pathname={pathname} /> : null}

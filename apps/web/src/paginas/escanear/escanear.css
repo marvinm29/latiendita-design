@@ -1,0 +1,93 @@
+/* Escáner (C3) — estilos sobre design/assets/ui.css. Sólo tokens semánticos. */
+
+.escaner-instruccion {
+  text-align: center;
+}
+
+/* Visor de cámara con marco y línea láser (espejo de 04-escanear). */
+.escaner-visor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 240px;
+  overflow: hidden;
+  background: var(--color-surface-sunken);
+  border: var(--border-hairline) solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+}
+
+.escaner-visor video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.escaner-marco {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 220px;
+  height: 120px;
+  border: 2px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.escaner-laser {
+  position: absolute;
+  left: 70px;
+  right: 70px;
+  top: 50%;
+  height: 2px;
+  background: var(--color-border-strong);
+  pointer-events: none;
+}
+
+.escaner-acciones {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.escaner-acciones .btn {
+  flex: 1;
+  white-space: nowrap;
+}
+
+/* Contenedor enfocable del teclado manual (tras error de cámara, C3.2). */
+.escaner-teclado {
+  outline: none;
+}
+
+.escaner-teclado .keypad-display {
+  margin-top: var(--space-2);
+}
+
+/* Tarjeta de producto detectado */
+.escaner-producto-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.escaner-producto-titulos {
+  min-width: 0;
+}
+
+.escaner-producto-precio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+/* Botón principal a lo ancho (flujo centrado, mockup 04). */
+.btn-bloque {
+  width: 100%;
+}

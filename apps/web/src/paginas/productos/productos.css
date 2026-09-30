@@ -1,0 +1,213 @@
+/* Catálogo (C2) — estilos de pantalla sobre design/assets/ui.css.
+ * Sólo tokens semánticos; sin colores nuevos, sin Tailwind runtime. */
+
+/* ---- Buscador (icono a la izquierda, espejo de 05-productos) ---- */
+.buscador {
+  position: relative;
+}
+
+.buscador-icono {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.buscador .field-input {
+  padding-left: calc(var(--space-3) + var(--size-icon) + var(--space-2));
+}
+
+/* ---- Filtro segmentado: Todos · Bajo mínimo · Agotados (DS-27) ---- */
+.segment-group {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: var(--border-hairline) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+}
+
+.segment-group .btn {
+  flex: 1;
+  white-space: nowrap;
+}
+
+/* ---- Resumen y avisos ---- */
+.resumen-catalogo {
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.aviso-lista {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* ---- Lista de productos ---- */
+.lista-productos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.fila-producto-cuerpo {
+  flex: 1;
+  min-width: 0;
+}
+
+.fila-producto-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.fila-producto-titulos {
+  min-width: 0;
+}
+
+.fila-producto-precio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.fila-producto-codigo {
+  overflow-wrap: anywhere;
+}
+
+/* ---- Estado vacío / sin resultados / filtro sin coincidencias ---- */
+.estado-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-5);
+}
+
+.estado-vacio-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-16);
+  height: var(--space-16);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+}
+
+.estado-vacio-texto {
+  max-width: 260px;
+}
+
+.estado-vacio-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 260px;
+  margin-top: var(--space-1);
+}
+
+.estado-vacio-acciones .btn {
+  width: 100%;
+}
+
+/* ---- Error de carga (icono + texto + Reintentar) ---- */
+.aviso-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.aviso-error-icono {
+  flex-shrink: 0;
+  color: var(--color-danger-text);
+}
+
+.aviso-error-cuerpo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.aviso-error-cuerpo .btn {
+  align-self: flex-start;
+  margin-top: var(--space-2);
+}
+
+/* ---- Formulario producto (06-nuevo-producto) ---- */
+.form-producto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.form-producto .field-ayuda-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* CTA pegajoso en la zona del pulgar: hijo directo de .app-main (con-pie). */
+.app-main .cta-sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin-top: auto;
+  margin-left: calc(var(--space-4) * -1);
+  margin-right: calc(var(--space-4) * -1);
+  padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  background: var(--color-surface-page);
+  border-top: var(--border-hairline) solid var(--color-border-card);
+}
+
+.app-main .cta-sticky .btn {
+  width: 100%;
+}
+
+/* ---- Zona de borrado lógico (edición) ---- */
+.zona-peligro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: var(--border-hairline) solid var(--color-border-card);
+}
+
+.btn-destructive {
+  background: var(--color-destructive);
+  color: var(--color-text-on-destructive);
+  border-color: transparent;
+}
+
+.btn-destructive:hover,
+.btn-destructive.is-hover {
+  background: var(--color-destructive-hover);
+}
+
+.confirmar-eliminar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.confirmar-acciones {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.confirmar-acciones .btn {
+  flex: 1;
+}

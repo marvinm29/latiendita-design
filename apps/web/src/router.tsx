@@ -29,6 +29,17 @@ export function subscribe(listener: Listener): () => void {
   };
 }
 
+/**
+ * Delegado de clic para cualquier `<a href="/…">` del shell (evita recargar).
+ * Úsalo así: `onClick={onNavClick}`.
+ */
+export function onNavClick(event: MouseEvent): void {
+  const anchor = event.currentTarget as HTMLAnchorElement;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  navigate(anchor.pathname);
+}
+
 /** Pathname actual (reactivo). */
 export function useLocation(): { pathname: string } {
   const [pathname, setPathname] = useState(window.location.pathname);
