@@ -1,0 +1,25 @@
+{
+  "name": "@latiendita/ui",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Componentes Preact sobre design/assets/ui.css + tokens.",
+  "main": "./index.tsx",
+  "types": "./index.tsx",
+  "exports": {
+    ".": {
+      "types": "./index.tsx",
+      "default": "./index.tsx"
+    }
+  },
+  "files": ["index.tsx"],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "preact": "^10.0.0"
+  },
+  "devDependencies": {
+    "preact": "^10.25.4",
+    "typescript": "^5.7.2"
+  }
+}

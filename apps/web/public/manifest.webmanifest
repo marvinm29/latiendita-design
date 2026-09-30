@@ -1,0 +1,21 @@
+{
+  "name": "LaTiendita",
+  "short_name": "LaTiendita",
+  "description": "Inventario y fiados para tu tienda. Funciona sin internet.",
+  "lang": "es-SV",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdfdfc",
+  "theme_color": "#12a594",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

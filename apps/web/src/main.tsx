@@ -1,0 +1,19 @@
+import { render } from "preact";
+import sprite from "../../../design/assets/icons.svg?raw";
+import "@latiendita/tokens/tokens.css";
+import "../../../design/assets/base.css";
+import "../../../design/assets/ui.css";
+import "./shell.css";
+import { App } from "./app";
+
+// Sprite Lucide (design/assets/icons.svg) una sola vez en el documento.
+const spriteHost = document.createElement("div");
+spriteHost.className = "icon-sprite";
+spriteHost.setAttribute("aria-hidden", "true");
+spriteHost.innerHTML = sprite;
+document.body.prepend(spriteHost);
+
+const root = document.getElementById("app");
+if (root) {
+  render(<App />, root);
+}

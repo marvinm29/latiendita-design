@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    name: lint · tipos · tests · build · size
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v4
+        # Usa "packageManager" del package.json raíz
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (tsc --noEmit en todos los workspaces)
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests (vitest)
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Presupuesto de tamaño (placeholder → size-limit)
+        run: pnpm size
+
+      # M0: Lighthouse CI y size-limit con rutas reales se conectan cuando el
+      # shell tenga bundles estables (003 §8 · 004 M0). Placeholder intencional.
+      # - name: Lighthouse CI
+      #   uses: treosh/lighthouse-ci-action@v12

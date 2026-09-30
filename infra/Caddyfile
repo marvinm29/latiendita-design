@@ -1,0 +1,23 @@
+# LaTiendita — Caddy (reverse proxy + TLS automático) · T-08
+# Requiere perfil "tls" en docker compose y DOMAIN apuntando a esta máquina.
+# En desarrollo local sin TLS, usa la API directa en http://localhost:3000.
+
+{
+	# email opcional para avisos de Let's Encrypt (cámbialo en producción)
+	# email admin@ejemplo.com
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# API Fastify
+	reverse_proxy api:3000
+
+	# Cabeceras básicas de seguridad (003 §7) — CSP estricta se afina en M2
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+	}
+}

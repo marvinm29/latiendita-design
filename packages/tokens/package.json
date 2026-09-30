@@ -1,0 +1,23 @@
+{
+  "name": "@latiendita/tokens",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Design tokens (DTCG → CSS) — copia actualizable de design/tokens.",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./tokens.css": "./tokens.css"
+  },
+  "files": ["index.ts", "tokens.css"],
+  "scripts": {
+    "sync": "cp ../../design/tokens/tokens.css ./tokens.css",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

@@ -13,3 +13,25 @@ Thumbs.db
 # Local tooling
 node_modules/
 .opencode/
+
+# Node / build
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.vite/
+
+# Entornos (nunca commitear secretos — ver infra/.env.example)
+.env
+.env.*
+!.env.example
+*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+pnpm-debug.yaml*
+
+# Volumes locales de docker (si se montan en el repo)
+infra/data/

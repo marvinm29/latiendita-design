@@ -1,0 +1,96 @@
+# LaTiendita — docker-compose (T-08): API + Postgres 16 (+ Caddy opcional).
+# 5 variables: DOMAIN, POSTGRES_PASSWORD, SESSION_SECRET, DEMO_SEED, BACKUP_CRON.
+# Uso (Carlos): copiar infra/.env.example → infra/.env, editar, luego `docker compose up -d`.
+name: latiendita
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: latiendita
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Definí POSTGRES_PASSWORD en infra/.env}
+      POSTGRES_DB: latiendita
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      # Migraciones SQL se aplican en el primer arranque (initdb.d).
+      - ../apps/api/src/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U latiendita -d latiendita"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/api.Dockerfile
+    restart: unless-stopped
+    environment:
+      # Mismo usuario/DB que el servicio db (no son variables externas).
+      DATABASE_URL: postgres://latiendita:${POSTGRES_PASSWORD:?Definí POSTGRES_PASSWORD en infra/.env}@db:5432/latiendita
+      SESSION_SECRET: ${SESSION_SECRET:?Definí SESSION_SECRET en infra/.env}
+      DEMO_SEED: ${DEMO_SEED:-false}
+      PORT: "3000"
+      HOST: 0.0.0.0
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    # Exposición directa sólo para dev sin Caddy; en producción va detrás de Caddy.
+    ports:
+      - "3000:3000"
+
+  # Reverse proxy + TLS automático (Let's Encrypt) — perfil "tls".
+  # Activar: docker compose --profile tls up -d
+  caddy:
+    profiles: ["tls"]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Definí DOMAIN en infra/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Respaldos programados con pg_dump — perfil "backup".
+  # BACKUP_CRON (ej. "0 3 * * *") define la hora; salida en volumen backup_data.
+  # Activar: docker compose --profile backup up -d
+  # backup:
+  #   profiles: ["backup"]
+  #   image: postgres:16-alpine
+  #   environment:
+  #     PGPASSWORD: ${POSTGRES_PASSWORD}
+  #     BACKUP_CRON: ${BACKUP_CRON}
+  #   volumes:
+  #     - backup_data:/backups
+  #     - ../apps/api/src/migrations:/migrations:ro
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+
+volumes:
+  db_data:
+  caddy_data:
+  caddy_config:
+  # backup_data:
