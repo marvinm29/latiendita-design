@@ -10,10 +10,10 @@ Open source, sin costo, **español primero**. Usuarios: **Marta** (dueña, poca 
 Android gama baja), **José** (empleado), **Carlos** (instalador técnico).
 
 Este repo contiene la **especificación (SDD)**, el **sistema de diseño** y los **mockups de pantalla**,
-y el **plan técnico + roadmap**. La **implementación aún no ha comenzado**.
+el **plan técnico + roadmap**, y el **monorepo de implementación** (M0 scaffold + núcleo de dominio M1).
 
 - Repo: https://github.com/marvinm29/latiendita-design · rama `main`
-- Directorio de trabajo: raíz del repo (contiene `specs/` y `design/`)
+- Directorio de trabajo: raíz del repo (`specs/`, `design/`, `apps/`, `packages/`, `infra/`)
 - Idioma del proyecto: **español** (docs e interfaz). UI con **tú neutro** y lenguaje llano.
 - Fuente de verdad: `specs/002-especificacion-funcional.md` (§3 alcance, §5 NFRs, §6 métricas, §7 P1–P5).
 
@@ -35,10 +35,12 @@ y el **plan técnico + roadmap**. La **implementación aún no ha comenzado**.
 | Diseño F1 fundaciones · F2 componentes · F3 pantallas (13) · F4 cierre WCAG | ✅ entregado |
 | Plan técnico (`003`) | ✅ escrito — pendiente de revisión del dueño |
 | Roadmap (`004`) | ✅ escrito — pendiente de revisión del dueño |
-| **Implementación** | ❌ no iniciada — bloqueada por cerrar **P1 (licencia)** y **P2 (login)** |
-| Licencia del proyecto | ⏳ sin definir (**P1**: MIT vs AGPL-3.0). **No hay `LICENSE` a propósito.** |
+| **M0 · Cimientos** | ✅ scaffold monorepo + CI + RLS base + docker-compose (placeholders Lighthouse/size-limit) |
+| **M1 · Núcleo offline** | 🟡 dominio puro en `packages/core` (libro/stock/unidades/fiados/outbox, 64 tests) — falta Dexie + UI C2–C5 |
+| **M2+** | ⏳ no iniciada — **P2 (login)** bloquea M2 |
+| Licencia del proyecto | ⏳ sin definir (**P1** = issue [#2](https://github.com/marvinm29/latiendita-design/issues/2), rec. AGPL-3.0). **No hay `LICENSE` a propósito.** |
 
-Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide.
+Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · 64 tests core.
 
 ## 3. Decisiones cerradas — NO reabrir
 
@@ -53,36 +55,46 @@ Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 
   banner offline exacto “Sin conexión — se sincronizará al reconectar”, nunca color solo, WCAG 2.2 AA.
 - **Regla de oro:** *el spec manda*. Si algo contradice `specs/002`, se actualiza el spec **primero**.
 
-## 4. Tareas abiertas (pendientes del dueño)
+## 4. Tareas abiertas (issues en GitHub)
 
-1. **P1 · Licencia** (MIT vs AGPL-3.0) — bloquea `LICENSE`/SPDX y el arranque de implementación.
-2. **P2 · Login de empleados** — propuesta: código de invitación + PIN. Bloquea M2.
-3. **P3/P4/P5** — una bodega (asumido), OFF manual-first (asumido), límite de fiado (campo reservado).
-4. **DS-26** — aprobar la pantalla **Productos** como enmienda al spec `005` §4.
-5. Variante **“sin mínimo”** de la tarjeta de producto (sin diseñar).
-6. Confirmar que el `pb-20` de la nav despeja el FAB central con datos reales.
+1. **P1 · Licencia** — [#2](https://github.com/marvinm29/latiendita-design/issues/2) MIT vs AGPL-3.0 (rec. AGPL). Bloquea `LICENSE`/SPDX.
+2. **P2 · Login de empleados** — [#1](https://github.com/marvinm29/latiendita-design/issues/1) código+PIN. Bloquea M2.
+3. **DS-26** — [#3](https://github.com/marvinm29/latiendita-design/issues/3) aprobar pantalla Productos (enmienda spec `005` §4).
+4. **Tarjeta “sin mínimo”** — [#4](https://github.com/marvinm29/latiendita-design/issues/4) variante por diseñar.
+5. **`pb-20` vs FAB** — [#5](https://github.com/marvinm29/latiendita-design/issues/5) confirmar con datos reales.
+6. P3/P4/P5 — asumidos (una bodega, OFF manual-first, límite de fiado reservado).
 
-## 5. Comandos verificables (sin build para ver el diseño)
+## 5. Comandos verificables
 
 ```bash
+# Diseño (sin build)
 python3 -m http.server 8000        # abre design/preview.html y design/screens/*.html
 python3 design/tokens/verify_contrast.py   # matriz WCAG 2.2 AA (60 pares) → 0 fallos
-python3 design/tools/qa.py                 # QA estática de pantallas → 13 pantallas · 60 marcos · 0 hallazgos
+python3 design/tools/qa.py                 # QA estática → 13 pantallas · 60 marcos · 0 hallazgos
 python3 design/tools/batch1.py             # regenera pantallas 01–04
 python3 design/tools/batch2.py             # regenera pantallas 05–09
 python3 design/tools/batch3.py             # regenera pantallas 10–13
-python3 design/tokens/generate.py          # regenera tokens DTCG/CSS desde Radix vendorizado
+python3 design/tokens/generate.py          # regenera tokens DTCG/CSS
+
+# Implementación (pnpm)
+pnpm install
+pnpm typecheck && pnpm lint && pnpm test && pnpm build
+pnpm --filter @latiendita/api dev          # API en :3000 (health)
+pnpm --filter @latiendita/web dev          # Vite en :5173
+docker compose -f infra/docker-compose.yml up -d   # api + db + caddy (requiere plugin compose)
+
+gh issue list                              # decisiones abiertas P1/P2/DS-26/…
 ```
 
-Todo es HTML/CSS/JS plano, **sin dependencias externas en runtime** (Radix, Lucide, fuente y Tailwind
-están vendorizados). No committear sin pedirlo explícitamente.
+Diseño: HTML/CSS/JS plano, **sin dependencias externas en runtime**. Implementación: pnpm workspaces.
+No committear sin pedirlo explícitamente.
 
-## 6. Próximos pasos sugeridos (elegir con el dueño)
+## 6. Próximos pasos sugeridos
 
-- **(A)** Abrir issues de **P1/P2** (y DS-26 / tarjeta “sin mínimo”) con `gh` para cerrar decisiones.
-- **(B)** Arrancar **M0** (`specs/004` §3): scaffold del monorepo pnpm (`apps/web`, `apps/api`,
-  `packages/{core,tokens,ui}`, `infra/`), CI con `size-limit` + Lighthouse, Postgres+RLS base.
-- **(C)** Iniciar **M1** (núcleo offline) en paralelo: dominio puro en `packages/core` con unit tests.
+- **(1)** Cerrar **P1/P2** vía issues [#2](https://github.com/marvinm29/latiendita-design/issues/2)/[#1](https://github.com/marvinm29/latiendita-design/issues/1) (comentar decisión) → añadir `LICENSE`.
+- **(2)** Seguir **M1**: repos Dexie + `storage.persist()`, catálogo/escáner/movimiento/conteo con UI (pantallas 4–8), e2e offline C2–C5.
+- **(3)** Endurecer **M0**: size-limit y Lighthouse reales en CI (hoy placeholders), ESLint, `drizzle-kit`.
+- **(4)** Aprobar **DS-26** (issue #3) y diseñar tarjeta “sin mínimo” (#4).
 
 ## 7. Prompt de traspaso (copiar/pegar en una sesión nueva)
 

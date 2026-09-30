@@ -7,10 +7,10 @@
 ![Sin build](https://img.shields.io/badge/build-no_requerido-0ea5e9)
 ![Licencia](https://img.shields.io/badge/licencia-por_definir_(P1)-f59e0b)
 
-> Este repositorio contiene la **especificación**, el **sistema de diseño** y los **mockups de pantalla**
-> del proyecto (fases SDD + diseño F1–F4), más el **plan técnico** de implementación. Todo lo visual se
-> abre en HTML/CSS plano, sin compilar nada. El objetivo del proyecto es impacto comunitario real, no
-> monetización: **open source, sin costo, en español primero**.
+> Este repositorio contiene la **especificación**, el **sistema de diseño**, los **mockups de pantalla**
+> y el **monorepo de implementación** (M0 + núcleo de dominio M1) del proyecto. El diseño se abre en
+> HTML/CSS plano sin compilar; la app se construye con pnpm. El objetivo es impacto comunitario real,
+> no monetización: **open source, sin costo, en español primero**.
 
 ---
 
@@ -72,9 +72,12 @@ manda sobre el diseño (si algo contradice el spec, se cambia el spec primero).
 | **F4 · Cierre** | checklist WCAG 2.2 AA (`ACCESSIBILITY.md`) + lint + cobertura | ✅ entregado |
 | Plan técnico (implementación) | `specs/003-plan-tecnico.md` | ✅ escrito — pendiente de revisión |
 | Roadmap / adopción | `specs/004-roadmap.md` | ✅ escrito — pendiente de revisión |
+| **M0 · Cimientos** | monorepo pnpm (`apps/`, `packages/`, `infra/`) + CI + RLS base | ✅ scaffold (Lighthouse/size-limit placeholders) |
+| **M1 · Núcleo offline** | dominio puro `packages/core` (libro, stock, unidades, fiados, outbox) | 🟡 64 tests — falta Dexie + UI C2–C5 |
+| Decisiones P1/P2/DS-26 | issues #1–#5 en GitHub | ⏳ abiertas (P1 rec. AGPL-3.0) |
 
 Números actuales: **60/60 pares de contraste AA** en ambos modos, **13 pantallas / 60 marcos**,
-**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`).
+**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **64 tests** de dominio.
 
 ---
 

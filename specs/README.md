@@ -44,10 +44,11 @@ sostenibilidad aspiracional al estilo jshERP (código libre siempre; convenienci
 Fase: Spec Driven Development
 ├── Research de mercado y prior art .......... ✅ (000, 001)
 ├── Especificación funcional v1 ............. ✅ (002) — pendiente de aceptación formal
-├── Preguntas abiertas P1–P5 ................ ⏳ abiertas (P1 licencia y P2 login impactan el plan técnico)
+├── Preguntas abiertas P1–P5 ................ ⏳ abiertas — issues #1 (P2), #2 (P1); P3–P5 asumidos
 ├── Plan técnico (003) ...................... ✅ escrito — pendiente de revisión del dueño
 ├── Roadmap/milestones (004) ................ ✅ escrito — pendiente de revisión del dueño
-└── Implementación .......................... ⏳ lista para arrancar (faltan cerrar P1/P2)
+└── Implementación .......................... 🟡 M0 scaffold ✅ · M1 dominio core ✅ (64 tests) ·
+                                              Dexie/UI pendientes · M2 bloqueado por P2 (issue #1)
 
 Fase: Diseño (OpenDesigner) — artefactos en design/
 ├── F1 Fundaciones (tokens DTCG + DESIGN.md + decisions.md) ..... ✅ aprobado
