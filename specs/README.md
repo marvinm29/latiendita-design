@@ -23,7 +23,7 @@ sostenibilidad aspiracional al estilo jshERP (código libre siempre; convenienci
 | `002-especificacion-funcional.md` | **Spec v1**: visión, personas, 11 capacidades con criterios Gherkin, NFRs medibles, métricas de éxito, preguntas abiertas P1–P5 | ✅ Completo — requiere revisión/acceptance del dueño |
 | `005-prompt-opendesigner.md` | Prompt maestro de prototipado, decisión de sistema de color (Radix/Teal/Sand/Amber, S8), protocolo de iteración en 4 fases | ✅ Completo — ejecutar con OpenDesigner para generar fundaciones + mockups |
 | `003-plan-tecnico.md` | **Plan técnico v1**: stack (Preact/Fastify/Postgres+RLS), arquitectura offline/sync (outbox + LWW por campo + ledger append-only), modelo de datos, seguridad, presupuesto de rendimiento, estrategia de pruebas y hitos M0–M4 | ✅ Completo — requiere revisión del dueño |
-| `004-roadmap.md` | Hitos, fases, tareas, plan de adopción | ⏳ **Siguiente tarea** |
+| `004-roadmap.md` | **Roadmap y adopción**: hitos M0–M4 (tareas, criterios de salida, camino crítico), gates de calidad, plan de adopción D11 y post-v1 | ✅ Completo — requiere revisión del dueño |
 
 ## 3. Decisiones cerradas en conversación (no repetidas en los docs)
 
@@ -46,8 +46,8 @@ Fase: Spec Driven Development
 ├── Especificación funcional v1 ............. ✅ (002) — pendiente de aceptación formal
 ├── Preguntas abiertas P1–P5 ................ ⏳ abiertas (P1 licencia y P2 login impactan el plan técnico)
 ├── Plan técnico (003) ...................... ✅ escrito — pendiente de revisión del dueño
-├── Roadmap/milestones (004) ................ ⏳ SIGUIENTE PASO
-└── Implementación .......................... ❌ no iniciada
+├── Roadmap/milestones (004) ................ ✅ escrito — pendiente de revisión del dueño
+└── Implementación .......................... ⏳ lista para arrancar (faltan cerrar P1/P2)
 
 Fase: Diseño (OpenDesigner) — artefactos en design/
 ├── F1 Fundaciones (tokens DTCG + DESIGN.md + decisions.md) ..... ✅ aprobado
@@ -61,7 +61,7 @@ Fase: Diseño (OpenDesigner) — artefactos en design/
 1. Lee `002-especificacion-funcional.md` (fuente de verdad del producto) y `003-plan-tecnico.md` (cómo se construye).
 2. Cierra con el dueño las preguntas P1–P5 (licencia, login de empleados, multi-bodega, OFF, límite de fiado); **P1 (licencia) y P2 (login)** impactan directo el plan técnico.
 3. Revisa/aprueba `003-plan-tecnico.md` (stack, arquitectura offline/sync, modelo de datos, seguridad, pruebas).
-4. Escribe `004-roadmap.md` con hitos M0–M4 (borrador ya en `003` §13) y el plan de adopción D11.
+4. Revisa/aprueba `004-roadmap.md` (hitos M0–M4, gates de calidad y plan de adopción D11).
 5. El diseño ya está entregado (fases F1–F4 en `design/`). Para verlo: `python3 -m http.server` y abre `design/preview.html` o `design/screens/03-inicio.html`. La accesibilidad (WCAG 2.2 AA) está en `design/ACCESSIBILITY.md`.
 
 ## 6. Reglas de proyecto

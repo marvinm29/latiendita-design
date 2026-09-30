@@ -71,7 +71,7 @@ manda sobre el diseño (si algo contradice el spec, se cambia el spec primero).
 | **F3 · Pantallas** | 13 pantallas × estados (60 marcos a 360×640) | ✅ lotes 1, 2 y 3 |
 | **F4 · Cierre** | checklist WCAG 2.2 AA (`ACCESSIBILITY.md`) + lint + cobertura | ✅ entregado |
 | Plan técnico (implementación) | `specs/003-plan-tecnico.md` | ✅ escrito — pendiente de revisión |
-| Roadmap / hitos | `specs/004-roadmap.md` | ⏳ siguiente |
+| Roadmap / adopción | `specs/004-roadmap.md` | ✅ escrito — pendiente de revisión |
 
 Números actuales: **60/60 pares de contraste AA** en ambos modos, **13 pantallas / 60 marcos**,
 **42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`).
@@ -221,6 +221,7 @@ generación y auditoría.
 │   ├── 001-research-global.md        Research global (Khatabook, Peddlr, jshERP…)
 │   ├── 002-especificacion-funcional.md  Spec v1: capacidades C1–C11, personas, NFRs
 │   ├── 003-plan-tecnico.md           Plan técnico: stack, arquitectura offline/sync, modelo, pruebas
+│   ├── 004-roadmap.md               Roadmap M0–M4, gates de calidad y plan de adopción
 │   ├── 005-prompt-opendesigner.md    Prompt maestro + sistema de color + fases
 │   └── README.md                     Índice y estado de la sesión
 └── design/
@@ -369,8 +370,11 @@ Las decisiones están registradas y justificadas una por una en [`design/decisio
    append-only), modelo de datos, seguridad, presupuesto JS ≤150KB gzip / TTI ≤3s en gama baja y
    estrategia de pruebas. Incluye la QA de accesibilidad con lector de pantalla real y zoom 200%
    listada en `ACCESSIBILITY.md` §4.
-2. **`specs/004-roadmap.md` (siguiente):** hitos M0–M4 (borrador en `003` §13) y plan de adopción D11.
-3. **Implementación:** arranca tras cerrar P1 (licencia) y P2 (login) con el dueño.
+2. **Roadmap — ✅ [`specs/004-roadmap.md`](specs/004-roadmap.md):** hitos M0–M4 (tareas, criterios de
+   salida, camino crítico), gates de calidad obligatorios, plan de adopción D11 (comunidad + self-host)
+   y qué viene después de v1.
+3. **Implementación (siguiente):** arranca tras cerrar P1 (licencia) y P2 (login) con el dueño; M1 (núcleo
+   offline) puede empezar en paralelo.
 
 Todas las fases de diseño (F1 fundaciones, F2 componentes, F3 pantallas con lotes 1–3, F4 cierre
 WCAG) están **entregadas**; el proyecto está listo para la fase de implementación.
