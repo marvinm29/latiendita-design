@@ -10,37 +10,42 @@ Open source, sin costo, **español primero**. Usuarios: **Marta** (dueña, poca 
 Android gama baja), **José** (empleado), **Carlos** (instalador técnico).
 
 Este repo contiene la **especificación (SDD)**, el **sistema de diseño** y los **mockups de pantalla**,
-el **plan técnico + roadmap**, y el **monorepo de implementación** (M0 scaffold + núcleo de dominio M1).
+el **plan técnico + roadmap**, y el **monorepo de implementación** (M0 + M1: núcleo offline C2–C5).
 
 - Repo: https://github.com/marvinm29/latiendita-design · rama `main`
 - Directorio de trabajo: raíz del repo (`specs/`, `design/`, `apps/`, `packages/`, `infra/`)
 - Idioma del proyecto: **español** (docs e interfaz). UI con **tú neutro** y lenguaje llano.
 - Fuente de verdad: `specs/002-especificacion-funcional.md` (§3 alcance, §5 NFRs, §6 métricas, §7 P1–P5).
+- **Contexto completo para agentes** (arquitectura, invariantes, trampas, protocolo y prompt):
+  [`docs/TRASPASO.md`](docs/TRASPASO.md).
 
 ## 1. Orden de lectura (sesión nueva)
 
-1. `specs/README.md` — índice SDD y estado de la sesión.
-2. `specs/002-especificacion-funcional.md` — **qué** se construye (C1–C11, personas, NFRs, métricas, P1–P5).
-3. `specs/003-plan-tecnico.md` — **cómo** (stack T-01…T-08, offline/sync, modelo de datos, seguridad, pruebas).
-4. `specs/004-roadmap.md` — **cuándo/quién** (M0–M4, gates, adopción D11).
-5. `design/DESIGN.md` — sistema de diseño completo (§0–§12).
-6. `design/ACCESSIBILITY.md` — checklist WCAG 2.2 AA (contrato de implementación).
-7. `design/decisions.md` — bitácora DS-01…DS-30 + ledger de verificación.
+1. `docs/TRASPASO.md` — **contexto completo**: estado verificado, arquitectura, invariantes, trampas y protocolo de agentes.
+2. `specs/README.md` — índice SDD y estado de la sesión.
+3. `specs/002-especificacion-funcional.md` — **qué** se construye (C1–C11, personas, NFRs, métricas, P1–P5).
+4. `specs/003-plan-tecnico.md` — **cómo** (stack T-01…T-08, offline/sync, modelo de datos, seguridad, pruebas).
+5. `specs/004-roadmap.md` — **cuándo/quién** (M0–M4, gates, adopción D11).
+6. `specs/006-plan-sprints.md` — **sprints de 1 semana** desde el estado real hasta v1.0 (S1–S9).
+7. `design/DESIGN.md` — sistema de diseño completo (§0–§12).
+8. `design/ACCESSIBILITY.md` — checklist WCAG 2.2 AA (contrato de implementación).
+9. `design/decisions.md` — bitácora DS-01…DS-30 + ledger de verificación.
 
 ## 2. Estado actual
 
 | Área | Estado |
 |---|---|
-| SDD (000–005) | ✅ completo |
+| SDD (000–006) | ✅ completo |
 | Diseño F1 fundaciones · F2 componentes · F3 pantallas (13) · F4 cierre WCAG | ✅ entregado |
 | Plan técnico (`003`) | ✅ escrito — pendiente de revisión del dueño |
 | Roadmap (`004`) | ✅ escrito — pendiente de revisión del dueño |
+| Plan de sprints (`006`) | ✅ escrito — **S2 ✅ · S2+ (C5 persistente) ✅ · M1 cerrado** |
 | **M0 · Cimientos** | ✅ scaffold monorepo + CI + RLS base + docker-compose (placeholders Lighthouse/size-limit) |
-| **M1 · Núcleo offline** | 🟡 dominio puro (64 tests) + **capa Dexie** (19 tests, transacción libro+outbox) + **UI C2–C5** (catálogo/producto/movimiento/conteo/escáner con BarcodeDetector lazy + teclado manual; catálogo ya sobre Dexie) — falta: movimientos UI→Dexie, ZXing-wasm fallback, e2e offline C2–C5 |
+| **M1 · Núcleo offline** | ✅ dominio puro (64 tests) + capa Dexie (21 tests, libro+outbox+conteo) + **UI C2–C5 toda sobre Dexie** (catálogo, libro y conteo comparten base; escáner BarcodeDetector lazy → **ZXing-wasm perezoso** → teclado manual) + **conteo persistente y reanudable (C5.2)** + 11 tests web + **10 e2e offline C2–C5 + conteo persistente + axe AA** + **OFF** (proxy + caché local) |
 | **M2+** | ⏳ no iniciada — **P2 (login)** bloquea M2 |
 | Licencia del proyecto | ⏳ sin definir (**P1** = issue [#2](https://github.com/marvinm29/latiendita-design/issues/2), rec. AGPL-3.0). **No hay `LICENSE` a propósito.** |
 
-Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · 83 tests core.
+Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · **96 tests** (85 core + 11 web) + **10 e2e** (offline C2–C5 + conteo persistente + OFF + axe AA).
 
 ## 3. Decisiones cerradas — NO reabrir
 
@@ -79,7 +84,9 @@ python3 design/tokens/generate.py          # regenera tokens DTCG/CSS
 # Implementación (pnpm)
 pnpm install
 pnpm typecheck && pnpm lint && pnpm test && pnpm build
-pnpm --filter @latiendita/api dev          # API en :3000 (health)
+pnpm --filter @latiendita/web test:e2e:install   # una vez: Chromium de Playwright
+pnpm --filter @latiendita/web test:e2e           # e2e offline C2–C5 + axe AA
+pnpm --filter @latiendita/api dev          # API en :3000 (health + /off/:codigo)
 pnpm --filter @latiendita/web dev          # Vite en :5173
 docker compose -f infra/docker-compose.yml up -d   # api + db + caddy (requiere plugin compose)
 
@@ -91,8 +98,8 @@ No committear sin pedirlo explícitamente.
 
 ## 6. Próximos pasos sugeridos
 
-- **(1)** Cerrar **P1/P2** vía issues [#2](https://github.com/marvinm29/latiendita-design/issues/2)/[#1](https://github.com/marvinm29/latiendita-design/issues/1) (comentar decisión) → añadir `LICENSE`.
-- **(2)** Seguir **M1**: movimientos/fiados UI → repos Dexie de core, ZXing-wasm perezoso (fallback BarcodeDetector), e2e offline C2–C5 con Playwright `setOffline`.
+- **(1)** Cerrar **P1/P2** vía issues [#2](https://github.com/marvinm29/latiendita-design/issues/2)/[#1](https://github.com/marvinm29/latiendita-design/issues/1) (comentar decisión) → añadir `LICENSE` y **desbloquear S3**.
+- **(2)** **S3 · M2** (tras P1/P2): negocio + invitación/PIN + sesión + desbloqueo offline por PIN.
 - **(3)** Endurecer **M0**: size-limit y Lighthouse reales en CI (hoy placeholders), ESLint, `drizzle-kit`.
 - **(4)** Aprobar **DS-26** (issue #3) y diseñar tarjeta “sin mínimo” (#4).
 
@@ -103,22 +110,29 @@ Retoma el proyecto LaTiendita (PWA offline-first de inventario y fiados para tie
 El Salvador). Trabaja en la raíz del repo: /home/varm/Documents/testModels (incluye specs/ y design/).
 
 Antes de hacer nada, lee en este orden:
-1. specs/README.md (índice y estado)
-2. specs/002-especificacion-funcional.md (fuente de verdad: C1–C11, NFRs, métricas, P1–P5)
-3. specs/003-plan-tecnico.md (stack, offline/sync, modelo de datos, pruebas)
-4. specs/004-roadmap.md (hitos M0–M4, gates, adopción)
-5. design/DESIGN.md y design/ACCESSIBILITY.md (contrato de UI y WCAG 2.2 AA)
-6. design/decisions.md (DS-01…DS-30)
+1. docs/TRASPASO.md (contexto completo: estado, arquitectura, invariantes, trampas, protocolo)
+2. specs/README.md (índice y estado)
+3. specs/002-especificacion-funcional.md (fuente de verdad: C1–C11, NFRs, métricas, P1–P5)
+4. specs/003-plan-tecnico.md (stack, offline/sync, modelo de datos, pruebas)
+5. specs/004-roadmap.md (hitos M0–M4, gates, adopción)
+6. specs/006-plan-sprints.md (sprints de 1 semana: dónde estamos y qué sigue)
+7. design/DESIGN.md y design/ACCESSIBILITY.md (contrato de UI y WCAG 2.2 AA)
+8. design/decisions.md (DS-01…DS-30)
 
-Estado: SDD y diseño (fases F1–F4) COMPLETOS; implementación NO iniciada (bloqueada por P1 licencia y
-P2 login). Todo el diseño se abre sin build con `python3 -m http.server`.
+Estado: SDD y diseño (F1–F4) COMPLETOS. Implementación: M0 ✅ · M1 ✅ (dominio + Dexie + UI C2–C5
+toda sobre IndexedDB, C5 con sesión persistente, 96 tests + 10 e2e offline/axe, OFF con proxy y caché local). M2+ bloqueado por
+P1 (licencia) y P2 (login). Todo el diseño se abre sin build con `python3 -m http.server`.
 
-Reglas: español primero (docs y UI, tú neutro, lenguaje llano); el spec manda (si algo contradice 002,
-se actualiza el spec antes que el código); nunca color solo; WCAG 2.2 AA es contrato; no commitear sin
-que se te pida. Verifica con `python3 design/tokens/verify_contrast.py` y `python3 design/tools/qa.py`.
+Protocolo: verifica la base (git status, typecheck, test) → plan pequeño → implementa → prueba →
+actualiza docs → reporta con evidencia. Reglas: español primero (docs y UI, tú neutro, lenguaje
+llano); el spec manda (si algo contradice 002, se actualiza el spec antes que el código); nunca color
+solo; WCAG 2.2 AA es contrato; no commitear sin que se te pida; no reabras decisiones cerradas.
+Verifica con `pnpm typecheck && pnpm test && pnpm build`,
+`pnpm --filter @latiendita/web test:e2e`, `python3 design/tokens/verify_contrast.py` y
+`python3 design/tools/qa.py`.
 
-Empieza confirmando que leíste el estado y proponme el siguiente paso entre: (A) abrir issues de P1/P2,
-(B) scaffold de M0, o (C) arrancar M1 (dominio offline + tests). No reabras decisiones cerradas.
+Empieza confirmando que leíste el estado y proponme el siguiente incremento (S3 si P1/P2 están
+cerradas; si no, el trabajo no bloqueado de docs/TRASPASO.md §9).
 ```
 
 ## 8. Convenciones de git

@@ -41,6 +41,10 @@ const COPIA_ERROR: Record<MotivoCamara, { titulo: string; texto: string }> = {
     titulo: "Escaneo con cámara no disponible",
     texto: "Este navegador no soporta detección de códigos. Escribe el código a mano: siempre funciona.",
   },
+  wasm: {
+    titulo: "No pudimos cargar el escáner de respaldo",
+    texto: "Puede que falte conexión para descargarlo. Escribe el código a mano: siempre funciona.",
+  },
   fallo: {
     titulo: "No pudimos usar la cámara",
     texto: "Algo falló con la cámara de tu teléfono. Escribe el código a mano: siempre funciona.",
@@ -48,9 +52,9 @@ const COPIA_ERROR: Record<MotivoCamara, { titulo: string; texto: string }> = {
 };
 
 /**
- * Pantalla 4 — Escáner (C3): BarcodeDetector nativo → teclado manual (C3.2).
- * La cámara vive en ./camara.ts, cargada con import() perezoso (chunk aparte).
- * Con ?destino=conteo, el código detectado continúa el conteo asistido (C5.2).
+ * Pantalla 4 — Escáner (C3): BarcodeDetector nativo → ZXing-wasm perezoso →
+ * teclado manual (C3.2). La cámara vive en ./camara.ts, cargada con import()
+ * perezoso (chunk aparte). Con ?destino=conteo, el código continúa el conteo (C5.2).
  */
 export function Escanear(): VNode {
   const { items, estado, recargar } = useCatalogo();

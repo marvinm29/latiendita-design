@@ -1,12 +1,16 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import { closeDb } from "./db/client";
+import { registrarOff } from "./off";
 
 const app = Fastify({
   logger: true,
 });
 
 app.get("/health", async () => ({ status: "ok" }));
+
+// Autocompletado manual-first por EAN (D3/P4) — proxy + caché TTL.
+registrarOff(app);
 
 async function main(): Promise<void> {
   const port = Number(process.env.PORT ?? 3000);

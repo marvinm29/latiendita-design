@@ -8,7 +8,7 @@
 ![Licencia](https://img.shields.io/badge/licencia-por_definir_(P1)-f59e0b)
 
 > Este repositorio contiene la **especificación**, el **sistema de diseño**, los **mockups de pantalla**
-> y el **monorepo de implementación** (M0 + núcleo de dominio M1) del proyecto. El diseño se abre en
+> y el **monorepo de implementación** (M0 + M1: núcleo offline C2–C5) del proyecto. El diseño se abre en
 > HTML/CSS plano sin compilar; la app se construye con pnpm. El objetivo es impacto comunitario real,
 > no monetización: **open source, sin costo, en español primero**.
 
@@ -23,10 +23,12 @@
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Cómo explorarlo (sin build)](#cómo-explorarlo-sin-build)
 - [Cómo regenerar y verificar](#cómo-regenerar-y-verificar)
+- [Implementación (pnpm)](#implementación-pnpm)
 - [Accesibilidad y verificación](#accesibilidad-y-verificación)
 - [Trazabilidad: capacidades → pantallas](#trazabilidad-capacidades--pantallas)
 - [Decisiones de diseño](#decisiones-de-diseño)
 - [Hoja de ruta](#hoja-de-ruta)
+- [Traspaso para agentes](#traspaso-para-agentes)
 - [Atribución y licencias](#atribución-y-licencias)
 - [Convenciones](#convenciones)
 - [English summary](#english-summary)
@@ -72,12 +74,14 @@ manda sobre el diseño (si algo contradice el spec, se cambia el spec primero).
 | **F4 · Cierre** | checklist WCAG 2.2 AA (`ACCESSIBILITY.md`) + lint + cobertura | ✅ entregado |
 | Plan técnico (implementación) | `specs/003-plan-tecnico.md` | ✅ escrito — pendiente de revisión |
 | Roadmap / adopción | `specs/004-roadmap.md` | ✅ escrito — pendiente de revisión |
+| Plan de sprints | `specs/006-plan-sprints.md` | ✅ escrito — S2 ✅ · C5 persistente ✅ · M1 cerrado |
 | **M0 · Cimientos** | monorepo pnpm (`apps/`, `packages/`, `infra/`) + CI + RLS base | ✅ scaffold (Lighthouse/size-limit placeholders) |
-| **M1 · Núcleo offline** | dominio puro `packages/core` + capa Dexie + UI C2–C5 (catálogo, producto, movimiento, conteo, escáner) | 🟡 83 tests — falta movimientos UI→Dexie, ZXing fallback, e2e offline |
+| **M1 · Núcleo offline** | dominio puro `packages/core` + capa Dexie + UI C2–C5 sobre IndexedDB + conteo persistente + e2e offline + OFF | ✅ 96 tests + 10 e2e (axe AA) |
 | Decisiones P1/P2/DS-26 | issues #1–#5 en GitHub | ⏳ abiertas (P1 rec. AGPL-3.0) |
 
 Números actuales: **60/60 pares de contraste AA** en ambos modos, **13 pantallas / 60 marcos**,
-**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **83 tests** de dominio y repos.
+**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **96 tests**
+(85 core + 11 web) y **10 e2e** (offline C2–C5 + conteo persistente + OFF + axe AA).
 
 ---
 
@@ -226,36 +230,48 @@ generación y auditoría.
 │   ├── 003-plan-tecnico.md           Plan técnico: stack, arquitectura offline/sync, modelo, pruebas
 │   ├── 004-roadmap.md               Roadmap M0–M4, gates de calidad y plan de adopción
 │   ├── 005-prompt-opendesigner.md    Prompt maestro + sistema de color + fases
+│   ├── 006-plan-sprints.md          Sprints de 1 semana (S1–S9)
 │   └── README.md                     Índice y estado de la sesión
-└── design/
-    ├── tokens/                    # FUENTE ÚNICA de verdad
-    │   ├── tokens.json               Tokens DTCG (primitivos + semánticos, light/dark)
-    │   ├── tokens.css                Custom properties = fuente en runtime
-    │   ├── tailwind.theme.js         Puente Tailwind/shadcn (todo es var(--…))
-    │   ├── generate.py               Regenera JSON+CSS desde Radix vendorizado
-    │   ├── verify_contrast.py        Matriz WCAG 2.2 AA de 60 pares (lint)
-    │   └── vendor/radix/             Radix Colors v3 + LICENSE (MIT, fijado)
-    ├── assets/                    # Recursos de runtime (sin dependencias externas)
-    │   ├── fonts/                    Atkinson Hyperlegible Next (WOFF2)
-    │   ├── icons.svg                 Sprite Lucide (42 símbolos)
-    │   ├── base.css · ui.css          Base + clases de componente
-    │   ├── theme.js                  Interruptor de tema (claro/oscuro/sistema)
-    │   └── tailwind.js               Tailwind vendorizado (runtime, sin CDN)
-    ├── preview.html               # F2 · galería de los 9 componentes núcleo
-    ├── screens/                   # F3 · 13 pantallas (HTML 360×640) + capturas
-    ├── tools/                     # Generadores, render del shell y QA
-    │   ├── shell.py                  Render del armazón (encabezado/banner/CTA/nav)
-    │   ├── parts.py                  Piezas reutilizables (tarjetas, keypad, filas…)
-    │   ├── batch1.py                 Pantallas 01–04
-    │   ├── batch2.py                 Pantallas 05–09
-    │   ├── batch3.py                 Pantallas 10–13
-    │   └── qa.py                     QA estática (iconos, ids, etiquetas, offline)
-    ├── DESIGN.md                  # Sistema de diseño completo (§0–§12)
-    ├── ACCESSIBILITY.md           # Fase 4 · checklist WCAG 2.2 AA + verificación pendiente
-    └── decisions.md               # Bitácora DS-01…DS-30 + ledger de verificación
+├── design/                        # Sistema de diseño + mockups (sin build)
+│   ├── tokens/                    # FUENTE ÚNICA de verdad
+│   │   ├── tokens.json               Tokens DTCG (primitivos + semánticos, light/dark)
+│   │   ├── tokens.css                Custom properties = fuente en runtime
+│   │   ├── tailwind.theme.js         Puente Tailwind/shadcn (todo es var(--…))
+│   │   ├── generate.py               Regenera JSON+CSS desde Radix vendorizado
+│   │   ├── verify_contrast.py        Matriz WCAG 2.2 AA de 60 pares (lint)
+│   │   └── vendor/radix/             Radix Colors v3 + LICENSE (MIT, fijado)
+│   ├── assets/                    # Recursos de runtime (sin dependencias externas)
+│   │   ├── fonts/                    Atkinson Hyperlegible Next (WOFF2)
+│   │   ├── icons.svg                 Sprite Lucide (42 símbolos)
+│   │   ├── base.css · ui.css          Base + clases de componente
+│   │   ├── theme.js                  Interruptor de tema (claro/oscuro/sistema)
+│   │   └── tailwind.js               Tailwind vendorizado (runtime, sin CDN)
+│   ├── preview.html               # F2 · galería de los 9 componentes núcleo
+│   ├── screens/                   # F3 · 13 pantallas (HTML 360×640) + capturas
+│   ├── tools/                     # Generadores, render del shell y QA
+│   │   ├── shell.py                  Render del armazón (encabezado/banner/CTA/nav)
+│   │   ├── parts.py                  Piezas reutilizables (tarjetas, keypad, filas…)
+│   │   ├── batch1.py                 Pantallas 01–04
+│   │   ├── batch2.py                 Pantallas 05–09
+│   │   ├── batch3.py                 Pantallas 10–13
+│   │   └── qa.py                     QA estática (iconos, ids, etiquetas, offline)
+│   ├── DESIGN.md                  # Sistema de diseño completo (§0–§12)
+│   ├── ACCESSIBILITY.md           # Fase 4 · checklist WCAG 2.2 AA + verificación pendiente
+│   └── decisions.md               # Bitácora DS-01…DS-30 + ledger de verificación
+├── docs/
+│   └── TRASPASO.md                # Contexto completo y protocolo para agentes de IA
+├── apps/
+│   ├── web/                       # PWA: Preact + Vite (C2–C5) + e2e Playwright
+│   └── api/                       # Fastify: /health + proxy /off (Open Food Facts)
+├── packages/
+│   ├── core/                      # dominio puro + Dexie (libro, stock, fiados, outbox)
+│   ├── tokens/                    # puente de tokens de diseño
+│   └── ui/                        # reservado
+└── infra/                         # docker-compose, Caddyfile, Dockerfile
 ```
 
-Todo el árbol es **HTML/CSS/JS plano**: no hay bundler, framework ni paso de compilación.
+El **diseño** (`design/`) es HTML/CSS/JS plano, sin bundler ni paso de compilación. La
+**implementación** (`apps/`, `packages/`) usa TypeScript + pnpm; el diseño se sigue abriendo sin build.
 
 ---
 
@@ -296,6 +312,27 @@ python3 design/tools/qa.py         # 13 pantallas · 60 marcos · 0 hallazgos
 Las capturas se generan con Chromium headless (captura de página completa a 500px de ancho, en
 claro y oscuro donde aplica). El proyecto **no** depende de CDNs: Radix, Lucide, la fuente y Tailwind
 están vendorizados para que funcione sin conexión.
+
+---
+
+## Implementación (pnpm)
+
+El monorepo implementa el núcleo offline **M1** (C2–C5) sobre IndexedDB, con e2e sin red.
+
+```bash
+pnpm install
+pnpm typecheck && pnpm test && pnpm build
+pnpm size                                        # presupuesto JS (placeholder)
+
+pnpm --filter @latiendita/web dev                # http://localhost:5173
+pnpm --filter @latiendita/api dev                # http://localhost:3000 (/health, /off/:codigo)
+
+pnpm --filter @latiendita/web test:e2e:install   # una vez: Chromium de Playwright
+pnpm --filter @latiendita/web test:e2e           # offline C2–C5 + conteo persistente + OFF + axe AA
+```
+
+Estado: **M0 ✅ · M1 ✅** (96 tests + 10 e2e; C5 con sesión persistente y reanudable). **M2+** está bloqueado por **P1** (licencia) y **P2**
+(login). El detalle de arquitectura, invariantes y trampas está en [`docs/TRASPASO.md`](docs/TRASPASO.md).
 
 ---
 
@@ -376,14 +413,28 @@ Las decisiones están registradas y justificadas una por una en [`design/decisio
 2. **Roadmap — ✅ [`specs/004-roadmap.md`](specs/004-roadmap.md):** hitos M0–M4 (tareas, criterios de
    salida, camino crítico), gates de calidad obligatorios, plan de adopción D11 (comunidad + self-host)
    y qué viene después de v1.
-3. **Implementación (siguiente):** arranca tras cerrar P1 (licencia) y P2 (login) con el dueño; M1 (núcleo
-   offline) puede empezar en paralelo.
+3. **Implementación:** M0 ✅ y M1 ✅ (núcleo offline C2–C5 con conteo persistente, e2e sin red y OFF con caché). El siguiente
+   hito es **M2**, bloqueado por P1 (licencia) y P2 (login). Ver `specs/006-plan-sprints.md`.
 
 Todas las fases de diseño (F1 fundaciones, F2 componentes, F3 pantallas con lotes 1–3, F4 cierre
-WCAG) están **entregadas**; el proyecto está listo para la fase de implementación.
+WCAG) están **entregadas** y el núcleo offline de la v1 está implementado y probado.
 
 Pendientes abiertos registrados: variante «sin mínimo» de la tarjeta de producto, revisión de DS-26
 por el dueño, y confirmar que el padding inferior de la navegación despeja el FAB central con datos reales.
+
+---
+
+## Traspaso para agentes
+
+Si retomas el trabajo (persona o agente de IA), empieza por:
+
+1. [`AGENTS.md`](AGENTS.md) — entrada corta, decisiones cerradas y comandos.
+2. [`docs/TRASPASO.md`](docs/TRASPASO.md) — estado verificado, arquitectura, invariantes, trampas,
+   deuda técnica y protocolo de trabajo.
+3. [`specs/006-plan-sprints.md`](specs/006-plan-sprints.md) — sprint en curso y siguientes.
+
+Regla de oro: **el spec manda**. Si algo contradice `specs/002`, se actualiza el spec primero.
+No se commitea sin pedirlo.
 
 ---
 

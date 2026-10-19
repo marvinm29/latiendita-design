@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "preact/hooks";
 import { formatearUsd, type Producto } from "@latiendita/core";
 import { avisoLista } from "../../datos/avisos";
 import { repoCatalogo, useCatalogo } from "../../datos/catalogoRepo";
+import { buscarEnOff, type DatosOff } from "../../datos/off";
 import { navigate, onNavClick, type PathParams } from "../../router";
 import "./productos.css";
 
@@ -65,6 +66,8 @@ export function FormProducto({ params }: { params: PathParams }): VNode {
   const [falloGuardar, setFalloGuardar] = useState(false);
   const [falloEliminar, setFalloEliminar] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
+  const [sugerenciaOff, setSugerenciaOff] = useState<DatosOff | null>(null);
+  const [buscandoOff, setBuscandoOff] = useState(false);
 
   // Si cambia el id (back/forward entre dos ediciones), reprecarga de cero.
   useEffect(() => {
@@ -86,6 +89,29 @@ export function FormProducto({ params }: { params: PathParams }): VNode {
     setCategoriaSel(producto.categoria);
     setPrecargado(true);
   }, [esEdicion, estado, items, id, precargado]);
+
+  // C2.2: si venimos del escáner con ?codigo=, intenta autocompletar el nombre
+  // con Open Food Facts. Nunca bloquea: sin red, el formulario sigue manual.
+  useEffect(() => {
+    if (esEdicion) return;
+    const inicial = new URLSearchParams(window.location.search).get("codigo");
+    if (!inicial) return;
+
+    setCodigo(inicial);
+    let vivo = true;
+    setBuscandoOff(true);
+    void buscarEnOff(inicial).then((datos) => {
+      if (!vivo) return;
+      setBuscandoOff(false);
+      if (!datos) return;
+      setSugerenciaOff(datos);
+      // Autocompleta sólo si la persona todavía no escribió un nombre.
+      setNombre((actual) => (actual.trim() === "" ? datos.nombre : actual));
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [esEdicion]);
 
   // La confirmación de borrado (3.3.4) toma el foco en Cancelar.
   useEffect(() => {
@@ -260,6 +286,23 @@ export function FormProducto({ params }: { params: PathParams }): VNode {
             </button>
           </div>
         </div>
+      ) : null}
+
+      {buscandoOff ? (
+        <p class="field-help" role="status">
+          Buscando el nombre del producto…
+        </p>
+      ) : null}
+
+      {sugerenciaOff ? (
+        <section class="card" role="status" aria-label="Sugerencia de Open Food Facts">
+          <p class="card-title">Encontramos “{sugerenciaOff.nombre}”</p>
+          <p class="card-meta">
+            {sugerenciaOff.marca ? `${sugerenciaOff.marca} · ` : ""}
+            {sugerenciaOff.cantidad ? `${sugerenciaOff.cantidad} · ` : ""}
+            Nombre sugerido por Open Food Facts; puedes cambiarlo.
+          </p>
+        </section>
       ) : null}
 
       <form

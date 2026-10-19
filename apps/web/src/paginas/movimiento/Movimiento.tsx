@@ -26,7 +26,7 @@ import {
   useHref,
   type Tecla,
 } from "../compartido";
-import { repoMovimientos, useMovimientosProducto } from "./repoLocal";
+import { repoMovimientos, useMovimientosProducto } from "../../datos/movimientosRepo";
 import "./movimiento.css";
 
 const TIPOS: { valor: MovimientoTipo; etiqueta: string }[] = [
@@ -274,7 +274,6 @@ export function Movimiento({ params }: { params: { id?: string } }): VNode {
                 <button
                   type="button"
                   class="card-row"
-                  aria-label={`${candidato.producto.nombre}, ${formatoCantidad(candidato.stock)} unidades en stock. Registrar movimiento.`}
                   onClick={() => {
                     setSeleccion(candidato.producto.id);
                     setPorVenta(false);

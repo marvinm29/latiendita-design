@@ -301,4 +301,62 @@ describe("conteoRepo", () => {
       /cerrado/,
     );
   });
+
+  it("cerrarConAjustes cierra la sesión y aplica las diferencias al libro (C5.2)", async () => {
+    const producto = await crearProducto();
+    await repos.movimientos.registrarEntrada({
+      productoId: producto.id,
+      cantidadBase: 10,
+      creadoEn: 1000,
+    });
+
+    const sesion = await repos.conteo.iniciar();
+    await repos.conteo.registrarItem(sesion.id, producto.id, 8);
+
+    const opsAntes = await db.outbox.count();
+    const { conteo, ajustes } = await repos.conteo.cerrarConAjustes(sesion.id);
+
+    expect(conteo.estado).toBe("cerrado");
+    expect(conteo.items[0]).toMatchObject({
+      productoId: producto.id,
+      contado: 8,
+      sistema: 10,
+      diferencia: -2,
+    });
+
+    // Un ajuste por diferencia, con su op: sesión + libro + outbox.
+    expect(ajustes).toHaveLength(1);
+    expect(ajustes[0]?.movimiento).toMatchObject({
+      productoId: producto.id,
+      tipo: "ajuste",
+      cantidadBase: -2,
+      motivo: "Conteo físico",
+    });
+    expect(ajustes[0]?.stock).toBe(8);
+    expect(await repos.conteo.listarAbierta()).toBeUndefined();
+    expect(await db.outbox.count()).toBe(opsAntes + 2); // ajuste + cierre de conteo
+
+    // El stock derivado del libro coincide con lo contado.
+    const movimientos = await db.movimientos.where("productoId").equals(producto.id).toArray();
+    expect(stockDerivado(movimientos, producto.id)).toBe(8);
+    expect((await db.stock_cache.get(producto.id))?.stock).toBe(8);
+  });
+
+  it("cerrarConAjustes es atómico: si un ajuste falla, no cierra ni escribe", async () => {
+    const producto = await crearProducto();
+    await repos.movimientos.registrarEntrada({ productoId: producto.id, cantidadBase: 10 });
+    const sesion = await repos.conteo.iniciar();
+    await repos.conteo.registrarItem(sesion.id, producto.id, 8);
+
+    const movimientosAntes = await db.movimientos.count();
+    const opsAntes = await db.outbox.count();
+    // Simula un producto que desapareció entre contar y cerrar.
+    await db.productos.delete(producto.id);
+
+    await expect(repos.conteo.cerrarConAjustes(sesion.id)).rejects.toThrow(/producto/);
+
+    expect((await db.conteos.get(sesion.id))?.estado).toBe("abierto");
+    expect(await db.movimientos.count()).toBe(movimientosAntes);
+    expect(await db.outbox.count()).toBe(opsAntes);
+  });
 });

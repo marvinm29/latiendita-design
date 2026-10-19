@@ -1,20 +1,20 @@
 import type { VNode } from "preact";
 import { useEffect, useMemo, useState } from "preact/hooks";
-import { buscarProductos, crearMovimiento } from "@latiendita/core";
+import { buscarProductos, type ConteoFila } from "@latiendita/core";
 import { EstadoVacio } from "../../componentes/EstadoVacio";
-import { useCatalogo } from "../../datos/catalogoRepo";
+import { useCatalogo, type ItemCatalogo } from "../../datos/catalogoRepo";
+import { repoConteos } from "../../datos/conteosRepo";
 import { navigate, onNavClick } from "../../router";
 import {
   editarTexto,
   formatoCantidad,
-  nuevoOpId,
   parseCantidad,
   parametroBusqueda,
   TecladoNumerico,
   useHref,
   type Tecla,
 } from "../compartido";
-import { repoMovimientos } from "../movimiento/repoLocal";
+import { repoMovimientos } from "../../datos/movimientosRepo";
 import "./conteo.css";
 
 type FilaConteo = {
@@ -27,6 +27,26 @@ type FilaConteo = {
 };
 
 type Fase = "conteo" | "resumen" | "fin";
+
+/**
+ * Filas de la UI a partir de la sesión persistida: el nombre viene del
+ * catálogo y `contado`/`sistema` de IndexedDB (sobreviven a una recarga).
+ */
+function filasDeSesion(sesion: ConteoFila, catalogo: ItemCatalogo[]): FilaConteo[] {
+  return sesion.items.map((item) => ({
+    productoId: item.productoId,
+    nombre:
+      catalogo.find((i) => i.producto.id === item.productoId)?.producto.nombre ??
+      "Producto eliminado",
+    contado: item.contado,
+    sistema: item.sistema,
+  }));
+}
+
+/** “1 producto contado” / “2 productos contados” — copy llano y correcto. */
+function plural(n: number, uno: string, varios: string): string {
+  return `${formatoCantidad(n)} ${n === 1 ? uno : varios}`;
+}
 
 function textoDiferencia(fila: FilaConteo): { clase: string; icono: string; texto: string } {
   const dif = Math.round((fila.contado - fila.sistema) * 1000) / 1000;
@@ -57,6 +77,10 @@ export function Conteo(): VNode {
 
   const [fase, setFase] = useState<Fase>("conteo");
   const [filas, setFilas] = useState<FilaConteo[]>([]);
+  const [conteoId, setConteoId] = useState<string | null>(null);
+  const [retomado, setRetomado] = useState(false);
+  const [capturando, setCapturando] = useState(false);
+  const [falloCaptura, setFalloCaptura] = useState(false);
   const [actualId, setActualId] = useState<string | null>(null);
   const [origenActual, setOrigenActual] = useState<"escaneado" | "lista">("escaneado");
   const [sistemaActual, setSistemaActual] = useState(0);
@@ -97,6 +121,29 @@ export function Conteo(): VNode {
     if (codigo !== null) setDesconocido(codigo);
   }, [href, items]);
 
+  // Reanuda el conteo abierto guardado en IndexedDB (C5.2): recargar la app o
+  // ir a otra pantalla y volver no pierde lo ya contado.
+  useEffect(() => {
+    if (retomado || estado !== "listo") return;
+    let vivo = true;
+    repoConteos
+      .retomar()
+      .then((sesion) => {
+        if (!vivo) return;
+        if (sesion !== undefined && sesion.items.length > 0) {
+          setConteoId(sesion.id);
+          setFilas(filasDeSesion(sesion, items));
+        }
+        setRetomado(true);
+      })
+      .catch(() => {
+        if (vivo) setRetomado(true);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [estado, items, retomado]);
+
   // Sistema = stock actual del producto en espera (derivado del libro).
   useEffect(() => {
     if (actualId === null) return;
@@ -125,24 +172,32 @@ export function Conteo(): VNode {
   const contadoActual = parseCantidad(texto);
   const conDiferencia = filas.filter((f) => f.contado !== f.sistema).length;
 
-  function capturar(): void {
-    if (actualId === null || contadoActual === null) return;
-    const nombre = actual?.producto.nombre ?? "";
-    setFilas((previas) => {
-      const existente = previas.find((f) => f.productoId === actualId);
-      if (existente) {
-        return previas.map((f) =>
-          f.productoId === actualId ? { ...f, contado: contadoActual } : f,
-        );
+  /**
+   * Persiste cada captura en la sesión abierta (C5.2). La sesión se crea en el
+   * primer producto y se reanuda sola al volver a la pantalla; si la escritura
+   * falla, no se limpia el formulario y se puede reintentar.
+   */
+  async function capturar(): Promise<void> {
+    if (actualId === null || contadoActual === null || capturando) return;
+    setCapturando(true);
+    setFalloCaptura(false);
+    try {
+      let id = conteoId;
+      if (id === null) {
+        const sesion = await repoConteos.iniciar();
+        id = sesion.id;
+        setConteoId(id);
       }
-      return [
-        ...previas,
-        { productoId: actualId, nombre, contado: contadoActual, sistema: sistemaActual },
-      ];
-    });
-    setActualId(null);
-    setTexto("");
-    setSistemaActual(0);
+      const sesion = await repoConteos.registrarItem(id, actualId, contadoActual);
+      setFilas(filasDeSesion(sesion, items));
+      setActualId(null);
+      setTexto("");
+      setSistemaActual(0);
+    } catch {
+      setFalloCaptura(true);
+    } finally {
+      setCapturando(false);
+    }
   }
 
   /**
@@ -150,20 +205,17 @@ export function Conteo(): VNode {
    * Los ajustes viajan con op_id propio; el stock queda igual a lo contado.
    */
   async function guardarAjustes(): Promise<void> {
+    if (conteoId === null) {
+      setFallo(true);
+      return;
+    }
     setGuardando(true);
     setFallo(false);
     try {
-      const diferencias = filas.filter((f) => f.contado !== f.sistema);
-      for (const fila of diferencias) {
-        await repoMovimientos.agregar({
-          productoId: fila.productoId,
-          tipo: "ajuste",
-          cantidadBase: Math.round((fila.contado - fila.sistema) * 1000) / 1000,
-          motivo: "Conteo físico",
-          opId: nuevoOpId(),
-        });
-      }
-      setAjustesRegistrados(diferencias.length);
+      // Sesión cerrada + ajustes + ops: una sola transacción en core (C5.2).
+      const { ajustes } = await repoConteos.cerrarConAjustes(conteoId);
+      setAjustesRegistrados(ajustes.length);
+      setConteoId(null);
       setConfirmando(false);
       setFase("fin");
     } catch {
@@ -176,6 +228,7 @@ export function Conteo(): VNode {
   function nuevoConteo(): void {
     setFase("conteo");
     setFilas([]);
+    setConteoId(null);
     setActualId(null);
     setSistemaActual(0);
     setTexto("");
@@ -184,6 +237,8 @@ export function Conteo(): VNode {
     setDesconocido(null);
     setConfirmando(false);
     setAjustesRegistrados(0);
+    setFallo(false);
+    setFalloCaptura(false);
   }
 
   const alPulsar = (tecla: Tecla): void =>
@@ -222,7 +277,7 @@ export function Conteo(): VNode {
           titulo={
             ajustesRegistrados === 0
               ? "Conteo guardado"
-              : `${ajustesRegistrados} ajustes registrados`
+              : plural(ajustesRegistrados, "ajuste registrado", "ajustes registrados")
           }
           texto="El stock ahora coincide con lo contado. Los ajustes se sincronizan al reconectar."
         >
@@ -246,7 +301,8 @@ export function Conteo(): VNode {
             Terminar conteo
           </p>
           <p class="card-meta conteo-resumen-texto">
-            {formatoCantidad(filas.length)} productos contados. {formatoCantidad(conDiferencia)}{" "}
+            {plural(filas.length, "producto contado", "productos contados")}.{" "}
+            {formatoCantidad(conDiferencia)}{" "}
             {conDiferencia === 1 ? "tiene" : "tienen"} diferencia y se guardarán como
             ajustes; el conteo queda en el historial.
           </p>
@@ -493,12 +549,26 @@ export function Conteo(): VNode {
           <button
             type="button"
             class="btn btn-primary btn-bloque conteo-capturar"
-            disabled={contadoActual === null}
-            onClick={capturar}
+            disabled={contadoActual === null || capturando}
+            onClick={() => void capturar()}
           >
-            Capturar
+            {capturando ? "Capturando…" : "Capturar"}
           </button>
         </article>
+      ) : null}
+
+      {falloCaptura ? (
+        <div class="card aviso-error" role="alert">
+          <span class="aviso-error-icono">
+            <svg class="icono" aria-hidden="true">
+              <use href="#i-alert_triangle" />
+            </svg>
+          </span>
+          <div class="aviso-error-cuerpo">
+            <p class="card-title">No se pudo guardar lo contado.</p>
+            <p class="card-meta">Sigue en el teléfono — toca Capturar otra vez.</p>
+          </div>
+        </div>
       ) : null}
 
       {filas.length > 0 ? (

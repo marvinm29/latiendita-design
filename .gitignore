@@ -21,6 +21,11 @@ coverage/
 *.tsbuildinfo
 .vite/
 
+# Playwright (e2e)
+test-results/
+playwright-report/
+blob-report/
+
 # Entornos (nunca commitear secretos — ver infra/.env.example)
 .env
 .env.*

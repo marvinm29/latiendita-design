@@ -5,21 +5,20 @@ import {
   type CrearMovimientoInput,
   type Movimiento,
 } from "@latiendita/core";
-import { PRODUCTOS_DEMO, STOCK_DEMO } from "../../datos/demo";
+import { PRODUCTOS_DEMO, STOCK_DEMO } from "./demo";
+import { crearRepoMovimientosDexie } from "./movimientosRepoDexie";
 
 /**
  * Contrato de acceso al libro de movimientos (C4) desde la UI.
  *
- * La implementación actual es un adaptador en memoria sembrado coherente con
- * `datos/demo.ts` (el stock derivado del libro == STOCK_DEMO). La persistencia
- * real llega con otro batch: TODO(Dexie) escribir `MovimientosRepoDexie` que
- * cumpla esta misma interfaz sobre la tabla `movimientos` + outbox por `op_id`
- * y sustituir `repoMovimientos`. La UI no cambia:
+ * La implementación activa es `MovimientosRepoDexie` (IndexedDB vía
+ * @latiendita/core, ver movimientosRepoDexie.ts):
  *
- *  - `listarPorProducto` → Dexie `movimientos.where('productoId').equals(id)`
+ *  - `listarPorProducto` → `negocioId+productoId+ocurridoAt` en el libro
+ *  - `listarTodos`       → todos los movimientos del negocio (conteos/reportes)
  *  - `stockDe`           → caché de stock o `stockDerivado` del libro
- *  - `agregar`           → Dexie `add` + encolar op en outbox (idempotente por op_id)
- *  - `suscribir`         → Dexie liveQuery / eventos de la capa de datos
+ *  - `agregar`           → transacción libro + op de outbox (idempotente por op_id)
+ *  - `suscribir`         → `liveQuery` de Dexie
  *
  * Regla de oro (C8.4): el libro es append-only — aquí no existe editar ni
  * borrar; las correcciones son movimientos nuevos con `corrigeA`.
@@ -40,13 +39,15 @@ export interface MovimientosRepo {
   suscribir(listener: () => void): () => void;
 }
 
-class MovimientosRepoMemoria implements MovimientosRepo {
+/**
+ * Adaptador en memoria — queda exportado para tests e historias locales.
+ * Siembra coherente con `datos/demo.ts` (el stock derivado == STOCK_DEMO).
+ */
+export class MovimientosRepoMemoria implements MovimientosRepo {
   private readonly movimientos: Movimiento[] = [];
   private readonly listeners = new Set<() => void>();
 
   constructor() {
-    // Seed coherente con demo.ts: una entrada por producto que produce
-    // exactamente STOCK_DEMO (stockDerivado == stock del catálogo demo).
     const creadoEn = Date.now() - 24 * 60 * 60 * 1000;
     for (const producto of PRODUCTOS_DEMO) {
       const cantidad = STOCK_DEMO[producto.id] ?? 0;
@@ -95,8 +96,12 @@ class MovimientosRepoMemoria implements MovimientosRepo {
   }
 }
 
-/** Instancia única de la demo. TODO(Dexie): reemplazar por MovimientosRepoDexie. */
-export const repoMovimientos: MovimientosRepo = new MovimientosRepoMemoria();
+/**
+ * Instancia única de la app: implementación Dexie (IndexedDB local, C8.1).
+ * Comparte base con el catálogo (`baseLocal.ts`): el libro es la única fuente
+ * de stock y cada movimiento deja su op en la outbox (C8.4).
+ */
+export const repoMovimientos: MovimientosRepo = crearRepoMovimientosDexie();
 
 /**
  * Versión del libro: se incrementa con cada movimiento agregado y fuerza

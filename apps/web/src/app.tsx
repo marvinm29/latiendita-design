@@ -87,9 +87,7 @@ const productoNuevo: Page = () => <FormProducto params={{}} />;
 
 const productoEditar: Page = ({ params }) => <FormProducto params={params} />;
 
-const movimiento: Page = () => <Movimiento params={{}} />;
-
-const movimientoDirecto: Page = ({ params }) => <Movimiento params={params} />;
+const movimiento: Page = ({ params }) => <Movimiento params={params} />;
 
 const conteo: Page = () => <Conteo />;
 
@@ -171,7 +169,7 @@ const routes: Route[] = [
   { path: "/productos/nuevo", title: "Producto nuevo", nav: false, page: productoNuevo, volver: "/productos", pie: true },
   { path: "/productos/:id", title: "Editar producto", nav: false, page: productoEditar, volver: "/productos", pie: true },
   { path: "/movimiento", title: "Movimiento", nav: true, page: movimiento },
-  { path: "/movimiento/:id", title: "Movimiento", nav: true, page: movimientoDirecto },
+  { path: "/movimiento/:id", title: "Movimiento", nav: true, page: movimiento },
   { path: "/conteo", title: "Conteo", nav: true, page: conteo },
   { path: "/fiados", title: "Fiados", nav: true, page: fiados },
   { path: "/fiados/:id", title: "Cliente", nav: true, page: cliente },

@@ -11,5 +11,5 @@
     "sourceMap": false,
     "types": ["vite/client"]
   },
-  "include": ["src"]
+  "include": ["src", "e2e", "*.config.ts"]
 }

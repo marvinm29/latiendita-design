@@ -1,6 +1,9 @@
 # Specs del proyecto — índice y estado de la sesión
 
 > Léeme primero en una sesión nueva. Este documento es el punto de partida y registra el estado actual del ciclo SDD.
+>
+> **Para agentes de IA:** empieza por `AGENTS.md` (entrada corta) y `docs/TRASPASO.md` (contexto
+> completo: estado, arquitectura, invariantes, trampas y protocolo de trabajo).
 
 ---
 
@@ -24,6 +27,7 @@ sostenibilidad aspiracional al estilo jshERP (código libre siempre; convenienci
 | `005-prompt-opendesigner.md` | Prompt maestro de prototipado, decisión de sistema de color (Radix/Teal/Sand/Amber, S8), protocolo de iteración en 4 fases | ✅ Completo — ejecutar con OpenDesigner para generar fundaciones + mockups |
 | `003-plan-tecnico.md` | **Plan técnico v1**: stack (Preact/Fastify/Postgres+RLS), arquitectura offline/sync (outbox + LWW por campo + ledger append-only), modelo de datos, seguridad, presupuesto de rendimiento, estrategia de pruebas y hitos M0–M4 | ✅ Completo — requiere revisión del dueño |
 | `004-roadmap.md` | **Roadmap y adopción**: hitos M0–M4 (tareas, criterios de salida, camino crítico), gates de calidad, plan de adopción D11 y post-v1 | ✅ Completo — requiere revisión del dueño |
+| `006-plan-sprints.md` | **Plan de sprints**: S1–S9 en semanas de 1 semana, retomando desde el estado real y mapeando M0–M4 hasta v1.0 | ✅ Escrito — **S2 ✅ · S2+ (C5 persistente) ✅ · M1 cerrado** |
 
 ## 3. Decisiones cerradas en conversación (no repetidas en los docs)
 
@@ -47,8 +51,10 @@ Fase: Spec Driven Development
 ├── Preguntas abiertas P1–P5 ................ ⏳ abiertas — issues #1 (P2), #2 (P1); P3–P5 asumidos
 ├── Plan técnico (003) ...................... ✅ escrito — pendiente de revisión del dueño
 ├── Roadmap/milestones (004) ................ ✅ escrito — pendiente de revisión del dueño
-└── Implementación .......................... 🟡 M0 scaffold ✅ · M1: dominio core (64) + Dexie (19)
-                                              + UI C2–C5 ✅ — falta e2e offline · M2 bloqueado por P2 (issue #1)
+└── Implementación .......................... ✅ M0 scaffold ✅ · M1 ✅: dominio core (64) + Dexie (21)
+                                              + UI C2–C5 sobre Dexie ✅ + C5 persistente ✅
+                                              + 11 tests web (96 total) + 10 e2e offline/persistencia/axe ✅
+                                              · M2 bloqueado por P2 (issue #1)
 
 Fase: Diseño (OpenDesigner) — artefactos en design/
 ├── F1 Fundaciones (tokens DTCG + DESIGN.md + decisions.md) ..... ✅ aprobado

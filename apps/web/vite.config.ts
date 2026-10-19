@@ -11,5 +11,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // OFF se consulta a través de la API (003 §6): sin CORS ni claves en el
+    // cliente. En producción, Caddy enruta /off a api:3000.
+    proxy: {
+      "/off": "http://127.0.0.1:3000",
+    },
   },
 });

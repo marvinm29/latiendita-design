@@ -50,14 +50,12 @@ function FilaProducto({ item }: { item: ItemCatalogo }): VNode {
   const { producto, stock } = item;
   const minimo = producto.stockMinimoBase;
   const stockTexto = `${stock} uds${minimo > 0 ? ` · mínimo ${minimo}` : ""}`;
-  const etiqueta = `${producto.nombre}, ${formatearUsd(producto.precioCentavos)}, ${stockTexto}. Ver producto.`;
 
   return (
     <article class="card card-producto">
       <button
         type="button"
         class="card-row"
-        aria-label={etiqueta}
         onClick={() => navigate(`/productos/${encodeURIComponent(producto.id)}`)}
       >
         <span class="fila-producto-cuerpo">

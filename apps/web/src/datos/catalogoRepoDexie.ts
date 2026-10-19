@@ -4,40 +4,20 @@
  * misma transacción (003 §3). La UI consume la MISMA interfaz que antes
  * usaba el repo en memoria (C2) — no cambia nada en paginas/.
  *
- * Arranque perezoso: cada método espera `db.open()` + semilla demo (una sola
- * vez). Mientras la promesa no resuelve, la UI muestra "cargando"; si
- * IndexedDB falla, muestra "error" y el siguiente uso reintenta.
+ * La base, el `negocioId` y la siembra demo viven en `baseLocal.ts` (los
+ * comparte con el libro de movimientos y el conteo). Arranque perezoso:
+ * `asegurarBaseLista()` abre IndexedDB y siembra una sola vez; mientras la
+ * promesa no resuelve, la UI muestra "cargando"; si falla, muestra "error" y
+ * el siguiente uso reintenta.
  *
  * Suscripción: `liveQuery` de Dexie — re-emite ante escrituras en
- * `productos`/`stock_cache` (incluye otras pestañas y las de movimientosRepo).
- * `fake-indexeddb` queda SOLO en los tests de core; este módulo nunca lo toca.
+ * `productos`/`stock_cache`/`movimientos` (incluye otras pestañas y las del
+ * libro). `fake-indexeddb` queda SOLO en los tests; este módulo nunca lo toca.
  */
 import { liveQuery } from "dexie";
-import {
-  abrirDb,
-  crearRepos,
-  escribirMeta,
-  leerMeta,
-  stockDerivado,
-  type LaTienditaDb,
-  type Producto,
-  type ProductoFila,
-  type Repos,
-} from "@latiendita/core";
-import { PRODUCTOS_DEMO, STOCK_DEMO } from "./demo";
+import { stockDerivado, type Producto, type ProductoFila } from "@latiendita/core";
+import { asegurarBaseLista, baseApp, type BaseLocal } from "./baseLocal";
 import type { CatalogoRepo, ItemCatalogo } from "./catalogoRepo";
-
-/**
- * M1 sin login (P2 pendiente): un solo negocio local por dispositivo.
- * En M2 se reemplaza por el `negocioId` real de la invitación.
- */
-const NEGOCIO_LOCAL = "local";
-
-/** Flag de siembra en la tabla `meta`: el seed corre una sola vez por base. */
-const CLAVE_SEMILLA = "demo:sembrado:v1";
-
-/** Id determinista para la entrada inicial de cada producto demo (reintento = 1 fila). */
-const idSemillaEntrada = (productoId: string) => `demo-semilla:entrada:${productoId}`;
 
 /** Quita los campos de sync — la UI sólo conoce el tipo `Producto` puro. */
 function filaAProducto(fila: ProductoFila): Producto {
@@ -72,72 +52,24 @@ function cambiosDe(producto: Producto): Omit<Producto, "id"> {
 }
 
 export class CatalogoRepoDexie implements CatalogoRepo {
-  private readonly db: LaTienditaDb;
-  private readonly repos: Repos;
-  private promesaListo: Promise<void> | null = null;
+  private readonly base: BaseLocal;
 
-  constructor(db: LaTienditaDb = abrirDb()) {
-    this.db = db;
-    this.repos = crearRepos(db, NEGOCIO_LOCAL);
+  constructor(base: BaseLocal = baseApp) {
+    this.base = base;
   }
 
   /** Resuelve cuando la base está abierta y la semilla demo ya corrió. */
   private get listo(): Promise<void> {
-    this.promesaListo ??= this.iniciar();
-    return this.promesaListo;
-  }
-
-  private async iniciar(): Promise<void> {
-    try {
-      await this.db.open();
-      await this.sembrarDemoSiHaceFalta();
-    } catch (error) {
-      this.promesaListo = null; // el siguiente uso (p. ej. "Reintentar") reintenta
-      throw error;
-    }
-  }
-
-  /**
-   * Siembra demo (C2): productos de demo.ts + entradas iniciales POR EL LIBRO
-   * (el stock se deriva de movimientos; nunca se escribe `stock_cache` a mano).
-   * Idempotente por tres capas: flag en `meta`, salto de productos existentes
-   * e ids deterministas de movimiento — un corte a mitad no duplica nada.
-   */
-  private async sembrarDemoSiHaceFalta(): Promise<void> {
-    const sembrado = await leerMeta<unknown>(this.db, CLAVE_SEMILLA);
-    if (sembrado !== undefined) return;
-    for (const producto of PRODUCTOS_DEMO) {
-      const existente = await this.db.productos.get(producto.id);
-      if (!existente || existente.deletedAt !== null) {
-        await this.repos.productos.crear({ ...producto, id: producto.id });
-      }
-      const cantidad = STOCK_DEMO[producto.id] ?? 0;
-      if (cantidad > 0) {
-        const idEntrada = idSemillaEntrada(producto.id);
-        const yaRegistrada = await this.db.movimientos.get(idEntrada);
-        if (!yaRegistrada) {
-          await this.repos.movimientos.registrarEntrada({
-            productoId: producto.id,
-            cantidadBase: cantidad,
-            costoCentavos: producto.costoCentavos,
-            motivo: "Carga inicial (demo)",
-            id: idEntrada,
-            opId: idEntrada,
-          });
-        }
-      }
-    }
-    await escribirMeta(this.db, CLAVE_SEMILLA, { version: 1, cuando: Date.now() });
+    return asegurarBaseLista(this.base);
   }
 
   /** Lectura compartida por `listar` y por `liveQuery` (no espera la semilla). */
   private async listarInterno(): Promise<ItemCatalogo[]> {
-    const filas = await this.repos.productos.listar();
-    const caches = await this.db.stock_cache.toArray();
+    const { db, repos, negocioId } = this.base;
+    const filas = await repos.productos.listar();
+    const caches = await db.stock_cache.toArray();
     const stocks = new Map(
-      caches
-        .filter((c) => c.negocioId === NEGOCIO_LOCAL)
-        .map((c) => [c.productoId, c.stock]),
+      caches.filter((c) => c.negocioId === negocioId).map((c) => [c.productoId, c.stock]),
     );
     const items: ItemCatalogo[] = [];
     for (const fila of filas) {
@@ -145,7 +77,7 @@ export class CatalogoRepoDexie implements CatalogoRepo {
       let stock = stocks.get(fila.id);
       if (stock === undefined) {
         // Sin caché: deriva del libro (misma regla que `leerStockLocal` de core).
-        const movimientos = await this.db.movimientos
+        const movimientos = await db.movimientos
           .where("productoId")
           .equals(fila.id)
           .toArray();
@@ -165,33 +97,34 @@ export class CatalogoRepoDexie implements CatalogoRepo {
   /** Incluye borrados lógicos (contrato: auditoría/edición). */
   async obtener(id: string): Promise<Producto | null> {
     await this.listo;
-    const fila = await this.db.productos.get(id);
-    if (!fila || fila.negocioId !== NEGOCIO_LOCAL) return null;
+    const fila = await this.base.db.productos.get(id);
+    if (!fila || fila.negocioId !== this.base.negocioId) return null;
     return filaAProducto(fila);
   }
 
   /** Upsert: crea o actualiza; los repos de core encolan la op en la misma tx. */
   async guardar(producto: Producto): Promise<Producto> {
     await this.listo;
-    const fila = await this.db.productos.get(producto.id);
-    if (fila && fila.negocioId !== NEGOCIO_LOCAL) {
+    const { db, repos, negocioId } = this.base;
+    const fila = await db.productos.get(producto.id);
+    if (fila && fila.negocioId !== negocioId) {
       throw new Error(`producto de otro negocio: ${producto.id}`);
     }
     if (!fila) {
-      const creada = await this.repos.productos.crear({ ...producto, id: producto.id });
+      const creada = await repos.productos.crear({ ...producto, id: producto.id });
       return filaAProducto(creada);
     }
     if (fila.deletedAt !== null) {
       // Tombstone: no se revive en silencio (C2.5) — la UI muestra el fallo.
       throw new Error(`producto borrado: ${producto.id}`);
     }
-    const editada = await this.repos.productos.actualizar(producto.id, cambiosDe(producto));
+    const editada = await repos.productos.actualizar(producto.id, cambiosDe(producto));
     return filaAProducto(editada);
   }
 
   async borrarLogico(id: string): Promise<void> {
     await this.listo;
-    await this.repos.productos.borrar(id);
+    await this.base.repos.productos.borrar(id);
   }
 
   suscribir(listener: () => void): () => void {
@@ -214,7 +147,7 @@ export class CatalogoRepoDexie implements CatalogoRepo {
   }
 }
 
-/** Instancia única de la app: la UI consume `repoCatalogo` de catalogoRepo.ts. */
-export function crearRepoCatalogoDexie(): CatalogoRepo {
-  return new CatalogoRepoDexie();
+/** Repo de catálogo sobre IndexedDB (implementación activa de la app). */
+export function crearRepoCatalogoDexie(base: BaseLocal = baseApp): CatalogoRepo {
+  return new CatalogoRepoDexie(base);
 }

@@ -45,3 +45,36 @@ jobs:
       # shell tenga bundles estables (003 §8 · 004 M0). Placeholder intencional.
       # - name: Lighthouse CI
       #   uses: treosh/lighthouse-ci-action@v12
+
+  e2e:
+    name: e2e offline C2–C5 · WCAG AA
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar Chromium (Playwright)
+        run: pnpm --filter @latiendita/web exec playwright install --with-deps chromium
+
+      - name: e2e (sin red + axe)
+        run: pnpm --filter @latiendita/web test:e2e
+
+      - name: Guardar trazas si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: apps/web/test-results
+          retention-days: 7
