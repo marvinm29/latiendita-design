@@ -14,6 +14,7 @@ import { repoSesion } from "./datos/sesionRepo";
 import { CrearTienda } from "./paginas/auth/CrearTienda";
 import { Unirse } from "./paginas/auth/Unirse";
 import { PantallaBloqueo } from "./paginas/auth/PantallaBloqueo";
+import { SesionActual } from "./paginas/auth/SesionActual";
 import { ListaProductos } from "./paginas/productos/ListaProductos";
 import { FormProducto } from "./paginas/productos/FormProducto";
 import { Escanear } from "./paginas/escanear/Escanear";
@@ -97,6 +98,7 @@ const mas: Page = () => (
       <p class="card-title">Más</p>
       <p class="card-meta">Reportes, empleados y respaldo viven aquí.</p>
     </section>
+    <SesionActual />
     <nav aria-label="Secciones de Más" style="display: flex; flex-direction: column; gap: var(--space-2);">
       <a class="card card-row" href="/mas/reportes" onClick={onNavClick}>
         <span class="card-title" style="flex: 1; min-width: 0;">

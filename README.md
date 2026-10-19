@@ -75,14 +75,14 @@ manda sobre el diseño (si algo contradice el spec, se cambia el spec primero).
 | Plan técnico (implementación) | `specs/003-plan-tecnico.md` | ✅ escrito — pendiente de revisión |
 | Roadmap / adopción | `specs/004-roadmap.md` | ✅ escrito — pendiente de revisión |
 | Plan de sprints | `specs/006-plan-sprints.md` | ✅ escrito — S2 ✅ · C5 persistente ✅ · S3 ✅ · M1 cerrado; M2 en curso |
-| **M0 · Cimientos** | monorepo pnpm (`apps/`, `packages/`, `infra/`) + CI + RLS base | ✅ scaffold (Lighthouse/size-limit placeholders) |
+| **M0 · Cimientos** | monorepo pnpm (`apps/`, `packages/`, `infra/`) + CI + RLS base + ESLint + gate de tamaño | ✅ scaffold (Lighthouse pendiente) |
 | **M1 · Núcleo offline** | dominio puro `packages/core` + capa Dexie + UI C2–C5 sobre IndexedDB + conteo persistente + e2e offline + OFF | ✅ 96 tests + 10 e2e (axe AA) |
-| **M2 · Cuentas y acceso** | negocio, invitación de un solo uso, argon2id, sesión rotativa, desbloqueo offline por PIN + pantallas de alta/unión/bloqueo | ✅ S3 (14 API + 5 web + 3 e2e) · ⏳ S4/S5 sync |
+| **M2 · Cuentas y acceso** | negocio, invitación de un solo uso, argon2id, sesión rotativa, desbloqueo offline por PIN, cierre de sesión + pantallas de alta/unión/bloqueo | ✅ S3 (14 API + 5 web + 4 e2e) · ⏳ S4/S5 sync |
 | Decisiones P1/P2/DS-26 | issues #1–#5 en GitHub | ✅ P1 (AGPL-3.0), P2 (código+PIN) y #4 (DS-31) · ⏳ DS-26/#5 |
 
 Números actuales: **60/60 pares de contraste AA** en ambos modos, **13 pantallas / 60 marcos**,
 **42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **115 tests**
-(85 core + 16 web + 14 api) y **13 e2e** (offline C2–C5 + conteo + acceso/PIN + OFF + axe AA).
+(85 core + 16 web + 14 api) y **14 e2e** (offline C2–C5 + conteo + acceso/PIN + OFF + axe AA).
 
 ---
 
@@ -323,7 +323,7 @@ El monorepo implementa el núcleo offline **M1** (C2–C5) sobre IndexedDB, con 
 ```bash
 pnpm install
 pnpm typecheck && pnpm test && pnpm build
-pnpm size                                        # presupuesto JS (placeholder)
+pnpm size                                        # gate real: JS+CSS ≤150 KB gzip
 
 pnpm --filter @latiendita/web dev                # http://localhost:5173
 pnpm --filter @latiendita/api dev                # http://localhost:3000 (/health, /off/:codigo)
@@ -332,7 +332,7 @@ pnpm --filter @latiendita/web test:e2e:install   # una vez: Chromium de Playwrig
 pnpm --filter @latiendita/web test:e2e           # offline C2–C5 + conteo + acceso/PIN + OFF + axe AA
 ```
 
-Estado: **M0 ✅ · M1 ✅ · M2 en curso** (115 tests + 13 e2e). **S3 ✅** (negocio, invitación+PIN, sesión y desbloqueo offline); siguen **S4/S5** (sync push/pull, RLS en uso y LWW). El detalle de arquitectura, invariantes y trampas está en [`docs/TRASPASO.md`](docs/TRASPASO.md).
+Estado: **M0 ✅ · M1 ✅ · M2 en curso** (115 tests + 14 e2e). **S3 ✅** (negocio, invitación+PIN, sesión, desbloqueo offline y cierre de sesión); siguen **S4/S5** (sync push/pull, RLS en uso y LWW). El detalle de arquitectura, invariantes y trampas está en [`docs/TRASPASO.md`](docs/TRASPASO.md).
 
 ---
 

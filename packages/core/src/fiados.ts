@@ -1,4 +1,4 @@
-import type { Cliente, Fiado, TipoFiado } from "./tipos";
+import type { Fiado, TipoFiado } from "./tipos";
 
 /**
  * Formatea centavos enteros como USD con Intl (en-US).

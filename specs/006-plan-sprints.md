@@ -28,9 +28,9 @@
 
 Comprobado en el repo a la fecha de este documento:
 
-- `pnpm typecheck` ✅ · `pnpm test` ✅ **115 tests** (85 `packages/core` + 16 web + 14 api) · `pnpm test:e2e` ✅ **13 e2e** · `pnpm build` ✅.
+- `pnpm lint` ✅ (ESLint real) · `pnpm typecheck` ✅ · `pnpm test` ✅ **115 tests** (85 `packages/core` + 16 web + 14 api) · `pnpm test:e2e` ✅ **14 e2e** · `pnpm build` ✅ · `pnpm size` ✅ 87 673 B / 153 600 B.
 - Bundle web: **~83 KB gzip** de JS inicial (presupuesto del spec: ≤150 KB, `003` §8).
-- **M0 · Cimientos** ✅ (monorepo, CI, RLS base, docker-compose; Lighthouse/size-limit aún placeholders).
+- **M0 · Cimientos** ✅ (monorepo, CI, RLS base, docker-compose, **ESLint real** y **gate de tamaño real**; Lighthouse sigue pendiente).
 - **M1 · Núcleo offline** ✅:
   - ✅ dominio puro + capa Dexie de core (esquema, `abrirDb`, repos tipados, transacción libro+outbox).
   - ✅ UI C2–C5 (catálogo, producto, movimiento, conteo, escáner) **toda sobre Dexie**: catálogo, libro y
@@ -134,9 +134,11 @@ el **libro es la única fuente de stock** (C4.3) y toda escritura deja su op en 
   `GET /auth/yo`, `POST /auth/renovar|salir`. Código base32 de 8 chars, un solo uso, 7 días;
   argon2id para PIN; token opaco con hash SHA-256, expiración 30 días, rotación y revocación;
   rate-limit 5/10 min por IP y código. 14 tests.
-- ✅ **Web** (`apps/web/src/paginas/auth/`): crear tienda, unirse con código, pantalla de bloqueo y
-  desbloqueo **offline** con PBKDF2-SHA-256 local. Sesión en IndexedDB (`sesion_local`, Dexie v2),
-  nunca en `localStorage`. 5 tests + 3 e2e.
+- ✅ **Web** (`apps/web/src/paginas/auth/`): crear tienda, unirse con código, pantalla de bloqueo,
+  desbloqueo **offline** con PBKDF2-SHA-256 local y cierre de sesión desde «Más». Sesión en IndexedDB
+  (`sesion_local`, Dexie v2), nunca en `localStorage`. 5 tests + 4 e2e.
+- ✅ **M0 endurecido:** ESLint real (`pnpm lint` ya no es alias) y `pnpm size` falla si JS+CSS supera
+  150 KB gzip. Lighthouse CI sigue pendiente.
 - ✅ **P1/P2:** AGPL-3.0 + código de un solo uso/PIN (issues #1/#2 cerradas).
 - **Gate:** ✅ invitar ↔ unirse funciona (API con repo en memoria); ✅ la sesión sobrevive recarga;
   ✅ el PIN desbloquea sin red. **Pendiente honesto:** probar el adaptador Postgres/RLS contra una
@@ -175,7 +177,7 @@ el **libro es la única fuente de stock** (C4.3) y toda escritura deja su op en 
 - Rendimiento: presupuesto por pieza (`003` §8), interacciones <200 ms, TTI ≤3 s en Moto G4.
 - Accesibilidad: `axe` sin violaciones AA + lector de pantalla real + zoom 200 %.
 - Seguridad: CSP, rate-limits, revisión de RLS, pentest básico.
-- **Gate:** budgets y a11y en verde en CI real (size-limit + Lighthouse ya activos, no placeholders).
+- **Gate:** budgets y a11y en verde en CI real (gate de tamaño ya activo; Lighthouse se activa aquí).
 
 ### S9 · M4 · Campo y v1.0
 
@@ -190,12 +192,12 @@ el **libro es la única fuente de stock** (C4.3) y toda escritura deja su op en 
 
 | Gate | Herramienta | Umbral |
 |---|---|---|
-| Lint + tipos | `tsc --noEmit` | 0 errores |
+| Lint + tipos | `eslint .` + `tsc --noEmit` | 0 errores |
 | Unit | Vitest (`packages/core` + `apps/web`) | 0 fallos; cobertura de dominio ≥90 % |
 | Integración | contenedor efímero (desde S4) | 0 fallos; A≠B probado |
 | e2e + offline | Playwright (`setOffline`) desde S2 | C1–C11 verde; métrica 3 = 0 perdidos |
 | Accesibilidad | `@axe-core/playwright` desde S2 | 0 violaciones AA |
-| Rendimiento | `size-limit` + Lighthouse CI | JS inicial ≤150 KB gzip; TTI ≤3 s Moto G4 |
+| Rendimiento | gate propio (`pnpm size`) + Lighthouse CI | JS+CSS ≤150 KB gzip (activo); TTI ≤3 s Moto G4 (Lighthouse pendiente) |
 | Copy | revisión | español llano; sin tecnicismos ni emojis |
 
 ---

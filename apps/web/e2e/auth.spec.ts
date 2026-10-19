@@ -94,6 +94,30 @@ test.describe("acceso · crear tienda y desbloqueo por PIN", () => {
     await expect(page).toHaveURL(/\/inicio$/);
   });
 
+  test("cerrar sesión desde Más vuelve al alta y no pide PIN al recargar", async ({ page }) => {
+    await interceptarAlta(page);
+    await page.route("**/auth/salir", (ruta) =>
+      ruta.fulfill({ status: 200, contentType: "application/json", body: '{"ok":true}' }),
+    );
+    await crearTienda(page);
+    await expect(page).toHaveURL(/\/inicio$/);
+
+    await page.getByRole("link", { name: "Más" }).click();
+    await expect(page.getByText("Entraste como Marta · dueña")).toBeVisible();
+    await page.getByRole("button", { name: "Cerrar sesión" }).click();
+
+    const dialogo = page.getByRole("alertdialog");
+    await expect(dialogo).toBeVisible();
+    await dialogo.getByRole("button", { name: "Cerrar sesión" }).click();
+
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("heading", { name: "Tu tienda en el teléfono" })).toBeVisible();
+
+    // Sin sesión local, recargar no vuelve a pedir PIN.
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Tu tienda en el teléfono" })).toBeVisible();
+  });
+
   test("sin red, unirse muestra el aviso y no navega", async ({ page }) => {
     await page.route("**/auth/unirse", (ruta) => ruta.abort("internetdisconnected"));
 

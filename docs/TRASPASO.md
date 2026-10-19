@@ -30,8 +30,8 @@
   **Carlos** (instalador). Open source, sin costo, **español primero**.
 - **Estado:** SDD y diseño (F1–F4) completos. **M0 ✅** · **M1 ✅** (núcleo offline + C5 persistente)
   · **M2 🟡 S3 ✅** (negocio, invitación+PIN, sesión y desbloqueo offline). **S4/S5 pendientes.**
-- **Números:** 115 tests unitarios (85 core + 16 web + 14 api) · 13 e2e (offline C2–C5 + conteo +
-  acceso/PIN + OFF + axe AA) · bundle inicial **85.3 KB gzip** (presupuesto 150 KB) · 13 pantallas /
+- **Números:** 115 tests unitarios (85 core + 16 web + 14 api) · 14 e2e (offline C2–C5 + conteo +
+  acceso/PIN + OFF + axe AA) · bundle inicial **85.6 KB gzip** (presupuesto 150 KB) · 13 pantallas /
   60 marcos · WCAG 2.2 AA.
 - **Siguiente:** **S4 · M2** — `/sync/push|pull`, RLS en uso y aislamiento A/B; luego **S5** (LWW,
   backoff, cierre de M2).
@@ -45,10 +45,11 @@ Comandos y resultados al cierre de S2 (18/10/2026):
 | Gate | Comando | Resultado |
 |---|---|---|
 | Tipos | `pnpm typecheck` | ✅ 0 errores (api, core, tokens, ui, web) |
+| Lint | `pnpm lint` | ✅ 0 errores (ESLint flat config) |
 | Unitarios | `pnpm test` | ✅ **115** (85 core + 16 web + 14 api) |
-| e2e | `pnpm --filter @latiendita/web test:e2e` | ✅ **13/13** |
+| e2e | `pnpm --filter @latiendita/web test:e2e` | ✅ **14/14** |
 | Build | `pnpm build` | ✅ |
-| Presupuesto | `pnpm size` | ✅ **87 325 B gzip** / 153 600 B |
+| Presupuesto | `pnpm size` | ✅ **87 673 B gzip** / 153 600 B (57.1 %) |
 | Contraste | `python3 design/tokens/verify_contrast.py` | ✅ 60/60 pares AA |
 | QA diseño | `python3 design/tools/qa.py` | ✅ 13 pantallas · 60 marcos · 0 hallazgos |
 
@@ -64,8 +65,7 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
   en **modo local M1** (C2–C5) para no romper los flujos offline existentes.
 - Sin botón de “cerrar sesión / usar otra cuenta” en la UI (el repo ya lo soporta).
 - Sin endpoints de sync (`/sync/push`, `/sync/pull`) ni uso real de PostgreSQL en la API.
-- Sin ESLint real (`pnpm lint` es un alias de `typecheck`).
-- `size-limit` y Lighthouse siguen siendo placeholders.
+- Lighthouse CI sigue pendiente (el gate de tamaño propio ya es real).
 - Fiados, reportes, empleados, respaldo e Inicio son **placeholders** de UI.
 - El escáner no se ha probado en dispositivos reales (formatos y linterna sí están implementados).
 
@@ -77,7 +77,7 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
 
 - Monorepo pnpm (`apps/web`, `apps/api`, `packages/core|tokens|ui`), TypeScript estricto.
 - CI base, `docker-compose` (api + Postgres 16 + Caddy opcional), migración `0001_init.sql` con RLS.
-- `pnpm size` (placeholder), `pnpm build`, `pnpm typecheck`, `pnpm test`.
+- `pnpm lint` (ESLint), `pnpm size` (gate real), `pnpm build`, `pnpm typecheck`, `pnpm test`.
 
 ### S1 · M1 — persistencia real de movimiento y conteo ✅
 
@@ -122,8 +122,10 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
   base32 de 8 caracteres (7 días, un uso), argon2id para PIN, token opaco (hash SHA-256, 30 días,
   rotación/revocación), rate-limit 5/10 min. 14 tests con repositorio en memoria.
 - **Core/web:** contrato `packages/core/src/auth.ts`; Dexie v2 con `sesion_local`; PBKDF2-SHA-256
-  local para desbloqueo offline; pantallas de crear tienda, unirse y bloqueo; sesión sólo en
-  IndexedDB. 5 tests web + 3 e2e.
+  local para desbloqueo offline; pantallas de crear tienda, unirse y bloqueo; cierre de sesión desde
+  «Más»; sesión sólo en IndexedDB. 5 tests web + 4 e2e.
+- **M0:** ESLint real (`pnpm lint` ya no es alias de typecheck) y `pnpm size` **falla** si JS+CSS
+  supera 150 KB gzip; CI actualizado.
 - **Diseño:** DS-31 “Sin mínimo” (issue #4 cerrada) y pantalla 05 regenerada.
 
 ---
@@ -327,7 +329,8 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
    manda todo a la API. Si el endpoint falla, el cliente devuelve `null` (manual-first).
 10. **La API no necesita DB para `/health` ni `/off`.** `getDb()` es perezoso; no la levantes para
     probar esos endpoints.
-11. **`pnpm lint` no es ESLint.** Hoy es un alias de `typecheck`. No asumas lint de estilo.
+11. **`pnpm lint` ya es ESLint real** (flat config) y `pnpm typecheck` va aparte. `pnpm size` también
+    es un gate real: falla si JS+CSS supera 150 KB gzip. No los trates como placeholders.
 12. **Caddy aún no sirve el `dist/` web** (solo proxya la API). Es deuda de M4, no la “arregles” sin
     spec.
 13. **No commitees sin que se pida.** El árbol puede tener cambios del dueño o de la sesión anterior.
@@ -348,8 +351,8 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
 | 1 | Sin service worker/Workbox | no hay instalación ni recarga offline (C9) | M3 / S7 |
 | 2 | ~~La UI de conteo no persiste la sesión en `conteos`~~ | ✅ resuelto en S2+: reanuda y cierra con ajustes atómicos | — |
 | 3 | `/conteo` no tiene entrada en la nav ni en Inicio | se llega solo por URL | M3 (Inicio real) |
-| 4 | Sin ESLint | estilo no verificado | endurecer M0 |
-| 5 | `size-limit` y Lighthouse placeholders | gate real de rendimiento ausente | M0/M4 |
+| 4 | ~~Sin ESLint~~ | ✅ resuelto: `pnpm lint` = ESLint flat config | — |
+| 5 | Lighthouse CI pendiente | falta el gate de rendimiento en navegador (el tamaño ya es real) | M0/M4 |
 | 6 | API auth probada con repo en memoria; **sync pendiente** | M2 completo pendiente | S4–S5 |
 | 7 | Caché OFF del servidor en memoria | se pierde al reiniciar (la caché local del cliente sí persiste) | M2 (junto a DB) |
 | 8 | Caddy no sirve la web | despliegue real incompleto | M4 |
@@ -392,7 +395,7 @@ Criterios cumplidos:
 
 ### Otros pendientes no bloqueados
 
-1. **Endurecer M0:** ESLint real, `size-limit` real, Lighthouse CI, `drizzle-kit`.
+1. **Endurecer M0:** Lighthouse CI y `drizzle-kit` (ESLint y gate de tamaño ya activos).
 2. **Historial de conteos:** los datos ya se guardan en `conteos`; falta mostrarlos (M3).
 3. **Entrada a Conteo** desde Inicio/Más cuando exista Inicio real (M3).
 4. **DS-26** ([#3](https://github.com/marvinm29/latiendita-design/issues/3)); #4 ya cerrada con DS-31.
@@ -488,7 +491,7 @@ Antes de hacer nada, lee en este orden:
 
 Estado verificado: SDD y diseño (F1–F4) completos. M0 ✅ · M1 ✅ (dominio + Dexie + UI C2–C5 sobre
 IndexedDB, C5 persistente) · M2 en curso (S3 ✅: negocio, invitación/PIN, sesión, desbloqueo offline;
-115 tests + 13 e2e). P1 (AGPL-3.0) y P2 (código+PIN) cerradas. Siguiente: S4 (sync + RLS).
+115 tests + 14 e2e). P1 (AGPL-3.0) y P2 (código+PIN) cerradas. Siguiente: S4 (sync + RLS).
 
 Protocolo: verifica la base (git status, typecheck, test) → plan pequeño → implementa → prueba →
 actualiza docs → reporta con evidencia. El spec manda; español primero; WCAG 2.2 AA es contrato;
@@ -531,11 +534,12 @@ trabajo no bloqueado de docs/TRASPASO.md §9).
 - **API auth:** `apps/api/src/auth/*` (servicio, plugin, repo memoria/Postgres, argon2id, rate-limit),
   migración `invitacion`/`sesion` + drizzle, 14 tests.
 - **Web auth:** `packages/core/src/auth.ts`, Dexie v2 (`sesion_local`), `sesionRepo*`, `authApi`,
-  pantallas crear/unirse/bloqueo, 5 tests + 3 e2e.
+  pantallas crear/unirse/bloqueo, cierre de sesión en «Más», 5 tests + 4 e2e.
+- **M0:** ESLint real + gate de tamaño real (`pnpm size` falla por encima de 150 KB).
 - **Diseño:** DS-31 “Sin mínimo”, pantalla 05 regenerada, issue #4 cerrada.
 
-**Verificación:** typecheck ✅ · **115 tests** ✅ (85 core + 16 web + 14 api) · **13 e2e** ✅ ·
-build ✅ · `pnpm size` **87 325 B gzip** ✅ · QA diseño 13/60/0 ✅ · contraste 60/60 ✅.
+**Verificación:** lint ✅ · typecheck ✅ · **115 tests** ✅ (85 core + 16 web + 14 api) · **14 e2e** ✅ ·
+build ✅ · `pnpm size` **87 673 B gzip** ✅ · QA diseño 13/60/0 ✅ · contraste 60/60 ✅.
 
 **Siguiente:** S4 — sync push/pull + RLS real + conectar `negocioId` a la sesión.
 

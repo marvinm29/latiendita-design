@@ -55,7 +55,7 @@ Fase: Spec Driven Development
                                               + UI C2–C5 sobre Dexie ✅ + C5 persistente ✅
                                               + 11 tests web + 10 e2e offline/persistencia/axe ✅
                                               · M2 🟡 S3 ✅: auth API (14 tests) + sesión local/PIN
-                                              (5 tests web) + 3 e2e · 115 tests + 13 e2e totales
+                                              (5 tests web) + 4 e2e · 115 tests + 14 e2e totales
 
 Fase: Diseño (OpenDesigner) — artefactos en design/
 ├── F1 Fundaciones (tokens DTCG + DESIGN.md + decisions.md) ..... ✅ aprobado

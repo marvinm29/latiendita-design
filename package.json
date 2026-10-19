@@ -1,24 +1,30 @@
 {
   "name": "latiendita",
   "private": true,
+  "type": "module",
   "version": "0.0.1",
   "description": "PWA offline-first de inventario y fiados para tiendas de colonia (El Salvador).",
   "license": "AGPL-3.0-only",
   "packageManager": "pnpm@9.15.9",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13"
   },
   "scripts": {
     "dev": "pnpm --filter @latiendita/web dev",
     "dev:api": "pnpm --filter @latiendita/api dev",
     "build": "pnpm -r --if-present run build",
-    "lint": "pnpm -r --if-present run typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
     "size": "node scripts/size.mjs",
     "tokens:sync": "pnpm --filter @latiendita/tokens sync"
   },
   "devDependencies": {
-    "typescript": "^5.7.2"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.71.2"
   }
 }
