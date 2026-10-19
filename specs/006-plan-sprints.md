@@ -28,7 +28,7 @@
 
 Comprobado en el repo a la fecha de este documento:
 
-- `pnpm typecheck` ✅ · `pnpm test` ✅ **96 tests** (85 `packages/core` + 11 web) · `pnpm test:e2e` ✅ **10 e2e** · `pnpm build` ✅.
+- `pnpm typecheck` ✅ · `pnpm test` ✅ **115 tests** (85 `packages/core` + 16 web + 14 api) · `pnpm test:e2e` ✅ **13 e2e** · `pnpm build` ✅.
 - Bundle web: **~83 KB gzip** de JS inicial (presupuesto del spec: ≤150 KB, `003` §8).
 - **M0 · Cimientos** ✅ (monorepo, CI, RLS base, docker-compose; Lighthouse/size-limit aún placeholders).
 - **M1 · Núcleo offline** ✅:
@@ -41,10 +41,11 @@ Comprobado en el repo a la fecha de este documento:
     + caché local en IndexedDB (manual-first si no hay red).
 - ✅ **C5 persistente (S2+)**: la sesión de conteo vive en `conteos`, se reanuda tras recarga y al
     cerrar aplica sus diferencias como ajustes en una sola transacción.
-- **M2+** ⏳ bloqueado por **P2** (login, issue #1). **P1** (licencia, issue #2) sigue abierta.
+- ✅ **S3 (M2)**: cuentas y acceso — negocio, invitación de un solo uso, argon2id, sesión rotativa,
+    desbloqueo offline por PIN. **P1** (AGPL-3.0) y **P2** (código+PIN) cerradas.
+- **S4/S5** ⏳ pendientes: sync push/pull, RLS en uso, LWW y cierre de M2.
 
-Conclusión: M1 está completo (incluido el conteo persistente). Mientras P1/P2 sigan abiertas, el
-trabajo posible es el no bloqueado de `docs/TRASPASO.md` §9 (endurecer M0, DS-26/#4).
+Conclusión: M1 completo y S3 entregado. El siguiente sprint es **S4** (API de sync + RLS en uso).
 
 ---
 
@@ -67,8 +68,8 @@ trabajo posible es el no bloqueado de `docs/TRASPASO.md` §9 (endurecer M0, DS-2
 > Sprints S3+ dependen de **P2 (login)** e **P1 (licencia)**. Mientras no se cierren, S1–S2
 > (M1) avanzan en paralelo y sin bloqueo, tal como prevé `004` §4.
 >
-> **Estado:** S0 ✅ · S1 ✅ · **S2 ✅** (e2e offline C2–C5 + OFF + axe) · **S2+ ✅** (conteo persistente)
-> → **M1 cerrado**. Siguiente: **S3**, bloqueado por **P1/P2**.
+> **Estado:** S0 ✅ · S1 ✅ · **S2 ✅** (e2e offline + OFF + axe) · **S2+ ✅** (conteo persistente)
+> · **S3 ✅** (cuentas y acceso) → **M1 cerrado; M2 en curso**. Siguiente: **S4** (sync + RLS).
 
 ---
 
@@ -127,12 +128,19 @@ el **libro es la única fuente de stock** (C4.3) y toda escritura deja su op en 
 - ✅ **Gate:** recargar `/conteo` no pierde lo contado; al terminar queda **una** sesión cerrada con
   `contado`/`sistema`/`diferencia` y el stock igual a lo contado.
 
-### S3 · M2 · Cuentas y acceso
+### S3 · M2 · Cuentas y acceso ✅
 
-- Crear negocio (C1.1), invitación de un solo uso (base32, expira, rate-limit) + PIN (T-05),
-  sesión rotativa, **desbloqueo offline por PIN local**.
-- **Requiere:** cerrar **P2** (issue #1) y **P1** (issue #2, `LICENSE`/SPDX).
-- **Gate:** invitar ↔ unirse funciona; sesión sobrevive recarga; PIN desbloquea sin red.
+- ✅ **API** (`apps/api/src/auth/`): `POST /auth/negocio`, `/auth/invitacion`, `/auth/unirse`,
+  `GET /auth/yo`, `POST /auth/renovar|salir`. Código base32 de 8 chars, un solo uso, 7 días;
+  argon2id para PIN; token opaco con hash SHA-256, expiración 30 días, rotación y revocación;
+  rate-limit 5/10 min por IP y código. 14 tests.
+- ✅ **Web** (`apps/web/src/paginas/auth/`): crear tienda, unirse con código, pantalla de bloqueo y
+  desbloqueo **offline** con PBKDF2-SHA-256 local. Sesión en IndexedDB (`sesion_local`, Dexie v2),
+  nunca en `localStorage`. 5 tests + 3 e2e.
+- ✅ **P1/P2:** AGPL-3.0 + código de un solo uso/PIN (issues #1/#2 cerradas).
+- **Gate:** ✅ invitar ↔ unirse funciona (API con repo en memoria); ✅ la sesión sobrevive recarga;
+  ✅ el PIN desbloquea sin red. **Pendiente honesto:** probar el adaptador Postgres/RLS contra una
+  instancia real y mover la búsqueda de código/token a `SECURITY DEFINER` (S4).
 
 ### S4 · M2 · API y sincronización
 

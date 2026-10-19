@@ -39,13 +39,13 @@ el **plan técnico + roadmap**, y el **monorepo de implementación** (M0 + M1: n
 | Diseño F1 fundaciones · F2 componentes · F3 pantallas (13) · F4 cierre WCAG | ✅ entregado |
 | Plan técnico (`003`) | ✅ escrito — pendiente de revisión del dueño |
 | Roadmap (`004`) | ✅ escrito — pendiente de revisión del dueño |
-| Plan de sprints (`006`) | ✅ escrito — **S2 ✅ · S2+ (C5 persistente) ✅ · M1 cerrado** |
+| Plan de sprints (`006`) | ✅ escrito — **S2 ✅ · S2+ (C5) ✅ · S3 ✅ · M1 cerrado; M2 en curso** |
 | **M0 · Cimientos** | ✅ scaffold monorepo + CI + RLS base + docker-compose (placeholders Lighthouse/size-limit) |
 | **M1 · Núcleo offline** | ✅ dominio puro (64 tests) + capa Dexie (21 tests, libro+outbox+conteo) + **UI C2–C5 toda sobre Dexie** (catálogo, libro y conteo comparten base; escáner BarcodeDetector lazy → **ZXing-wasm perezoso** → teclado manual) + **conteo persistente y reanudable (C5.2)** + 11 tests web + **10 e2e offline C2–C5 + conteo persistente + axe AA** + **OFF** (proxy + caché local) |
-| **M2+** | ⏳ no iniciada — **P2 (login)** bloquea M2 |
-| Licencia del proyecto | ⏳ sin definir (**P1** = issue [#2](https://github.com/marvinm29/latiendita-design/issues/2), rec. AGPL-3.0). **No hay `LICENSE` a propósito.** |
+| **M2 · Cuentas y sync** | 🟡 **S3 ✅** (negocio, invitación+PIN, sesión, desbloqueo offline; 14 tests API + 5 web + 3 e2e) · **S4/S5 pendientes** (sync push/pull + RLS en uso + LWW) |
+| Licencia del proyecto | ✅ **AGPL-3.0** (P1 cerrada 18/10/2026): `LICENSE` + `"license": "AGPL-3.0-only"` en los paquetes. |
 
-Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · **96 tests** (85 core + 11 web) + **10 e2e** (offline C2–C5 + conteo persistente + OFF + axe AA).
+Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · **115 tests** (85 core + 16 web + 14 api) + **13 e2e** (offline C2–C5 + conteo + acceso/PIN + OFF + axe AA).
 
 ## 3. Decisiones cerradas — NO reabrir
 
@@ -62,10 +62,10 @@ Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 
 
 ## 4. Tareas abiertas (issues en GitHub)
 
-1. **P1 · Licencia** — [#2](https://github.com/marvinm29/latiendita-design/issues/2) MIT vs AGPL-3.0 (rec. AGPL). Bloquea `LICENSE`/SPDX.
-2. **P2 · Login de empleados** — [#1](https://github.com/marvinm29/latiendita-design/issues/1) código+PIN. Bloquea M2.
+1. ~~**P1 · Licencia**~~ — [#2](https://github.com/marvinm29/latiendita-design/issues/2) ✅ **AGPL-3.0** (cerrada 18/10/2026).
+2. ~~**P2 · Login de empleados**~~ — [#1](https://github.com/marvinm29/latiendita-design/issues/1) ✅ **código de un solo uso + PIN** (cerrada 18/10/2026).
 3. **DS-26** — [#3](https://github.com/marvinm29/latiendita-design/issues/3) aprobar pantalla Productos (enmienda spec `005` §4).
-4. **Tarjeta “sin mínimo”** — [#4](https://github.com/marvinm29/latiendita-design/issues/4) variante por diseñar.
+4. ~~**Tarjeta “sin mínimo”**~~ — [#4](https://github.com/marvinm29/latiendita-design/issues/4) ✅ **DS-31** (chip neutral, cerrada 18/10/2026).
 5. **`pb-20` vs FAB** — [#5](https://github.com/marvinm29/latiendita-design/issues/5) confirmar con datos reales.
 6. P3/P4/P5 — asumidos (una bodega, OFF manual-first, límite de fiado reservado).
 
@@ -90,7 +90,7 @@ pnpm --filter @latiendita/api dev          # API en :3000 (health + /off/:codigo
 pnpm --filter @latiendita/web dev          # Vite en :5173
 docker compose -f infra/docker-compose.yml up -d   # api + db + caddy (requiere plugin compose)
 
-gh issue list                              # decisiones abiertas P1/P2/DS-26/…
+gh issue list                              # decisiones abiertas DS-26/#5/…
 ```
 
 Diseño: HTML/CSS/JS plano, **sin dependencias externas en runtime**. Implementación: pnpm workspaces.
@@ -98,10 +98,10 @@ No committear sin pedirlo explícitamente.
 
 ## 6. Próximos pasos sugeridos
 
-- **(1)** Cerrar **P1/P2** vía issues [#2](https://github.com/marvinm29/latiendita-design/issues/2)/[#1](https://github.com/marvinm29/latiendita-design/issues/1) (comentar decisión) → añadir `LICENSE` y **desbloquear S3**.
-- **(2)** **S3 · M2** (tras P1/P2): negocio + invitación/PIN + sesión + desbloqueo offline por PIN.
+- **(1)** **S3 · M2** ✅ P1/P2 cerradas: negocio + invitación/PIN + sesión + desbloqueo offline por PIN.
+- **(2)** **S4 · M2**: `/sync/push|pull` + RLS en uso + pruebas de aislamiento A/B.
 - **(3)** Endurecer **M0**: size-limit y Lighthouse reales en CI (hoy placeholders), ESLint, `drizzle-kit`.
-- **(4)** Aprobar **DS-26** (issue #3) y diseñar tarjeta “sin mínimo” (#4).
+- **(4)** Aprobar **DS-26** (issue #3); la tarjeta “sin mínimo” (#4) ya quedó con DS-31.
 
 ## 7. Prompt de traspaso (copiar/pegar en una sesión nueva)
 
@@ -120,8 +120,9 @@ Antes de hacer nada, lee en este orden:
 8. design/decisions.md (DS-01…DS-30)
 
 Estado: SDD y diseño (F1–F4) COMPLETOS. Implementación: M0 ✅ · M1 ✅ (dominio + Dexie + UI C2–C5
-toda sobre IndexedDB, C5 con sesión persistente, 96 tests + 10 e2e offline/axe, OFF con proxy y caché local). M2+ bloqueado por
-P1 (licencia) y P2 (login). Todo el diseño se abre sin build con `python3 -m http.server`.
+sobre IndexedDB, C5 persistente) · M2 en curso (S3 ✅: negocio + invitación/PIN + sesión + desbloqueo
+offline). 115 tests + 13 e2e. P1 (AGPL-3.0) y P2 (código+PIN) cerradas; sigue S4 (sync + RLS).
+Todo el diseño se abre sin build con `python3 -m http.server`.
 
 Protocolo: verifica la base (git status, typecheck, test) → plan pequeño → implementa → prueba →
 actualiza docs → reporta con evidencia. Reglas: español primero (docs y UI, tú neutro, lenguaje
@@ -131,8 +132,8 @@ Verifica con `pnpm typecheck && pnpm test && pnpm build`,
 `pnpm --filter @latiendita/web test:e2e`, `python3 design/tokens/verify_contrast.py` y
 `python3 design/tools/qa.py`.
 
-Empieza confirmando que leíste el estado y proponme el siguiente incremento (S3 si P1/P2 están
-cerradas; si no, el trabajo no bloqueado de docs/TRASPASO.md §9).
+Empieza confirmando que leíste el estado y proponme el siguiente incremento (S4: sync push/pull +
+RLS, o el trabajo no bloqueado de docs/TRASPASO.md §9).
 ```
 
 ## 8. Convenciones de git

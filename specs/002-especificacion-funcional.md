@@ -146,10 +146,10 @@ Escenario: fiado y abono offline
 
 ## 7. Preguntas abiertas (a resolver antes del tech plan)
 
-| # | Pregunta | Propuesta |
-|---|---|---|
-| P1 | Licencia: MIT vs AGPL-3.0 | AGPL-3.0 (protege el "gratis para siempre" contra forks SaaS cerrados) — decidir como issue |
-| P2 | Login de empleados sin email: PIN + código de invitación vs cuenta email | Código de invitación + PIN simple, gestionado por la dueña (espeja Loyverse y la realidad del segmento) |
-| P3 | ¿Un negocio puede tener varias ubicaciones en v1? | No (una bodega virtual); diseñar modelo para no cerrar la puerta |
-| P4 | Cobertura de Open Food Facts en abarrotes locales | Flujo manual-first; OFF es un acelerador, no una dependencia |
-| P5 | ¿Fiados permite líneas de crédito con límite? | Solo saldo informativo + opcional límite con advertencia; sin bloqueos duros en v1 |
+| # | Pregunta | Propuesta | Estado |
+|---|---|---|---|
+| P1 | Licencia: MIT vs AGPL-3.0 | AGPL-3.0 (protege el "gratis para siempre" contra forks SaaS cerrados) | ✅ **Resuelta (18/10/2026): AGPL-3.0** — `LICENSE` añadido e issues #2 cerrada |
+| P2 | Login de empleados sin email: PIN + código de invitación vs cuenta email | Código de invitación + PIN simple, gestionado por la dueña (espeja Loyverse y la realidad del segmento) | ✅ **Resuelta (18/10/2026): código de un solo uso + PIN** — issue #1 cerrada |
+| P3 | ¿Un negocio puede tener varias ubicaciones en v1? | No (una bodega virtual); diseñar modelo para no cerrar la puerta | Asumida |
+| P4 | Cobertura de Open Food Facts en abarrotes locales | Flujo manual-first; OFF es un acelerador, no una dependencia | Asumida |
+| P5 | ¿Fiados permite líneas de crédito con límite? | Solo saldo informativo + opcional límite con advertencia; sin bloqueos duros en v1 | Asumida |

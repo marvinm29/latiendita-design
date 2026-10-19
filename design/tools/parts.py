@@ -8,11 +8,16 @@ from shell import _UID, field, icon, pending
 
 
 def status_chip(level, label=None):
-    """Stock chip: icon + text, never color-only. level in success|warning|danger."""
+    """Stock chip: icon + text, never color-only.
+
+    level in success|warning|danger|none. "none" = product without a configured
+    minimum: a neutral *status* (bold, package icon), not the muted sync badge.
+    """
     name, text, cls = {
         "success": ("package_check", "En stock", "chip-success"),
         "warning": ("alert_triangle", "Bajo mínimo", "chip-warning"),
         "danger": ("package_x", "Agotado", "chip-danger"),
+        "none": ("package", "Sin mínimo", "chip-neutral"),
     }[level]
     return f'<span class="chip {cls}">{icon(name, "w-4 h-4")}{label or text}</span>'
 

@@ -14,13 +14,11 @@ export * from "./unidades";
 export * from "./fiados";
 export * from "./outbox";
 export * from "./indice";
+export * from "./auth";
 
 export * from "./db/schema";
 export * from "./db/db";
 export * from "./db/meta";
 export * from "./db/repos";
-
-/** Roles de membresía (D4 / C7.1) — espejo del CHECK en 0001_init.sql. */
-export type Rol = "dueña" | "empleado";
 
 export const CORE_VERSION = "0.0.1";

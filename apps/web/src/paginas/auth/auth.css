@@ -1,0 +1,94 @@
+/* Acceso (S3): crear tienda, unirse y desbloqueo por PIN.
+ * Solo layout y avisos; tipografía, color y controles vienen de ui.css. */
+
+.auth-intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.auth-titulo {
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.auth-submit {
+  width: 100%;
+}
+
+.auth-enlace {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: var(--color-text-muted);
+}
+
+/* Aviso de error: borde + icono + texto (nunca color solo). */
+.auth-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  border-color: var(--color-danger-accent);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.auth-aviso .icono {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Pantalla de bloqueo: ocupa todo el alto, como una app cerrada. */
+.pantalla-bloqueo {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--color-surface-page);
+  color: var(--color-text);
+}
+
+.bloqueo-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-4);
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+  max-width: 420px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.bloqueo-icono {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+}
+
+.bloqueo-titulo {
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-2xl);
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+}
+
+.bloqueo-nota {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+}

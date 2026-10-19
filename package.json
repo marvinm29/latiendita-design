@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.1",
   "description": "PWA offline-first de inventario y fiados para tiendas de colonia (El Salvador).",
+  "license": "AGPL-3.0-only",
   "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=22"

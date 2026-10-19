@@ -95,6 +95,14 @@
 .chip-warning { background: var(--color-warning-bg); color: var(--color-warning-text); }
 .chip-danger { background: var(--color-danger-bg); color: var(--color-danger-text); }
 .chip-credit { background: var(--color-credit); color: var(--color-text-on-credit); }
+/* "sin mínimo" — neutral stock status (DS-31): no threshold configured.
+   Same neutral tokens as pending sync, but bold + package icon keeps it a
+   status; the visible words carry the meaning (never color-only). */
+.chip-neutral {
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+  border: var(--border-hairline) solid var(--color-border-strong);
+}
 /* "por sincronizar" — neutral on purpose (DS-17): sync state ≠ money ≠ error */
 .chip-pending {
   background: var(--color-surface-sunken);

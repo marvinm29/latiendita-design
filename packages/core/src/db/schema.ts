@@ -12,10 +12,11 @@
  *   velocidad y siempre se puede recalcular desde el libro (C4.3).
  */
 import Dexie, { type Table } from "dexie";
+import type { SesionCuenta } from "../auth";
 import type { Cliente, Fiado, Movimiento, OpOutbox, Producto } from "../tipos";
 
 /** Versión del esquema local. Cambios de tablas/índices → subirla y añadir .stores(). */
-export const VERSION_ESQUEMA = 1;
+export const VERSION_ESQUEMA = 2;
 
 /** Estado de una sesión de conteo (C5). */
 export type EstadoConteo = "abierto" | "cerrado";
@@ -86,6 +87,33 @@ export interface MetaFila {
   actualizadoEn: number;
 }
 
+/**
+ * Verificador de PIN local (C1/T-05): PBKDF2-SHA-256 con sal aleatoria.
+ * Sólo se guarda el hash; el PIN nunca se almacena en claro ni se manda a la
+ * API en cada desbloqueo. Permite abrir la sesión SIN red.
+ */
+export interface VerificadorPinFila {
+  /** Sal aleatoria en base64. */
+  sal: string;
+  /** Hash derivado del PIN en base64. */
+  hash: string;
+  /** Iteraciones PBKDF2 usadas al crear el verificador. */
+  iteraciones: number;
+}
+
+/**
+ * Sesión de la cuenta guardada en el dispositivo. Una sola fila (`id` =
+ * "actual"). El token vive aquí (IndexedDB), NUNCA en localStorage.
+ * `bloqueada` se restablece al abrir la app: el PIN lo desbloquea sin red.
+ */
+export interface SesionLocalFila {
+  id: "actual";
+  sesion: SesionCuenta;
+  verificadorPin: VerificadorPinFila;
+  bloqueada: boolean;
+  actualizadoEn: number;
+}
+
 /** Ítem de una sesión de conteo: lo físico vs. lo que dice el sistema. */
 export interface ConteoItemFila {
   productoId: string;
@@ -102,6 +130,22 @@ export interface ConteoFila {
   cerradoEn: number | null;
   items: ConteoItemFila[];
 }
+
+/** Esquema v1 (M1, 10 tablas) — se conserva para migrar bases existentes. */
+const ESQUEMA_V1: Record<string, string> = {
+  productos: "id, negocioId, [negocioId+codigoBarras], [negocioId+serverSeq], nombre",
+  unidades_venta: "id, productoId",
+  movimientos:
+    "id, negocioId, productoId, [negocioId+productoId+ocurridoAt], [negocioId+ocurridoAt], [negocioId+serverSeq]",
+  clientes: "id, negocioId, nombre, [negocioId+serverSeq]",
+  fiados:
+    "id, clienteId, [negocioId+clienteId], [negocioId+clienteId+creadoEn], [negocioId+serverSeq]",
+  categorias: "id, negocioId, nombre",
+  conteos: "id, negocioId, [negocioId+estado]",
+  outbox: "id, negocioId, [estado+creadoEn], proximoIntentoEn",
+  meta: "clave, actualizadoEn",
+  stock_cache: "productoId, negocioId",
+};
 
 /**
  * Base local de LaTiendita.
@@ -130,22 +174,15 @@ export class LaTienditaDb extends Dexie {
   outbox!: Table<OpOutboxFila, string>;
   meta!: Table<MetaFila, string>;
   stock_cache!: Table<StockCacheFila, string>;
+  sesion_local!: Table<SesionLocalFila, string>;
 
   constructor(nombre: string) {
     super(nombre);
+    this.version(1).stores(ESQUEMA_V1);
+    // v2 · S3: sesión + verificador de PIN local (migración aditiva).
     this.version(VERSION_ESQUEMA).stores({
-      productos: "id, negocioId, [negocioId+codigoBarras], [negocioId+serverSeq], nombre",
-      unidades_venta: "id, productoId",
-      movimientos:
-        "id, negocioId, productoId, [negocioId+productoId+ocurridoAt], [negocioId+ocurridoAt], [negocioId+serverSeq]",
-      clientes: "id, negocioId, nombre, [negocioId+serverSeq]",
-      fiados:
-        "id, clienteId, [negocioId+clienteId], [negocioId+clienteId+creadoEn], [negocioId+serverSeq]",
-      categorias: "id, negocioId, nombre",
-      conteos: "id, negocioId, [negocioId+estado]",
-      outbox: "id, negocioId, [estado+creadoEn], proximoIntentoEn",
-      meta: "clave, actualizadoEn",
-      stock_cache: "productoId, negocioId",
+      ...ESQUEMA_V1,
+      sesion_local: "id",
     });
   }
 }

@@ -1,5 +1,6 @@
 import "dotenv/config";
 import Fastify from "fastify";
+import { registrarAuth } from "./auth/plugin";
 import { closeDb } from "./db/client";
 import { registrarOff } from "./off";
 
@@ -8,6 +9,9 @@ const app = Fastify({
 });
 
 app.get("/health", async () => ({ status: "ok" }));
+
+// Cuentas y acceso (C1/T-05): negocio, invitación, PIN y sesión.
+registrarAuth(app);
 
 // Autocompletado manual-first por EAN (D3/P4) — proxy + caché TTL.
 registrarOff(app);

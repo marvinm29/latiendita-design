@@ -1,5 +1,6 @@
 import type { VNode } from "preact";
-import { useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
+import type { SesionCuenta } from "@latiendita/core";
 import {
   isSectionActive,
   matchPath,
@@ -9,6 +10,10 @@ import {
   type PathParams,
 } from "./router";
 import { BannerOffline } from "./componentes/BannerOffline";
+import { repoSesion } from "./datos/sesionRepo";
+import { CrearTienda } from "./paginas/auth/CrearTienda";
+import { Unirse } from "./paginas/auth/Unirse";
+import { PantallaBloqueo } from "./paginas/auth/PantallaBloqueo";
 import { ListaProductos } from "./paginas/productos/ListaProductos";
 import { FormProducto } from "./paginas/productos/FormProducto";
 import { Escanear } from "./paginas/escanear/Escanear";
@@ -44,28 +49,9 @@ function Placeholder({ title, note }: { title: string; note: string }): VNode {
   );
 }
 
-const welcome: Page = () => (
-  <>
-    <Placeholder
-      title="Crear mi tienda"
-      note="Pantalla 1 — bienvenida y alta del negocio (C1.1). Llega en M2 con invitación + PIN."
-    />
-    <p class="route-note">
-      ¿Ya tienes código? El flujo “Unirme a una tienda” está en{" "}
-      <a class="text-link" href="/unirse" onClick={onNavClick}>
-        /unirse
-      </a>
-      .
-    </p>
-  </>
-);
+const crearTienda: Page = () => <CrearTienda />;
 
-const unirse: Page = () => (
-  <Placeholder
-    title="Unirme a una tienda"
-    note="Pantalla 2 — código de invitación de un solo uso (C1.2 / T-05). Requiere internet."
-  />
-);
+const unirse: Page = () => <Unirse />;
 
 const inicio: Page = () => (
   <>
@@ -157,7 +143,7 @@ const respaldo: Page = () => (
 
 /** ~13 rutas — espejo de design/screens (01–13) + hub /mas. */
 const routes: Route[] = [
-  { path: "/", title: "LaTiendita", nav: false, page: welcome },
+  { path: "/", title: "Crear mi tienda", nav: false, page: crearTienda },
   { path: "/unirse", title: "Unirme a una tienda", nav: false, page: unirse },
   { path: "/inicio", title: "Hola, Marta", nav: true, page: inicio },
   { path: "/escanear", title: "Escanear", nav: true, page: escanear },
@@ -263,11 +249,52 @@ function NotFound(): VNode {
   );
 }
 
+type EstadoCuenta = {
+  cargando: boolean;
+  sesion: SesionCuenta | null;
+  bloqueada: boolean;
+};
+
 export function App(): VNode {
   const { pathname } = useLocation();
+
+  // S3: al abrir la app se comprueba la sesión local. Si existe, se bloquea y
+  // se pide el PIN antes de mostrar el shell. SIN sesión, la app sigue en modo
+  // local M1 (C2–C5) para no romper los flujos offline existentes.
+  const [cuenta, setCuenta] = useState<EstadoCuenta>({
+    cargando: true,
+    sesion: null,
+    bloqueada: false,
+  });
+
+  useEffect(() => {
+    let vivo = true;
+    void (async () => {
+      try {
+        const sesion = await repoSesion.sesionActual();
+        if (!vivo) return;
+        if (!sesion) {
+          setCuenta({ cargando: false, sesion: null, bloqueada: false });
+          return;
+        }
+        // La sesión sobrevive la recarga; el PIN la desbloquea sin red.
+        await repoSesion.bloquear();
+        if (!vivo) return;
+        setCuenta({ cargando: false, sesion, bloqueada: true });
+      } catch {
+        // IndexedDB no disponible: modo local, sin bloquear la app.
+        if (vivo) setCuenta({ cargando: false, sesion: null, bloqueada: false });
+      }
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
   const match = findRoute(pathname);
   const route = match?.route;
-  const title = route?.title ?? "LaTiendita";
+  const bloqueada = !cuenta.cargando && cuenta.sesion !== null && cuenta.bloqueada;
+  const title = bloqueada ? "Escribe tu PIN" : (route?.title ?? "LaTiendita");
   const showNav = route?.nav ?? false;
   const Page = route?.page;
 
@@ -275,6 +302,16 @@ export function App(): VNode {
   useEffect(() => {
     document.title = title === "LaTiendita" ? title : `${title} · LaTiendita`;
   }, [title]);
+
+  // Bloqueo: se muestra antes del shell, sin header ni nav inferior.
+  if (bloqueada && cuenta.sesion) {
+    return (
+      <PantallaBloqueo
+        sesion={cuenta.sesion}
+        onDesbloqueada={() => setCuenta((actual) => ({ ...actual, bloqueada: false }))}
+      />
+    );
+  }
 
   const rutaVolver = route?.volver;
   const volver = rutaVolver ? (
@@ -319,7 +356,15 @@ export function App(): VNode {
         }
         id="contenido"
       >
-        {Page && match ? <Page params={match.params} /> : <NotFound />}
+        {cuenta.cargando ? (
+          <p class="route-note" role="status">
+            Cargando…
+          </p>
+        ) : Page && match ? (
+          <Page params={match.params} />
+        ) : (
+          <NotFound />
+        )}
       </main>
       {showNav ? <BottomNav pathname={pathname} /> : null}
     </div>

@@ -162,6 +162,11 @@ Context: C11 (reports) and C10 (CSV/JSON export, full backup) could tempt a serv
 Decision: reports are derived from the local ledger; export/backup files are assembled on the device. Both screens carry the banner and a “works without internet” note rather than any disabled state.
 Outcome: C10/C11 add zero connectivity requirements; the only connected flows remain join (2) and invite (11), both stated in-copy.
 
+### DS-31 · “Sin mínimo” is a neutral stock status, not an alert
+Context: issue #4 — a product can exist without a configured stock minimum, but the card only had En stock / Bajo mínimo / Agotado. Showing nothing would leave a quantity (“8 uds”) with no frame of reference; reusing “En stock” would claim a threshold that does not exist, and amber/red would imply an alert.
+Decision: add a fourth `status_chip` level, `none`, rendered as a **neutral** chip (sunken background, `--color-text-muted`, strong hairline, bold) with the `package` icon and the plain words **“Sin mínimo”**. It is a *status*, so it keeps the bold chip weight; the muted, regular-weight “por sincronizar” badge stays visually distinct. No new colors or contrast pairs: it reuses the already-verified `sand-11` on `sand-3` pair (plus the `sand-10` border pair). The catalog filter keeps its three options (Todos / Bajo mínimo / Agotados) — products without a minimum appear under **Todos** because they are not alerts.
+Outcome: the variant reads without color (icon + words), stays inside the same 48px row target, and fits a 360px card at 200% zoom without wrapping. Shown in *Productos* default and offline states (`Arroz San Juan 2 lb · 8 uds`); frame count stays at 60.
+
 ---
 
 ## Verification ledger
@@ -172,7 +177,7 @@ Outcome: C10/C11 add zero connectivity requirements; the only connected flows re
 | Token generation reproducible | `python3 design/tokens/generate.py` | deterministic from `vendor/radix/` |
 | JSON is valid DTCG-ish (typed values) | `python3 -c "import json; json.load(open('design/tokens/tokens.json'))"` | ok |
 | Phase-4 batch 1 (screens 01–04, 17 frames) | `python3 design/tools/batch1.py` + browser QA | 0 broken icons / dup ids / orphan labels / external URLs |
-| Phase-4 batch 2 (screens 05–09, 24 frames) | `python3 design/tools/batch2.py` + browser QA | same: all clean; segmented 48px, keys 56px, nav 64px |
+| Phase-4 batch 2 (screens 05–09, 24 frames) | `python3 design/tools/batch2.py` + browser QA | same: all clean; segmented 48px, keys 56px, nav 64px; product card includes the neutral “Sin mínimo” variant (DS-31) |
 | Phase-4 batch 3 (screens 10–13, 19 frames) | `python3 design/tools/batch3.py` + `qa.py` | all clean: 0 findings |
 | Static screen QA (13 screens, 60 frames) | `python3 design/tools/qa.py` | 0 icon / id / label / external-URL findings |
 | Screenshot record (light + dark) | Chromium headless full-page capture | `design/screens/*-light.png` + `03-inicio-dark`, `04-escanear-dark`, `07-movimiento-dark`, `10-cliente-hero-dark` |
@@ -180,7 +185,7 @@ Outcome: C10/C11 add zero connectivity requirements; the only connected flows re
 ## Open for Phase 4 (screens, batch 3)
 
 1. Owner review of **DS-26** (Productos catalog) — propose as a spec amendment to `005` §4.
-2. Product card “sin mínimo” variant (product with no minimum configured) still undesigned — surfaced in Phase-3 notes; decide before Phase 5.
+2. ~~Product card “sin mínimo” variant (product with no minimum configured) still undesigned~~ — resolved by **DS-31** (neutral chip, icon + “Sin mínimo”); no new colors or frames.
 3. Cosmetic: raised center FAB overlaps the last list row at 360px when scrolled to the bottom; nav screens use `pb-20` to clear it — confirm it's enough with real data.
 4. Batch 3 done (screens 10–13); nav “Más” → `12-reportes.html` now resolves (no more 404). Remaining for Phase 4: the Phase-5 WCAG checklist (`design/ACCESSIBILITY.md`), covering every component. See that file for the per-component criteria and evidence.
 

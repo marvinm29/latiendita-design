@@ -231,8 +231,9 @@ Rules: sentence case (no ALL-CAPS — WCAG 1.4.12 reading + low literacy); amoun
 - **Lucide** (ISC, tree-shakeable, matches shadcn/ui), stroke 2, sizes 20/24/28.
 - **Every icon is paired with a visible text label** (owner rule; also 1.4.1).
 - Status icons: `AlertTriangle`/`PackageX` (danger), `Check`/`PackageCheck` (success),
-  `TriangleAlert` (warning), `WifiOff` (offline), `RefreshCw`/`Clock` (pending sync),
-  `Coins` (fiado). Decorative icons get `aria-hidden="true"`; informative icons get a label.
+  `TriangleAlert` (warning), `Package` (sin mínimo), `WifiOff` (offline),
+  `RefreshCw`/`Clock` (pending sync), `Coins` (fiado). Decorative icons get
+  `aria-hidden="true"`; informative icons get a label.
 
 ---
 

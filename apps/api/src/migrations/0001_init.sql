@@ -32,6 +32,37 @@ CREATE TABLE IF NOT EXISTS membresia (
 CREATE INDEX IF NOT EXISTS membresia_negocio_idx ON membresia (negocio_id);
 CREATE INDEX IF NOT EXISTS membresia_usuario_idx ON membresia (usuario_id);
 
+-- S3 / M2 · códigos de invitación (T-05). Se guarda sólo el hash del código,
+-- nunca el código en claro; un solo uso (usada_at) y expira a los 7 días.
+CREATE TABLE IF NOT EXISTS invitacion (
+  id           uuid PRIMARY KEY,
+  negocio_id   uuid NOT NULL REFERENCES negocio (id),
+  codigo_hash  text NOT NULL UNIQUE,
+  expira_at    timestamptz NOT NULL,
+  usada_at     timestamptz,
+  created_by   uuid NOT NULL REFERENCES usuario (id),
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS invitacion_negocio_idx ON invitacion (negocio_id);
+
+-- S3 / M2 · sesiones (T-05). Token opaco: sólo su SHA-256; expira a los 30
+-- días, rota en /auth/renovar (revocada_at) y se revoca al salir.
+CREATE TABLE IF NOT EXISTS sesion (
+  id             uuid PRIMARY KEY,
+  negocio_id     uuid NOT NULL REFERENCES negocio (id),
+  usuario_id     uuid NOT NULL REFERENCES usuario (id),
+  token_hash     text NOT NULL UNIQUE,
+  rol            text NOT NULL CHECK (rol IN ('dueña', 'empleado')),
+  expira_at      timestamptz NOT NULL,
+  revocada_at    timestamptz,
+  ultimo_uso_at  timestamptz,
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS sesion_negocio_idx ON sesion (negocio_id);
+CREATE INDEX IF NOT EXISTS sesion_usuario_idx ON sesion (usuario_id);
+
 -- ---------------------------------------------------------------------------
 -- RLS (frontera de aislamiento entre negocios)
 -- ---------------------------------------------------------------------------
@@ -39,6 +70,8 @@ CREATE INDEX IF NOT EXISTS membresia_usuario_idx ON membresia (usuario_id);
 ALTER TABLE negocio ENABLE ROW LEVEL SECURITY;
 ALTER TABLE usuario ENABLE ROW LEVEL SECURITY;
 ALTER TABLE membresia ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invitacion ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sesion ENABLE ROW LEVEL SECURITY;
 
 -- negocio: la fila pertenece al negocio fijado en la request.
 CREATE POLICY negocio_aislamiento ON negocio
@@ -48,6 +81,21 @@ CREATE POLICY negocio_aislamiento ON negocio
 
 -- membresia: misma frontera por la columna negocio_id.
 CREATE POLICY membresia_aislamiento ON membresia
+  FOR ALL
+  USING (negocio_id = current_setting('app.negocio_id', true)::uuid)
+  WITH CHECK (negocio_id = current_setting('app.negocio_id', true)::uuid);
+
+-- invitacion: un solo uso y misma frontera por negocio_id.
+CREATE POLICY invitacion_aislamiento ON invitacion
+  FOR ALL
+  USING (negocio_id = current_setting('app.negocio_id', true)::uuid)
+  WITH CHECK (negocio_id = current_setting('app.negocio_id', true)::uuid);
+
+-- sesion: misma frontera. Las rutas /auth (canje de código, renovar, salir)
+-- buscan por token_hash antes de conocer el negocio; en M2 corren con el rol
+-- dueño de las tablas (bypass RLS). S4 las pasa a una función SECURITY DEFINER
+-- con el rol de app y RLS activo.
+CREATE POLICY sesion_aislamiento ON sesion
   FOR ALL
   USING (negocio_id = current_setting('app.negocio_id', true)::uuid)
   WITH CHECK (negocio_id = current_setting('app.negocio_id', true)::uuid);

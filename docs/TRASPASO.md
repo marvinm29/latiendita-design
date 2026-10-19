@@ -4,7 +4,7 @@
 > `AGENTS.md` es la **entrada corta**; este documento es el **paquete de contexto**: estado real,
 > arquitectura, invariantes, trampas, deuda y protocolo de trabajo.
 >
-> **Última actualización:** 18 de octubre de 2026 (cierre de **S2+ · C5 persistente**).
+> **Última actualización:** 18 de octubre de 2026 (cierre de **S3 · cuentas y acceso**).
 > Si cambias código, actualiza §2, §3 y §14 al final de la sesión.
 
 ---
@@ -28,13 +28,13 @@
 - **Producto:** PWA **offline-first** de inventario + fiados para tiendas de colonia de El Salvador.
   Usuarios: **Marta** (dueña, baja alfabetización digital, Android gama baja), **José** (empleado),
   **Carlos** (instalador). Open source, sin costo, **español primero**.
-- **Estado:** SDD y diseño (F1–F4) completos. **M0 ✅** (cimientos) y **M1 ✅** (núcleo offline:
-  dominio + IndexedDB + UI C2–C5 + e2e offline + OFF). **M2+ bloqueado por P1/P2.**
-- **Números:** 96 tests unitarios (85 core + 11 web) · 10 e2e (offline C2–C5 + conteo persistente +
-  OFF + axe AA) · bundle inicial **83.7 KB gzip** (presupuesto 150 KB) · 13 pantallas / 60 marcos ·
-  WCAG 2.2 AA.
-- **Siguiente:** cerrar **P1 (licencia #2)** y **P2 (login #1)** → **S3 (M2: cuentas/acceso)**.
-  Mientras tanto se puede endurecer M0 o cerrar huecos pequeños (§8–§9).
+- **Estado:** SDD y diseño (F1–F4) completos. **M0 ✅** · **M1 ✅** (núcleo offline + C5 persistente)
+  · **M2 🟡 S3 ✅** (negocio, invitación+PIN, sesión y desbloqueo offline). **S4/S5 pendientes.**
+- **Números:** 115 tests unitarios (85 core + 16 web + 14 api) · 13 e2e (offline C2–C5 + conteo +
+  acceso/PIN + OFF + axe AA) · bundle inicial **85.3 KB gzip** (presupuesto 150 KB) · 13 pantallas /
+  60 marcos · WCAG 2.2 AA.
+- **Siguiente:** **S4 · M2** — `/sync/push|pull`, RLS en uso y aislamiento A/B; luego **S5** (LWW,
+  backoff, cierre de M2).
 
 ---
 
@@ -45,21 +45,25 @@ Comandos y resultados al cierre de S2 (18/10/2026):
 | Gate | Comando | Resultado |
 |---|---|---|
 | Tipos | `pnpm typecheck` | ✅ 0 errores (api, core, tokens, ui, web) |
-| Unitarios | `pnpm test` | ✅ **96** (85 core + 11 web) |
-| e2e | `pnpm --filter @latiendita/web test:e2e` | ✅ **10/10** |
+| Unitarios | `pnpm test` | ✅ **115** (85 core + 16 web + 14 api) |
+| e2e | `pnpm --filter @latiendita/web test:e2e` | ✅ **13/13** |
 | Build | `pnpm build` | ✅ |
-| Presupuesto | `pnpm size` | ✅ **83 661 B gzip** / 153 600 B |
+| Presupuesto | `pnpm size` | ✅ **87 325 B gzip** / 153 600 B |
 | Contraste | `python3 design/tokens/verify_contrast.py` | ✅ 60/60 pares AA |
 | QA diseño | `python3 design/tools/qa.py` | ✅ 13 pantallas · 60 marcos · 0 hallazgos |
 
-**Árbol de trabajo:** S1, S2 y S2+ quedaron **commiteados** al cierre (ver §14). Aun así, antes de
-empezar ejecuta `git status --short` y **no borres ni reviertas** archivos que no entiendas.
+**Árbol de trabajo:** S1, S2, S2+ y S3 quedaron **commiteados** al cierre (ver §14). Aun así, antes
+de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos que no entiendas.
 
 **Lo que NO está hecho (no lo asumas):**
 
 - Sin service worker / Workbox → **no hay recarga ni instalación offline** (C9, M3).
-- Sin login, sesión, invitación ni RLS en uso (M2; bloqueado por P2).
-- Sin endpoints de sync (`/sync/push`, `/sync/pull`) ni wiring de PostgreSQL en la API.
+- **S3 verificado con repo en memoria**: el adaptador Postgres/RLS compila pero **no se probó contra
+  una instancia real**; `/auth` busca código/token con rol dueño (bypass RLS) hasta `SECURITY DEFINER` (S4).
+- La sesión **no cambia aún** el `negocioId` local ni dispara pull/sync (S4). Sin sesión, la app sigue
+  en **modo local M1** (C2–C5) para no romper los flujos offline existentes.
+- Sin botón de “cerrar sesión / usar otra cuenta” en la UI (el repo ya lo soporta).
+- Sin endpoints de sync (`/sync/push`, `/sync/pull`) ni uso real de PostgreSQL en la API.
 - Sin ESLint real (`pnpm lint` es un alias de `typecheck`).
 - `size-limit` y Lighthouse siguen siendo placeholders.
 - Fiados, reportes, empleados, respaldo e Inicio son **placeholders** de UI.
@@ -110,6 +114,18 @@ empezar ejecuta `git status --short` y **no borres ni reviertas** archivos que n
 - Correcciones menores: se eliminó el estado/import sin uso (`nuevoOpId`) y se separó el error de
   captura del error de cierre.
 
+### S3 · M2 — cuentas y acceso ✅ (P1/P2 cerradas)
+
+- **P1:** licencia **AGPL-3.0** (`LICENSE` + `"license": "AGPL-3.0-only"`); issue #2 cerrada.
+- **P2:** login **código de un solo uso + PIN**; issue #1 cerrada.
+- **API** (`apps/api/src/auth/`): rutas `/auth/negocio|invitacion|unirse|yo|renovar|salir`; código
+  base32 de 8 caracteres (7 días, un uso), argon2id para PIN, token opaco (hash SHA-256, 30 días,
+  rotación/revocación), rate-limit 5/10 min. 14 tests con repositorio en memoria.
+- **Core/web:** contrato `packages/core/src/auth.ts`; Dexie v2 con `sesion_local`; PBKDF2-SHA-256
+  local para desbloqueo offline; pantallas de crear tienda, unirse y bloqueo; sesión sólo en
+  IndexedDB. 5 tests web + 3 e2e.
+- **Diseño:** DS-31 “Sin mínimo” (issue #4 cerrada) y pantalla 05 regenerada.
+
 ---
 
 ## 4. Mapa de la implementación
@@ -132,8 +148,9 @@ empezar ejecuta `git status --short` y **no borres ni reviertas** archivos que n
 │   │       ├── fiados.ts          # cargos/abonos, saldo derivado
 │   │       ├── outbox.ts          # crearOp, backoff, idempotencia por op_id
 │   │       ├── indice.ts          # búsqueda local por nombre/código
+│   │       ├── auth.ts            # contrato C1/T-05 (sesión, invitación, PIN)
 │   │       └── db/
-│   │           ├── schema.ts      # Dexie v1: 10 tablas + índices
+│   │           ├── schema.ts      # Dexie v2: 11 tablas + índices (sesion_local)
 │   │           ├── db.ts          # abrirDb() singleton, borrarDb, persistencia
 │   │           ├── meta.ts        # cursores de sync y flags
 │   │           └── repos/         # productos, movimientos, fiados, outbox, conteo
@@ -145,18 +162,20 @@ empezar ejecuta `git status --short` y **no borres ni reviertas** archivos que n
 │   │   │   ├── main.tsx           # render + sprite Lucide + persistencia
 │   │   │   ├── app.tsx            # shell, rutas, header, nav inferior
 │   │   │   ├── router.tsx         # router propio (History API + popstate)
-│   │   │   ├── datos/             # repos (catálogo, libro, conteos), base local, demo, OFF
+│   │   │   ├── datos/             # repos (catálogo, libro, conteos, sesión), authApi, OFF
 │   │   │   ├── componentes/       # BannerOffline, ChipStock, EstadoVacio
-│   │   │   └── paginas/           # productos, escanear, movimiento, conteo
-│   │   ├── e2e/                   # Playwright (offline, OFF, axe)
-│   │   ├── vite.config.ts         # proxy /off → :3000
+│   │   │   └── paginas/           # auth, productos, escanear, movimiento, conteo
+│   │   ├── e2e/                   # Playwright (offline, OFF, auth/PIN, axe)
+│   │   ├── vite.config.ts         # proxy /off y /auth → :3000
 │   │   ├── vitest.config.ts       # node + fake-indexeddb
 │   │   └── playwright.config.ts   # webServer = pnpm dev
 │   └── api/                       # Fastify
 │       └── src/
-│           ├── server.ts          # /health + registrarOff
+│           ├── server.ts          # /health + registrarOff + registrarAuth
 │           ├── off.ts             # proxy OFF + caché TTL
-│           └── db/                # drizzle (schema mínimo M0) + client perezoso
+│           ├── auth/              # servicio, plugin, repo memoria/postgres, argon2id
+│           ├── migrations/        # 0001_init.sql (negocio, usuario, membresía, invitación, sesión)
+│           └── db/                # drizzle + client perezoso
 ├── infra/                         # docker-compose, Caddyfile, Dockerfile
 └── .github/workflows/ci.yml       # jobs: ci (tipos/tests/build/size) + e2e
 ```
@@ -169,6 +188,7 @@ UI (Preact)  →  datos/ (repos web)  →  @latiendita/core/db (Dexie)  →  Ind
                         └── dominio puro (@latiendita/core: libro, stock, unidades, fiados, outbox)
 
 API (Fastify) →  /off/:codigo  →  Open Food Facts (solo servidor; nunca el cliente)
+              →  /auth/*       →  PostgreSQL (S3 probado con repo en memoria; S4 conecta RLS)
 ```
 
 Regla: **la UI no escribe IndexedDB directamente** (excepto lecturas de apoyo en los repos web).
@@ -201,8 +221,11 @@ Toda escritura de negocio pasa por un repo de `core` que abre **una transacción
 | `outbox` | `id` (`op_id`) | ops pendientes; índice por estado y `proximoIntentoEn` |
 | `meta` | `clave` | cursores `server_seq:<negocio>`, flag de siembra, caché OFF |
 | `stock_cache` | `productoId` | **solo velocidad**; la verdad es el libro |
+| `sesion_local` | `id` (`"actual"`) | sesión + verificador PBKDF2 del PIN; token sólo en IndexedDB (S3) |
 
-- Base: `latiendita` (singleton). `negocioId = "local"` en M1; en M2 lo fija la invitación.
+- Base: `latiendita` (singleton), **Dexie v2** (v1 + `sesion_local`, migración aditiva).
+  `negocioId = "local"` en M1; S3 guarda la sesión real pero **aún no cambia** el `negocioId` local
+  (eso llega con el pull de S4).
 - Semilla demo: flag `demo:sembrado:v1`; ids de movimiento deterministas
   `demo-semilla:entrada:<productoId>`; el stock inicial **entra por el libro**, nunca a mano.
 
@@ -210,7 +233,8 @@ Toda escritura de negocio pasa por un repo de `core` que abre **una transacción
 
 | Ruta | Pantalla | Estado |
 |---|---|---|
-| `/` · `/unirse` | bienvenida / unirse | placeholder (M2) |
+| `/` | crear tienda (nombre + PIN) | ✅ C1.1 |
+| `/unirse` | unirse con código + PIN | ✅ C1.2 |
 | `/inicio` | resumen | placeholder (M3) |
 | `/productos` · `/productos/nuevo` · `/productos/:id` | catálogo / alta / edición | ✅ C2 |
 | `/escanear` | escáner (cámara → ZXing → manual) | ✅ C3 |
@@ -307,6 +331,13 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
 12. **Caddy aún no sirve el `dist/` web** (solo proxya la API). Es deuda de M4, no la “arregles” sin
     spec.
 13. **No commitees sin que se pida.** El árbol puede tener cambios del dueño o de la sesión anterior.
+14. **La sesión local bloquea la app en cada apertura.** `App` llama `repoSesion.bloquear()` si hay
+    sesión; sin sesión NO se bloquea (modo local M1) para no romper los e2e C2–C5. Si cambias ese
+    guard, actualiza `e2e/auth.spec.ts` y los flujos offline.
+15. **El PIN local es un candado de conveniencia, no una frontera fuerte** (T-05 §7). Se guarda un
+    verificador PBKDF2, nunca el PIN; el token vive sólo en IndexedDB, jamás en `localStorage`.
+16. **`cerrarSesion()` borra local y revoca best-effort.** Si no hay red, la sesión del servidor queda
+    hasta que expire; no la reportes como “revocada” sin red.
 
 ---
 
@@ -319,39 +350,52 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
 | 3 | `/conteo` no tiene entrada en la nav ni en Inicio | se llega solo por URL | M3 (Inicio real) |
 | 4 | Sin ESLint | estilo no verificado | endurecer M0 |
 | 5 | `size-limit` y Lighthouse placeholders | gate real de rendimiento ausente | M0/M4 |
-| 6 | API sin DB/sync | M2 completo pendiente | S3–S5 |
+| 6 | API auth probada con repo en memoria; **sync pendiente** | M2 completo pendiente | S4–S5 |
 | 7 | Caché OFF del servidor en memoria | se pierde al reiniciar (la caché local del cliente sí persiste) | M2 (junto a DB) |
 | 8 | Caddy no sirve la web | despliegue real incompleto | M4 |
-| 9 | Sin `LICENSE` | P1 abierta | cerrar P1 |
+| 9 | ~~Sin `LICENSE`~~ | ✅ resuelto: AGPL-3.0 (P1 cerrada) | — |
 | 10 | Escáner sin prueba en dispositivo real | formatos/linterna sin validar | campo / S9 |
 | 11 | Fiados, reportes, empleados, respaldo, Inicio | placeholders | M3 |
+| 12 | Adaptador Postgres/RLS de auth **sin probar** contra una instancia real | riesgo de fallo sólo en despliegue | S4 |
+| 13 | `/auth` busca código/token con rol dueño (bypass RLS) | esas consultas no pasan por RLS | S4 (`SECURITY DEFINER`) |
+| 14 | Sin botón de cerrar sesión / usar otra cuenta en la UI | no se puede salir desde la app | S3b / M3 |
+| 15 | La sesión no cambia el `negocioId` local ni dispara pull | la app sigue en modo local hasta S4 | S4 |
 
 ---
 
 ## 9. Próximos pasos
 
-### Bloqueado por decisiones (P1/P2)
+### Decisiones cerradas (P1/P2)
 
-- **P1 · Licencia** ([#2](https://github.com/marvinm29/latiendita-design/issues/2)): MIT vs AGPL-3.0
-  (recomendación: AGPL-3.0). Al cerrarla: añadir `LICENSE` y SPDX.
-- **P2 · Login de empleados** ([#1](https://github.com/marvinm29/latiendita-design/issues/1)):
-  código de invitación + PIN. **Bloquea S3.**
+- **P1 · Licencia** ([#2](https://github.com/marvinm29/latiendita-design/issues/2)): ✅ **AGPL-3.0**;
+  `LICENSE` + `"license": "AGPL-3.0-only"`.
+- **P2 · Login de empleados** ([#1](https://github.com/marvinm29/latiendita-design/issues/1)): ✅
+  **código de invitación de un solo uso + PIN** (T-05). Desbloquea S3.
 
-### S3 · M2 — Cuentas y acceso (tras P1/P2)
+### S3 · M2 — Cuentas y acceso ✅
 
-Criterios de aceptación:
-- Crear negocio (C1.1) y unirse con código de un solo uso (base32, expira, rate-limit).
-- PIN con argon2id en servidor; sesión opaca en IndexedDB; rotación y revocación.
-- **Desbloqueo offline por PIN local** (sin red).
-- Gate: invitar ↔ unirse funciona; la sesión sobrevive recarga; el PIN desbloquea sin red.
+Criterios cumplidos:
+- ✅ Crear negocio (C1.1) y unirse con código de un solo uso (base32, 7 días, rate-limit).
+- ✅ PIN con argon2id en servidor; sesión opaca en IndexedDB; rotación y revocación.
+- ✅ **Desbloqueo offline por PIN local** (PBKDF2, sin red).
+- ✅ Gate: invitar ↔ unirse (API, repo memoria); la sesión sobrevive recarga; el PIN desbloquea sin red.
+- ⚠️ Deuda honesta: adaptador Postgres/RLS sin probar contra instancia real y `/auth` con bypass de RLS
+  hasta `SECURITY DEFINER` → **S4**.
 
-### Trabajo no bloqueado (mientras P1/P2 siguen abiertas)
+### S4 · M2 — API y sincronización (siguiente)
 
-1. **Endurecer M0:** ESLint real, `size-limit`, Lighthouse CI, `drizzle-kit` (migraciones).
+- `/sync/push` idempotente por `op_id` (`op_log`) y `/sync/pull` por `server_seq` (T-04).
+- Fastify + Drizzle + Postgres + **RLS efectiva**; matriz de permisos por rol (C7).
+- Probar la migración real, mover búsquedas de auth a `SECURITY DEFINER` y conectar el `negocioId`
+  local de la web a la sesión (dejar el modo local M1 atrás).
+- **Gate:** repetir un lote no duplica; aislamiento A/B; migración aditiva.
+
+### Otros pendientes no bloqueados
+
+1. **Endurecer M0:** ESLint real, `size-limit` real, Lighthouse CI, `drizzle-kit`.
 2. **Historial de conteos:** los datos ya se guardan en `conteos`; falta mostrarlos (M3).
 3. **Entrada a Conteo** desde Inicio/Más cuando exista Inicio real (M3).
-4. **DS-26** ([#3](https://github.com/marvinm29/latiendita-design/issues/3)) y tarjeta “sin mínimo”
-   ([#4](https://github.com/marvinm29/latiendita-design/issues/4)).
+4. **DS-26** ([#3](https://github.com/marvinm29/latiendita-design/issues/3)); #4 ya cerrada con DS-31.
 5. **`pb-20` vs FAB** ([#5](https://github.com/marvinm29/latiendita-design/issues/5)) con datos reales.
 
 ---
@@ -443,15 +487,15 @@ Antes de hacer nada, lee en este orden:
 7. design/DESIGN.md y design/ACCESSIBILITY.md (contrato de UI y WCAG 2.2 AA)
 
 Estado verificado: SDD y diseño (F1–F4) completos. M0 ✅ · M1 ✅ (dominio + Dexie + UI C2–C5 sobre
-IndexedDB, C5 con sesión persistente, 96 tests + 10 e2e offline/axe, OFF con proxy y caché local). M2+ bloqueado por P1 (licencia)
-y P2 (login).
+IndexedDB, C5 persistente) · M2 en curso (S3 ✅: negocio, invitación/PIN, sesión, desbloqueo offline;
+115 tests + 13 e2e). P1 (AGPL-3.0) y P2 (código+PIN) cerradas. Siguiente: S4 (sync + RLS).
 
 Protocolo: verifica la base (git status, typecheck, test) → plan pequeño → implementa → prueba →
 actualiza docs → reporta con evidencia. El spec manda; español primero; WCAG 2.2 AA es contrato;
 nunca color solo; no commitees sin que se te pida; no reabras decisiones cerradas.
 
-Empieza confirmando que leíste el estado y proponme el siguiente incremento (S3 si P1/P2 están
-cerradas; si no, el trabajo no bloqueado de docs/TRASPASO.md §9).
+Empieza confirmando que leíste el estado y proponme el siguiente incremento (S4: sync + RLS, o el
+trabajo no bloqueado de docs/TRASPASO.md §9).
 ```
 
 ---
@@ -475,6 +519,25 @@ cerradas; si no, el trabajo no bloqueado de docs/TRASPASO.md §9).
 ---
 
 ## 14. Registro de sesiones
+
+### Sesión 3 (18/10/2026) — P1/P2 + S3 · cuentas y acceso
+
+**Objetivo:** cerrar licencia y login, entregar S3 completo (API + web) y la variante “sin mínimo”.
+
+**Cambios:**
+
+- **P1:** `LICENSE` AGPL-3.0, `"license": "AGPL-3.0-only"` en paquetes; spec `002` §7 e issue #2 cerradas.
+- **P2:** código de un solo uso + PIN confirmado; issue #1 cerrada.
+- **API auth:** `apps/api/src/auth/*` (servicio, plugin, repo memoria/Postgres, argon2id, rate-limit),
+  migración `invitacion`/`sesion` + drizzle, 14 tests.
+- **Web auth:** `packages/core/src/auth.ts`, Dexie v2 (`sesion_local`), `sesionRepo*`, `authApi`,
+  pantallas crear/unirse/bloqueo, 5 tests + 3 e2e.
+- **Diseño:** DS-31 “Sin mínimo”, pantalla 05 regenerada, issue #4 cerrada.
+
+**Verificación:** typecheck ✅ · **115 tests** ✅ (85 core + 16 web + 14 api) · **13 e2e** ✅ ·
+build ✅ · `pnpm size` **87 325 B gzip** ✅ · QA diseño 13/60/0 ✅ · contraste 60/60 ✅.
+
+**Siguiente:** S4 — sync push/pull + RLS real + conectar `negocioId` a la sesión.
 
 ### Sesión 2 (18/10/2026) — C5 · conteo persistente y reanudable
 

@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { afterEach, describe, expect, it } from "vitest";
 import { abrirDb, borrarDb, nombreDeBase, solicitarPersistencia } from "./db";
 import { guardarCursorServidor, leerCursorServidor } from "./meta";
-import type { LaTienditaDb } from "./schema";
+import { VERSION_ESQUEMA, type LaTienditaDb } from "./schema";
 
 const abiertas: LaTienditaDb[] = [];
 
@@ -39,10 +39,10 @@ describe("abrirDb", () => {
     expect(nombreDeBase("  ¡Café!  ")).toBe("latiendita-cafe");
   });
 
-  it("crea la base con el esquema v1 y sus 10 tablas", async () => {
+  it("crea la base con el esquema actual (10 tablas de negocio + sesión local)", async () => {
     const db = abrir("esquema");
     await db.open();
-    expect(db.verno).toBe(1);
+    expect(db.verno).toBe(VERSION_ESQUEMA);
     expect(db.tables.map((t) => t.name).sort()).toEqual([
       "categorias",
       "clientes",
@@ -52,6 +52,7 @@ describe("abrirDb", () => {
       "movimientos",
       "outbox",
       "productos",
+      "sesion_local",
       "stock_cache",
       "unidades_venta",
     ]);

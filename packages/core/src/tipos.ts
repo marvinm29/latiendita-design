@@ -72,6 +72,9 @@ export interface Fiado {
   opId?: string;
 }
 
+/** Roles de membresía (D4 / C7.1) — espejo del CHECK en 0001_init.sql. */
+export type Rol = "dueña" | "empleado";
+
 /** Operación en la outbox de sincronización offline. */
 export interface OpOutbox {
   id: string;

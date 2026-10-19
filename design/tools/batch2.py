@@ -37,12 +37,15 @@ def screen_productos():
 
     normal = listing([
         product_row("Refresco Big Cola 355ml", "Bebidas · por unidad", "$0.75", "12 uds", "success"),
+        product_row("Arroz San Juan 2 lb", "Abarrotes · por unidad", "$0.90", "8 uds", "none"),
         product_row("Harina Selecta 5 lb", "Abarrotes · por unidad", "$1.10", "3 uds · mínimo 5", "warning"),
         product_row("Leche Doña Vera 1 L", "Lácteos · por unidad", "$0.95", "0 uds", "danger"),
     ])
 
     offline = listing(
         [
+            product_row("Arroz San Juan 2 lb", "Abarrotes · por unidad", "$0.90",
+                        "8 uds", "none"),
             product_row("Harina Selecta 5 lb", "Abarrotes · por unidad", "$1.10",
                         "3 uds · mínimo 5", "warning", pending_sync=True),
             product_row("Refresco Big Cola 355ml", "Bebidas · por unidad", "$0.75",
@@ -63,7 +66,8 @@ def screen_productos():
 
     states = [
         ("Default",
-         "Catálogo local: buscar, filtrar por estado y abrir cualquier producto. Una sola acción de cabecera.",
+         "Catálogo local: buscar, filtrar por estado y abrir cualquier producto. El chip neutral "
+         "“Sin mínimo” marca productos sin umbral; no es alerta ni deuda.",
          frame(header("Productos", action=("plus", "Agregar producto")) + content(normal, pad=NAV_PAD),
                nav_key="productos")),
         ("Vacío",

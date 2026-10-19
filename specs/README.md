@@ -27,7 +27,7 @@ sostenibilidad aspiracional al estilo jshERP (código libre siempre; convenienci
 | `005-prompt-opendesigner.md` | Prompt maestro de prototipado, decisión de sistema de color (Radix/Teal/Sand/Amber, S8), protocolo de iteración en 4 fases | ✅ Completo — ejecutar con OpenDesigner para generar fundaciones + mockups |
 | `003-plan-tecnico.md` | **Plan técnico v1**: stack (Preact/Fastify/Postgres+RLS), arquitectura offline/sync (outbox + LWW por campo + ledger append-only), modelo de datos, seguridad, presupuesto de rendimiento, estrategia de pruebas y hitos M0–M4 | ✅ Completo — requiere revisión del dueño |
 | `004-roadmap.md` | **Roadmap y adopción**: hitos M0–M4 (tareas, criterios de salida, camino crítico), gates de calidad, plan de adopción D11 y post-v1 | ✅ Completo — requiere revisión del dueño |
-| `006-plan-sprints.md` | **Plan de sprints**: S1–S9 en semanas de 1 semana, retomando desde el estado real y mapeando M0–M4 hasta v1.0 | ✅ Escrito — **S2 ✅ · S2+ (C5 persistente) ✅ · M1 cerrado** |
+| `006-plan-sprints.md` | **Plan de sprints**: S1–S9 en semanas de 1 semana, retomando desde el estado real y mapeando M0–M4 hasta v1.0 | ✅ Escrito — **S2 ✅ · S2+ (C5) ✅ · S3 ✅ · M1 cerrado; M2 en curso** |
 
 ## 3. Decisiones cerradas en conversación (no repetidas en los docs)
 
@@ -48,13 +48,14 @@ sostenibilidad aspiracional al estilo jshERP (código libre siempre; convenienci
 Fase: Spec Driven Development
 ├── Research de mercado y prior art .......... ✅ (000, 001)
 ├── Especificación funcional v1 ............. ✅ (002) — pendiente de aceptación formal
-├── Preguntas abiertas P1–P5 ................ ⏳ abiertas — issues #1 (P2), #2 (P1); P3–P5 asumidos
+├── Preguntas P1–P5 ......................... ✅ P1 AGPL-3.0 · P2 código+PIN (issues #1/#2 cerradas); P3–P5 asumidos
 ├── Plan técnico (003) ...................... ✅ escrito — pendiente de revisión del dueño
 ├── Roadmap/milestones (004) ................ ✅ escrito — pendiente de revisión del dueño
-└── Implementación .......................... ✅ M0 scaffold ✅ · M1 ✅: dominio core (64) + Dexie (21)
+└── Implementación .......................... ✅ M0 ✅ · M1 ✅: dominio core (64) + Dexie (21)
                                               + UI C2–C5 sobre Dexie ✅ + C5 persistente ✅
-                                              + 11 tests web (96 total) + 10 e2e offline/persistencia/axe ✅
-                                              · M2 bloqueado por P2 (issue #1)
+                                              + 11 tests web + 10 e2e offline/persistencia/axe ✅
+                                              · M2 🟡 S3 ✅: auth API (14 tests) + sesión local/PIN
+                                              (5 tests web) + 3 e2e · 115 tests + 13 e2e totales
 
 Fase: Diseño (OpenDesigner) — artefactos en design/
 ├── F1 Fundaciones (tokens DTCG + DESIGN.md + decisions.md) ..... ✅ aprobado
@@ -66,7 +67,7 @@ Fase: Diseño (OpenDesigner) — artefactos en design/
 ## 5. Para retomar en una sesión nueva
 
 1. Lee `002-especificacion-funcional.md` (fuente de verdad del producto) y `003-plan-tecnico.md` (cómo se construye).
-2. Cierra con el dueño las preguntas P1–P5 (licencia, login de empleados, multi-bodega, OFF, límite de fiado); **P1 (licencia) y P2 (login)** impactan directo el plan técnico.
+2. P1 (licencia **AGPL-3.0**) y P2 (login **código+PIN**) ya están cerradas; P3–P5 quedaron asumidas en el spec.
 3. Revisa/aprueba `003-plan-tecnico.md` (stack, arquitectura offline/sync, modelo de datos, seguridad, pruebas).
 4. Revisa/aprueba `004-roadmap.md` (hitos M0–M4, gates de calidad y plan de adopción D11).
 5. El diseño ya está entregado (fases F1–F4 en `design/`). Para verlo: `python3 -m http.server` y abre `design/preview.html` o `design/screens/03-inicio.html`. La accesibilidad (WCAG 2.2 AA) está en `design/ACCESSIBILITY.md`.

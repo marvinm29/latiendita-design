@@ -2,13 +2,16 @@
   "name": "@latiendita/api",
   "private": true,
   "version": "0.0.1",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.2.2",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.38.3",
     "fastify": "^5.2.1",

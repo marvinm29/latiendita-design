@@ -5,7 +5,7 @@
 ![WCAG 2.2 AA](https://img.shields.io/badge/WCAG_2.2-AA-0d9488)
 ![Contraste 60/60](https://img.shields.io/badge/contraste-60%2F60-16a34a)
 ![Sin build](https://img.shields.io/badge/build-no_requerido-0ea5e9)
-![Licencia](https://img.shields.io/badge/licencia-por_definir_(P1)-f59e0b)
+![Licencia](https://img.shields.io/badge/licencia-AGPL_3.0-16a34a)
 
 > Este repositorio contiene la **especificación**, el **sistema de diseño**, los **mockups de pantalla**
 > y el **monorepo de implementación** (M0 + M1: núcleo offline C2–C5) del proyecto. El diseño se abre en
@@ -74,14 +74,15 @@ manda sobre el diseño (si algo contradice el spec, se cambia el spec primero).
 | **F4 · Cierre** | checklist WCAG 2.2 AA (`ACCESSIBILITY.md`) + lint + cobertura | ✅ entregado |
 | Plan técnico (implementación) | `specs/003-plan-tecnico.md` | ✅ escrito — pendiente de revisión |
 | Roadmap / adopción | `specs/004-roadmap.md` | ✅ escrito — pendiente de revisión |
-| Plan de sprints | `specs/006-plan-sprints.md` | ✅ escrito — S2 ✅ · C5 persistente ✅ · M1 cerrado |
+| Plan de sprints | `specs/006-plan-sprints.md` | ✅ escrito — S2 ✅ · C5 persistente ✅ · S3 ✅ · M1 cerrado; M2 en curso |
 | **M0 · Cimientos** | monorepo pnpm (`apps/`, `packages/`, `infra/`) + CI + RLS base | ✅ scaffold (Lighthouse/size-limit placeholders) |
 | **M1 · Núcleo offline** | dominio puro `packages/core` + capa Dexie + UI C2–C5 sobre IndexedDB + conteo persistente + e2e offline + OFF | ✅ 96 tests + 10 e2e (axe AA) |
-| Decisiones P1/P2/DS-26 | issues #1–#5 en GitHub | ⏳ abiertas (P1 rec. AGPL-3.0) |
+| **M2 · Cuentas y acceso** | negocio, invitación de un solo uso, argon2id, sesión rotativa, desbloqueo offline por PIN + pantallas de alta/unión/bloqueo | ✅ S3 (14 API + 5 web + 3 e2e) · ⏳ S4/S5 sync |
+| Decisiones P1/P2/DS-26 | issues #1–#5 en GitHub | ✅ P1 (AGPL-3.0), P2 (código+PIN) y #4 (DS-31) · ⏳ DS-26/#5 |
 
 Números actuales: **60/60 pares de contraste AA** en ambos modos, **13 pantallas / 60 marcos**,
-**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **96 tests**
-(85 core + 11 web) y **10 e2e** (offline C2–C5 + conteo persistente + OFF + axe AA).
+**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **115 tests**
+(85 core + 16 web + 14 api) y **13 e2e** (offline C2–C5 + conteo + acceso/PIN + OFF + axe AA).
 
 ---
 
@@ -261,8 +262,8 @@ generación y auditoría.
 ├── docs/
 │   └── TRASPASO.md                # Contexto completo y protocolo para agentes de IA
 ├── apps/
-│   ├── web/                       # PWA: Preact + Vite (C2–C5) + e2e Playwright
-│   └── api/                       # Fastify: /health + proxy /off (Open Food Facts)
+│   ├── web/                       # PWA: Preact + Vite (C1–C5) + e2e Playwright
+│   └── api/                       # Fastify: /health + /off + /auth (invitación/PIN)
 ├── packages/
 │   ├── core/                      # dominio puro + Dexie (libro, stock, fiados, outbox)
 │   ├── tokens/                    # puente de tokens de diseño
@@ -328,11 +329,10 @@ pnpm --filter @latiendita/web dev                # http://localhost:5173
 pnpm --filter @latiendita/api dev                # http://localhost:3000 (/health, /off/:codigo)
 
 pnpm --filter @latiendita/web test:e2e:install   # una vez: Chromium de Playwright
-pnpm --filter @latiendita/web test:e2e           # offline C2–C5 + conteo persistente + OFF + axe AA
+pnpm --filter @latiendita/web test:e2e           # offline C2–C5 + conteo + acceso/PIN + OFF + axe AA
 ```
 
-Estado: **M0 ✅ · M1 ✅** (96 tests + 10 e2e; C5 con sesión persistente y reanudable). **M2+** está bloqueado por **P1** (licencia) y **P2**
-(login). El detalle de arquitectura, invariantes y trampas está en [`docs/TRASPASO.md`](docs/TRASPASO.md).
+Estado: **M0 ✅ · M1 ✅ · M2 en curso** (115 tests + 13 e2e). **S3 ✅** (negocio, invitación+PIN, sesión y desbloqueo offline); siguen **S4/S5** (sync push/pull, RLS en uso y LWW). El detalle de arquitectura, invariantes y trampas está en [`docs/TRASPASO.md`](docs/TRASPASO.md).
 
 ---
 
@@ -398,6 +398,7 @@ Las decisiones están registradas y justificadas una por una en [`design/decisio
   segmentados de 48px en una línea.
 - **DS-28…DS-30** — lote 3: filas de fiados con signo + tono (cargo ámbar / abono verde), invitar es
   lo único que requiere internet, y reportes/respaldo se calculan localmente.
+- **DS-31** — estado neutral **“Sin mínimo”** en la tarjeta de producto (icono + texto, nunca sólo color).
 
 > **Pendiente de revisión del dueño:** DS-26 propone añadir «Productos» como enmienda al spec `005`.
 
@@ -413,14 +414,15 @@ Las decisiones están registradas y justificadas una por una en [`design/decisio
 2. **Roadmap — ✅ [`specs/004-roadmap.md`](specs/004-roadmap.md):** hitos M0–M4 (tareas, criterios de
    salida, camino crítico), gates de calidad obligatorios, plan de adopción D11 (comunidad + self-host)
    y qué viene después de v1.
-3. **Implementación:** M0 ✅ y M1 ✅ (núcleo offline C2–C5 con conteo persistente, e2e sin red y OFF con caché). El siguiente
-   hito es **M2**, bloqueado por P1 (licencia) y P2 (login). Ver `specs/006-plan-sprints.md`.
+3. **Implementación:** M0 ✅, M1 ✅ y **S3 ✅** (núcleo offline C2–C5, conteo persistente, OFF y
+   cuentas con invitación+PIN). El siguiente paso es **S4**: `/sync/push|pull`, RLS en uso y pruebas
+   de aislamiento A/B. Ver `specs/006-plan-sprints.md`.
 
 Todas las fases de diseño (F1 fundaciones, F2 componentes, F3 pantallas con lotes 1–3, F4 cierre
 WCAG) están **entregadas** y el núcleo offline de la v1 está implementado y probado.
 
-Pendientes abiertos registrados: variante «sin mínimo» de la tarjeta de producto, revisión de DS-26
-por el dueño, y confirmar que el padding inferior de la navegación despeja el FAB central con datos reales.
+Pendientes abiertos registrados: revisión de DS-26 por el dueño y confirmar que el padding inferior
+de la navegación despeja el FAB central con datos reales.
 
 ---
 
@@ -445,8 +447,8 @@ No se commitea sin pedirlo.
 - **Atkinson Hyperlegible Next** — SIL Open Font License (`design/assets/fonts/`).
 - **Tailwind CSS** — vendorizado para uso sin conexión.
 
-La **licencia del proyecto está por definir** (pregunta abierta **P1** del spec: MIT vs AGPL-3.0).
-No se ha incluido un archivo `LICENSE` a propósito: se añadirá cuando el dueño cierre la decisión.
+La **licencia del proyecto es AGPL-3.0** (decisión P1 cerrada el 18/10/2026): ver [`LICENSE`](LICENSE).
+Protege el “gratis para siempre” frente a forks SaaS cerrados, en línea con el objetivo comunitario.
 
 ---
 
@@ -477,6 +479,6 @@ Verification: a **60-pair WCAG 2.2 AA contrast matrix** (`design/tokens/verify_c
 both light and dark modes, and the design is fully reproducible from the scripts in `design/tools/`.
 
 Explore it offline with `python3 -m http.server` and open `design/preview.html`. The product spec lives
-in `specs/` (Spanish). Project license is still open (P1: MIT vs AGPL-3.0).
+in `specs/` (Spanish). Project license: **AGPL-3.0** (P1, closed on 2026-10-18).
 
 </details>

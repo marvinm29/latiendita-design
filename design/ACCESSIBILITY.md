@@ -28,9 +28,9 @@ pendiente de prueba con lector de pantalla/zoom real.
 | 1.1.1 | A | Contenido no textual | Met | Todo icono decorativo lleva `aria-hidden="true"`; los que comunican llevan `role="img"` + `aria-label`. Sprite Lucide estático, sin texto en imágenes. |
 | 1.3.1 | A | Información y relaciones | Met | `qa.py` verifica que cada `<label for>` tenga su control y que `aria-labelledby`/`aria-describedby` apunten a ids existentes; grupos con `role="group"` + `aria-label`; nav con `aria-label` + `aria-current`. |
 | 1.3.5 | AA | Identificar el propósito del campo | N/A | No hay campos de identidad del usuario (nombre, correo, dirección). El único campo de contacto (teléfono del cliente en fiados) es dato de un tercero, no del operador; los campos de búsqueda llevan `type="search"`. |
-| 1.4.1 | A | Uso del color | Met | Estado y dirección nunca dependen del color: chips con icono + texto, filas de fiados con signo `+`/`−` (DS-28), nav activa con fondo **y** etiqueta, badge neutral “por sincronizar”. |
+| 1.4.1 | A | Uso del color | Met | Estado y dirección nunca dependen del color: chips con icono + texto, “Sin mínimo” neutral con icono + palabras (DS-31), filas de fiados con signo `+`/`−` (DS-28), nav activa con fondo **y** etiqueta, badge neutral “por sincronizar”. |
 | 1.4.3 | AA | Contraste mínimo | Met | 60/60 pares ≥4.5:1 (texto) y 0 fallos; el peor par de texto real es 4.71:1 (`design/DESIGN.md` §2.3). |
-| 1.4.4 | AA | Cambio de tamaño del texto | Manual | Tipografía en `rem`/`px` con `-webkit-text-size-adjust:100%`; el zoom del navegador escala todo. Reflow a 200% pendiente de captura formal. |
+| 1.4.4 | AA | Cambio de tamaño del texto | Manual | Tipografía en `rem`/`px` con `-webkit-text-size-adjust:100%`; el zoom del navegador escala todo. Chip y tarjeta “Sin mínimo” verificados a 200% sin recorte (DS-31); captura formal del resto pendiente. |
 | 1.4.11 | AA | Contraste de elementos no textuales | Met | Bordes de input, anillos de foco y rellenos de acción ≥3:1 en la matriz (p. ej. borde input vs página 3.80:1; anillo foco 4.48:1). |
 | 1.4.12 | AA | Espaciado del texto | Met | Sin alturas fijas que recorten texto; `line-height` viene de tokens; las tarjetas crecen con el contenido. |
 | 1.4.13 | AA | Contenido en hover o focus | Met | No hay tooltips ni contenido que solo aparezca al pasar el cursor; los estados de ayuda son permanentes (`field-help`). |
@@ -91,7 +91,7 @@ un paso crudo ni hex). Columnas: criterios clave y cómo se cumplen.
 | 1 | **Botón** (primario / secundario / icono / destructivo) | 1.4.1, 1.4.3, 1.4.11, 2.5.8, 2.4.7 | ≥48px; anillo 2+2px; primario con texto oscuro sobre teal (DS-06, 5.31:1); destructivo red-11/red-12; nunca solo color (siempre texto). |
 | 2 | **Campo de formulario** | 1.3.1, 3.3.1, 3.3.2, 3.3.3, 1.4.3 | Etiqueta visible + ayuda; error con icono, texto y `aria-invalid`/`aria-describedby`; borde sand-10 ≥3:1. |
 | 3 | **Control segmentado** | 4.1.2, 2.5.8, 1.4.1 | `role="group"` + `aria-label`; opciones con `aria-pressed`; 48px en una línea (DS-27); activo con fondo **y** `aria-pressed`. |
-| 4 | **Chip de estado** (stock / neutral / crédito) | 1.4.1, 3.2.4, 4.1.2 | Icono + texto siempre; ámbar solo dinero (DS-09); “por sincronizar” neutral (DS-17); contraste ≥4.5:1. |
+| 4 | **Chip de estado** (stock / neutral / crédito) | 1.4.1, 3.2.4, 4.1.2 | Icono + texto siempre; ámbar solo dinero (DS-09); “por sincronizar” neutral (DS-17); “Sin mínimo” neutral con icono + palabras (DS-31); contraste ≥4.5:1. |
 | 5 | **Tarjeta / fila de producto** | 2.5.8, 2.4.4, 1.4.11, 4.1.2 | Toda la fila es un `button` con `aria-label` descriptivo (“… Ver producto.”); foco visible; separador por borde, no por sombra. |
 | 6 | **Tarjeta / fila de cliente (fiados)** | 1.4.1, 2.4.4, 4.1.2 | Saldo con icono + cifra tabular; `aria-label` (“debe $12.50 … Ver detalle.”); “Al día” con icono + texto. |
 | 7 | **Teclado numérico** | 2.1.1, 4.1.2, 4.1.3, 2.5.8 | Botones reales ≥56px; display con `role="status"` + `aria-label` (“Cantidad contada: 14”); tecla borrar con nombre. |

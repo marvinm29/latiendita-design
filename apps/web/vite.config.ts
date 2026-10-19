@@ -15,6 +15,8 @@ export default defineConfig({
     // cliente. En producción, Caddy enruta /off a api:3000.
     proxy: {
       "/off": "http://127.0.0.1:3000",
+      // Acceso (C1/T-05): el cliente nunca conoce la URL interna de la API.
+      "/auth": "http://localhost:3000",
     },
   },
 });
