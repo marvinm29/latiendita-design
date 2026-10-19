@@ -1,14 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * e2e de la PWA (S2): flujos C2–C5 sin red + accesibilidad WCAG 2.2 AA.
+ * e2e de la PWA (S2 + C9): flujos C2–C5 sin red, accesibilidad WCAG 2.2 AA y
+ * recarga offline con service worker.
  *
+ * - Los specs funcionales corren contra `vite dev` (rápido) con los service
+ *   workers BLOQUEADOS: así una caché de otra corrida nunca contamina un test.
+ * - `pwa.spec.ts` corre contra `vite build && vite preview`, porque el SW solo
+ *   existe en el build (C9/T-07). Su contexto sí permite service workers.
  * - Cada test corre en un contexto limpio → IndexedDB vacío y semilla demo
  *   determinista.
- * - `setOffline(true)` corta TODA la red (incluido el dev server): por eso los
- *   flujos offline navegan por SPA (el shell ya está cargado), que es el
- *   comportamiento real de la app sin conexión. La recarga offline llegará con
- *   el service worker (C9/M3).
  */
 export default defineConfig({
   testDir: "./e2e",
@@ -26,13 +27,37 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"], viewport: { width: 360, height: 640 } },
+      testIgnore: /pwa\.spec\.ts$/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 360, height: 640 },
+        serviceWorkers: "block",
+      },
+    },
+    {
+      name: "pwa",
+      testMatch: /pwa\.spec\.ts$/,
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: "http://127.0.0.1:4173",
+        viewport: { width: 360, height: 640 },
+        serviceWorkers: "allow",
+      },
     },
   ],
-  webServer: {
-    command: "pnpm dev --host 127.0.0.1 --port 5173",
-    url: "http://127.0.0.1:5173",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: "pnpm dev --host 127.0.0.1 --port 5173",
+      url: "http://127.0.0.1:5173",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      // El SW necesita el build real; preview replica el proxy de /auth y /off.
+      command: "pnpm build && pnpm preview --host 127.0.0.1 --port 4173",
+      url: "http://127.0.0.1:4173",
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+    },
+  ],
 });

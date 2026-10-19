@@ -10,7 +10,7 @@ Open source, sin costo, **español primero**. Usuarios: **Marta** (dueña, poca 
 Android gama baja), **José** (empleado), **Carlos** (instalador técnico).
 
 Este repo contiene la **especificación (SDD)**, el **sistema de diseño** y los **mockups de pantalla**,
-el **plan técnico + roadmap**, y el **monorepo de implementación** (M0 + M1: núcleo offline C2–C5).
+el **plan técnico + roadmap**, y el **monorepo de implementación** (M0 + M1 + cuentas, fiados, PWA y export).
 
 - Repo: https://github.com/marvinm29/latiendita-design · rama `main`
 - Directorio de trabajo: raíz del repo (`specs/`, `design/`, `apps/`, `packages/`, `infra/`)
@@ -39,13 +39,14 @@ el **plan técnico + roadmap**, y el **monorepo de implementación** (M0 + M1: n
 | Diseño F1 fundaciones · F2 componentes · F3 pantallas (13) · F4 cierre WCAG | ✅ entregado |
 | Plan técnico (`003`) | ✅ escrito — pendiente de revisión del dueño |
 | Roadmap (`004`) | ✅ escrito — pendiente de revisión del dueño |
-| Plan de sprints (`006`) | ✅ escrito — **S2 ✅ · S2+ (C5) ✅ · S3 ✅ · M1 cerrado; M2 en curso** |
+| Plan de sprints (`006`) | ✅ escrito — **S2/S2+ ✅ · S3 ✅ · S6 (fiados) ✅ · S7 parcial (PWA + export) ✅ · M1 cerrado; M2/M3 en curso** |
 | **M0 · Cimientos** | ✅ scaffold monorepo + CI + RLS base + docker-compose + **ESLint real** + **gate de tamaño real** (Lighthouse sigue pendiente) |
 | **M1 · Núcleo offline** | ✅ dominio puro (64 tests) + capa Dexie (21 tests, libro+outbox+conteo) + **UI C2–C5 toda sobre Dexie** (catálogo, libro y conteo comparten base; escáner BarcodeDetector lazy → **ZXing-wasm perezoso** → teclado manual) + **conteo persistente y reanudable (C5.2)** + 11 tests web + **10 e2e offline C2–C5 + conteo persistente + axe AA** + **OFF** (proxy + caché local) |
 | **M2 · Cuentas y sync** | 🟡 **S3 ✅** (negocio, invitación+PIN, sesión, desbloqueo offline y cierre de sesión; 14 tests API + 5 web + 4 e2e) · **S4/S5 pendientes** (sync push/pull + RLS en uso + LWW) |
+| **M3 · Producto** | 🟡 **C6 fiados ✅** (libreta, cargos/abonos, saldo derivado, compartir) · **C9 PWA ✅** (Workbox, instalable, recarga offline, aviso de versión) · **C10 export ✅** (CSV/JSON) · ⏳ reportes, import/restore, Inicio |
 | Licencia del proyecto | ✅ **AGPL-3.0** (P1 cerrada 18/10/2026): `LICENSE` + `"license": "AGPL-3.0-only"` en los paquetes. |
 
-Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · **115 tests** (85 core + 16 web + 14 api) + **14 e2e** (offline C2–C5 + conteo + acceso/PIN + OFF + axe AA) · bundle **87.7 KB gzip** / 150 KB.
+Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · **125 tests** (88 core + 23 web + 14 api) + **20 e2e** (offline C2–C5 + conteo + acceso/PIN + fiados + PWA + export + OFF + axe AA) · bundle **103.1 KB gzip** / 150 KB (SW fuera del bundle).
 
 ## 3. Decisiones cerradas — NO reabrir
 
@@ -99,7 +100,8 @@ No committear sin pedirlo explícitamente.
 ## 6. Próximos pasos sugeridos
 
 - **(1)** **S3 · M2** ✅ P1/P2 cerradas: negocio + invitación/PIN + sesión + desbloqueo offline por PIN.
-- **(2)** **S4 · M2**: `/sync/push|pull` + RLS en uso + pruebas de aislamiento A/B.
+- **(2)** **S4 · M2**: `/sync/push|pull` + RLS en uso + pruebas de aislamiento A/B; luego S5 (LWW/backoff).
+- **(2b)** **M3 restante**: reportes (C11), import/restore (C10.2/C10.3), Inicio real y entrada a conteo.
 - **(3)** Endurecer **M0**: Lighthouse CI real y `drizzle-kit` (ESLint y gate de tamaño ya activos).
 - **(4)** Aprobar **DS-26** (issue #3); la tarjeta “sin mínimo” (#4) ya quedó con DS-31.
 
@@ -121,7 +123,8 @@ Antes de hacer nada, lee en este orden:
 
 Estado: SDD y diseño (F1–F4) COMPLETOS. Implementación: M0 ✅ · M1 ✅ (dominio + Dexie + UI C2–C5
 sobre IndexedDB, C5 persistente) · M2 en curso (S3 ✅: negocio + invitación/PIN + sesión + desbloqueo
-offline). 115 tests + 14 e2e. P1 (AGPL-3.0) y P2 (código+PIN) cerradas; sigue S4 (sync + RLS).
+offline) · M3 parcial (fiados, PWA y export). 125 tests + 20 e2e. P1 (AGPL-3.0) y P2
+(código+PIN) cerradas; siguen S4 (sync + RLS) y reportes/import.
 Todo el diseño se abre sin build con `python3 -m http.server`.
 
 Protocolo: verifica la base (git status, typecheck, test) → plan pequeño → implementa → prueba →

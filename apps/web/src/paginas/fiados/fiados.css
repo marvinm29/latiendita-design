@@ -1,0 +1,203 @@
+/* Fiados (C6) — estilos de pantalla sobre design/assets/ui.css.
+ * Sólo tokens semánticos; el ámbar marca deuda y SIEMPRE va con texto
+ * (“Debe”/“A favor”/“Al día”), nunca sólo color. */
+
+.fiados-subtitulo {
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ---- Resumen de la libreta ---- */
+.fiados-resumen {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.fiados-resumen-card {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-3);
+}
+
+.fiados-resumen-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+}
+
+.fiados-resumen-card .card-amount {
+  margin-top: var(--space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fiados-resumen-texto {
+  margin-top: var(--space-2);
+}
+
+.fiados-pie {
+  margin-top: var(--space-3);
+  text-align: center;
+}
+
+/* ---- Fila de cliente ---- */
+.fiado-fila-card {
+  padding: var(--space-3) var(--space-4);
+}
+
+.fiado-fila {
+  min-height: var(--size-row-min);
+}
+
+.fiado-fila-cuerpo {
+  flex: 1;
+  min-width: 0;
+}
+
+.fiado-fila-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.fiado-fila-titulos {
+  min-width: 0;
+}
+
+.fiado-saldo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.fiado-monto {
+  color: var(--color-text);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-lg);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Dinero adeudado: ámbar + chip “Debe” (nunca color solo). */
+.fiado-monto.es-deuda {
+  color: var(--color-credit-text);
+}
+
+/* ---- Detalle del cliente ---- */
+.fiado-cabecera {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fiado-saldo-grande {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-3xl);
+  line-height: var(--line-height-3xl);
+}
+
+.fiado-saldo-grande .icono {
+  color: var(--color-credit-accent);
+}
+
+.fiados-acciones {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.fiados-acciones .btn {
+  flex: 1;
+}
+
+.fiados-aviso {
+  width: 100%;
+  white-space: normal;
+}
+
+/* ---- Formulario de cargo/abono ---- */
+.fiado-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.fiado-formulario h2:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ---- Historial append-only ---- */
+.fiado-movimiento {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.fiado-movimiento-icono {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.fiado-movimiento-icono.es-cargo {
+  color: var(--color-credit-accent);
+}
+
+.fiado-movimiento-icono.es-abono {
+  color: var(--color-success-text);
+}
+
+.fiado-movimiento-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.fiado-movimiento-monto {
+  flex-shrink: 0;
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fiado-movimiento-monto.es-cargo {
+  color: var(--color-credit-text);
+}
+
+.fiado-movimiento-monto.es-abono {
+  color: var(--color-success-text);
+}
+
+/* ---- Compartir estado de cuenta ---- */
+.fiados-compartir {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.fiados-compartir .fiados-acciones {
+  flex-direction: column;
+}
+
+.fiados-texto-compartir {
+  height: auto;
+  padding: var(--space-3);
+  resize: vertical;
+  line-height: var(--line-height-base);
+}

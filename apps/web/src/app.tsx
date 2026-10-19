@@ -20,6 +20,10 @@ import { FormProducto } from "./paginas/productos/FormProducto";
 import { Escanear } from "./paginas/escanear/Escanear";
 import { Movimiento } from "./paginas/movimiento/Movimiento";
 import { Conteo } from "./paginas/conteo/Conteo";
+import { LibretaFiados } from "./paginas/fiados/LibretaFiados";
+import { ClienteFiado } from "./paginas/fiados/ClienteFiado";
+import { NuevoCliente } from "./paginas/fiados/NuevoCliente";
+import { Respaldo } from "./paginas/respaldo/Respaldo";
 
 type PageProps = { params: PathParams };
 type Page = (props: PageProps) => VNode;
@@ -78,18 +82,12 @@ const movimiento: Page = ({ params }) => <Movimiento params={params} />;
 
 const conteo: Page = () => <Conteo />;
 
-const fiados: Page = () => (
-  <Placeholder
-    title="Fiados"
-    note="Pantalla 9 — saldo por cliente en ámbar (D10). UI de cargo/abono en M3."
-  />
-);
+const fiados: Page = () => <LibretaFiados />;
+
+const clienteNuevo: Page = () => <NuevoCliente />;
 
 const cliente: Page = ({ params }) => (
-  <Placeholder
-    title={`Cliente ${params["id"] ?? ""}`}
-    note="Pantalla 10 — historial cargo/abono y compartir texto local (C6.4/C6.5)."
-  />
+  <ClienteFiado params={{ id: params["id"] }} />
 );
 
 const mas: Page = () => (
@@ -136,12 +134,7 @@ const empleados: Page = () => (
   />
 );
 
-const respaldo: Page = () => (
-  <Placeholder
-    title="Respaldo y datos"
-    note="Pantalla 13 — exportar CSV/JSON y llevarse tus datos (C10)."
-  />
-);
+const respaldo: Page = () => <Respaldo />;
 
 /** ~13 rutas — espejo de design/screens (01–13) + hub /mas. */
 const routes: Route[] = [
@@ -159,8 +152,13 @@ const routes: Route[] = [
   { path: "/movimiento", title: "Movimiento", nav: true, page: movimiento },
   { path: "/movimiento/:id", title: "Movimiento", nav: true, page: movimiento },
   { path: "/conteo", title: "Conteo", nav: true, page: conteo },
-  { path: "/fiados", title: "Fiados", nav: true, page: fiados },
-  { path: "/fiados/:id", title: "Cliente", nav: true, page: cliente },
+  { path: "/fiados", title: "Fiados", nav: true, page: fiados, accion: {
+    href: "/fiados/nuevo",
+    etiqueta: "Agregar cliente",
+    icono: "i-plus",
+  } },
+  { path: "/fiados/nuevo", title: "Cliente nuevo", nav: false, page: clienteNuevo, volver: "/fiados", pie: true },
+  { path: "/fiados/:id", title: "Cliente", nav: true, page: cliente, volver: "/fiados" },
   { path: "/mas", title: "Más", nav: true, page: mas },
   { path: "/mas/reportes", title: "Reportes", nav: true, page: reportes },
   { path: "/mas/empleados", title: "Empleados", nav: true, page: empleados },

@@ -3,6 +3,7 @@ import {
   compartirEstadoCuenta,
   formatearUsd,
   ordenarLibreta,
+  ordenarLibretaClientes,
   registrarAbono,
   registrarCargo,
   saldoCliente,
@@ -70,6 +71,35 @@ describe("ordenarLibreta", () => {
     const y = fiado("y", "c1", "abono", 1, 100);
     expect(ordenarLibreta([x, y]).map((f) => f.id)).toEqual(["x", "y"]);
     expect(ordenarLibreta([y, x]).map((f) => f.id)).toEqual(["x", "y"]);
+  });
+});
+
+describe("ordenarLibretaClientes", () => {
+  const clientes = [
+    { nombre: "Sin movimientos", saldoCentavos: 0, ultimoMovimientoEn: null },
+    { nombre: "Debe poco y viejo", saldoCentavos: 300, ultimoMovimientoEn: 100 },
+    { nombre: "Debe mucho", saldoCentavos: 1200, ultimoMovimientoEn: 900 },
+    { nombre: "Debe poco y nuevo", saldoCentavos: 300, ultimoMovimientoEn: 500 },
+  ];
+
+  it("ordena por saldo descendente y desempata por antigüedad", () => {
+    expect(ordenarLibretaClientes(clientes).map((c) => c.nombre)).toEqual([
+      "Debe mucho",
+      "Debe poco y viejo",
+      "Debe poco y nuevo",
+      "Sin movimientos",
+    ]);
+  });
+
+  it("ordena por antigüedad sin mutar la entrada", () => {
+    const entrada = [...clientes];
+    expect(ordenarLibretaClientes(clientes, "antiguedad").map((c) => c.nombre)).toEqual([
+      "Debe poco y viejo",
+      "Debe poco y nuevo",
+      "Debe mucho",
+      "Sin movimientos",
+    ]);
+    expect(clientes).toEqual(entrada);
   });
 });
 

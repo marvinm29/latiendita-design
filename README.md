@@ -8,7 +8,7 @@
 ![Licencia](https://img.shields.io/badge/licencia-AGPL_3.0-16a34a)
 
 > Este repositorio contiene la **especificación**, el **sistema de diseño**, los **mockups de pantalla**
-> y el **monorepo de implementación** (M0 + M1: núcleo offline C2–C5) del proyecto. El diseño se abre en
+> y el **monorepo de implementación** (M0 + M1 + cuentas, fiados, PWA y export) del proyecto. El diseño se abre en
 > HTML/CSS plano sin compilar; la app se construye con pnpm. El objetivo es impacto comunitario real,
 > no monetización: **open source, sin costo, en español primero**.
 
@@ -74,15 +74,16 @@ manda sobre el diseño (si algo contradice el spec, se cambia el spec primero).
 | **F4 · Cierre** | checklist WCAG 2.2 AA (`ACCESSIBILITY.md`) + lint + cobertura | ✅ entregado |
 | Plan técnico (implementación) | `specs/003-plan-tecnico.md` | ✅ escrito — pendiente de revisión |
 | Roadmap / adopción | `specs/004-roadmap.md` | ✅ escrito — pendiente de revisión |
-| Plan de sprints | `specs/006-plan-sprints.md` | ✅ escrito — S2 ✅ · C5 persistente ✅ · S3 ✅ · M1 cerrado; M2 en curso |
+| Plan de sprints | `specs/006-plan-sprints.md` | ✅ escrito — S2/C5 ✅ · S3 ✅ · S6 (fiados) ✅ · S7 parcial (PWA+export) ✅ |
 | **M0 · Cimientos** | monorepo pnpm (`apps/`, `packages/`, `infra/`) + CI + RLS base + ESLint + gate de tamaño | ✅ scaffold (Lighthouse pendiente) |
 | **M1 · Núcleo offline** | dominio puro `packages/core` + capa Dexie + UI C2–C5 sobre IndexedDB + conteo persistente + e2e offline + OFF | ✅ 96 tests + 10 e2e (axe AA) |
 | **M2 · Cuentas y acceso** | negocio, invitación de un solo uso, argon2id, sesión rotativa, desbloqueo offline por PIN, cierre de sesión + pantallas de alta/unión/bloqueo | ✅ S3 (14 API + 5 web + 4 e2e) · ⏳ S4/S5 sync |
+| **M3 · Producto** | fiados (C6), PWA instalable/offline (C9), export CSV/JSON (C10) | ✅ C6 · C9 · C10 export · ⏳ reportes/import/Inicio |
 | Decisiones P1/P2/DS-26 | issues #1–#5 en GitHub | ✅ P1 (AGPL-3.0), P2 (código+PIN) y #4 (DS-31) · ⏳ DS-26/#5 |
 
 Números actuales: **60/60 pares de contraste AA** en ambos modos, **13 pantallas / 60 marcos**,
-**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **115 tests**
-(85 core + 16 web + 14 api) y **14 e2e** (offline C2–C5 + conteo + acceso/PIN + OFF + axe AA).
+**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **125 tests**
+(88 core + 23 web + 14 api) y **20 e2e** (offline C2–C5 + conteo + acceso/PIN + fiados + PWA + export + OFF + axe AA).
 
 ---
 
@@ -318,7 +319,8 @@ están vendorizados para que funcione sin conexión.
 
 ## Implementación (pnpm)
 
-El monorepo implementa el núcleo offline **M1** (C2–C5) sobre IndexedDB, con e2e sin red.
+El monorepo implementa el núcleo offline **M1** (C2–C5), cuentas **S3** (C1), fiados (C6), PWA (C9)
+y export (C10) sobre IndexedDB, con e2e sin red.
 
 ```bash
 pnpm install
@@ -329,10 +331,10 @@ pnpm --filter @latiendita/web dev                # http://localhost:5173
 pnpm --filter @latiendita/api dev                # http://localhost:3000 (/health, /off/:codigo)
 
 pnpm --filter @latiendita/web test:e2e:install   # una vez: Chromium de Playwright
-pnpm --filter @latiendita/web test:e2e           # offline C2–C5 + conteo + acceso/PIN + OFF + axe AA
+pnpm --filter @latiendita/web test:e2e           # offline + conteo + acceso/PIN + fiados + PWA + export + axe AA
 ```
 
-Estado: **M0 ✅ · M1 ✅ · M2 en curso** (115 tests + 14 e2e). **S3 ✅** (negocio, invitación+PIN, sesión, desbloqueo offline y cierre de sesión); siguen **S4/S5** (sync push/pull, RLS en uso y LWW). El detalle de arquitectura, invariantes y trampas está en [`docs/TRASPASO.md`](docs/TRASPASO.md).
+Estado: **M0 ✅ · M1 ✅ · S3 ✅ · M3 parcial** (125 tests + 20 e2e). Ya funcionan cuentas/PIN, fiados, PWA instalable con recarga offline y export CSV/JSON; siguen **S4/S5** (sync + RLS + LWW) y reportes/import/Inicio. El detalle de arquitectura, invariantes y trampas está en [`docs/TRASPASO.md`](docs/TRASPASO.md).
 
 ---
 
@@ -414,9 +416,9 @@ Las decisiones están registradas y justificadas una por una en [`design/decisio
 2. **Roadmap — ✅ [`specs/004-roadmap.md`](specs/004-roadmap.md):** hitos M0–M4 (tareas, criterios de
    salida, camino crítico), gates de calidad obligatorios, plan de adopción D11 (comunidad + self-host)
    y qué viene después de v1.
-3. **Implementación:** M0 ✅, M1 ✅ y **S3 ✅** (núcleo offline C2–C5, conteo persistente, OFF y
-   cuentas con invitación+PIN). El siguiente paso es **S4**: `/sync/push|pull`, RLS en uso y pruebas
-   de aislamiento A/B. Ver `specs/006-plan-sprints.md`.
+3. **Implementación:** M0 ✅, M1 ✅, **S3 ✅** y **M3 parcial** (fiados, PWA instalable/offline y
+   export CSV/JSON). El siguiente paso es **S4**: `/sync/push|pull`, RLS en uso y aislamiento A/B;
+   después reportes, import/restore e Inicio. Ver `specs/006-plan-sprints.md`.
 
 Todas las fases de diseño (F1 fundaciones, F2 componentes, F3 pantallas con lotes 1–3, F4 cierre
 WCAG) están **entregadas** y el núcleo offline de la v1 está implementado y probado.

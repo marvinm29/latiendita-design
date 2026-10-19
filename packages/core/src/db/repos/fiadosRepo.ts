@@ -6,9 +6,11 @@
  * El límite de fiado (P5) queda reservado: aquí no se valida.
  */
 import {
+  ordenarLibretaClientes,
   registrarAbono,
   registrarCargo,
   saldoCliente,
+  type OrdenLibreta,
   type RegistrarFiadoInput,
 } from "../../fiados";
 import type { Fiado, OpOutbox } from "../../tipos";
@@ -27,6 +29,8 @@ export interface ClienteNuevo {
 export interface ClienteConSaldo extends ClienteFila {
   /** Saldo derivado del ledger: positivo = debe. */
   saldoCentavos: number;
+  /** Epoch ms del último cargo/abono; null = todavía sin movimientos. */
+  ultimoMovimientoEn: number | null;
 }
 
 export interface FiadoConOp {
@@ -35,8 +39,15 @@ export interface FiadoConOp {
 }
 
 export interface FiadosRepo {
-  /** Clientes vivos con su saldo derivado del ledger. */
-  listarClientes(): Promise<ClienteConSaldo[]>;
+  /**
+   * Clientes vivos con su saldo derivado del ledger, ordenados por saldo
+   * descendente (C6.3) o por antigüedad del último movimiento.
+   */
+  listarClientes(orden?: OrdenLibreta): Promise<ClienteConSaldo[]>;
+  /** Un cliente vivo con su saldo; null si no existe o está borrado. */
+  obtenerCliente(clienteId: string): Promise<ClienteConSaldo | null>;
+  /** Todos los asientos del negocio (resúmenes locales, C6/C11). */
+  listarFiados(): Promise<FiadoFila[]>;
   crearCliente(entrada: ClienteNuevo): Promise<ClienteFila>;
   crearCargoConOp(input: Omit<RegistrarFiadoInput, "opId">): Promise<FiadoConOp>;
   crearAbonoConOp(input: Omit<RegistrarFiadoInput, "opId">): Promise<FiadoConOp>;
@@ -45,6 +56,29 @@ export interface FiadosRepo {
 }
 
 export function crearFiadosRepo(db: LaTienditaDb, negocioId: string): FiadosRepo {
+  /** Clientes vivos + saldo + último movimiento, ya ordenados (C6.3). */
+  async function clientesConSaldo(orden: OrdenLibreta): Promise<ClienteConSaldo[]> {
+    const [clientes, fiados] = await Promise.all([
+      db.clientes.where("negocioId").equals(negocioId).toArray(),
+      db.fiados.where("negocioId").equals(negocioId).toArray(),
+    ]);
+    const ultimo = new Map<string, number>();
+    for (const fiado of fiados) {
+      const previo = ultimo.get(fiado.clienteId);
+      if (previo === undefined || fiado.creadoEn > previo) {
+        ultimo.set(fiado.clienteId, fiado.creadoEn);
+      }
+    }
+    const filas = clientes
+      .filter((c) => c.deletedAt === null)
+      .map((c) => ({
+        ...c,
+        saldoCentavos: saldoCliente(fiados, c.id),
+        ultimoMovimientoEn: ultimo.get(c.id) ?? null,
+      }));
+    return ordenarLibretaClientes(filas, orden);
+  }
+
   async function registrar(
     tipo: "cargo" | "abono",
     input: Omit<RegistrarFiadoInput, "opId">,
@@ -66,15 +100,25 @@ export function crearFiadosRepo(db: LaTienditaDb, negocioId: string): FiadosRepo
   }
 
   return {
-    async listarClientes(): Promise<ClienteConSaldo[]> {
-      const [clientes, fiados] = await Promise.all([
-        db.clientes.where("negocioId").equals(negocioId).toArray(),
-        db.fiados.where("negocioId").equals(negocioId).toArray(),
-      ]);
-      return clientes
-        .filter((c) => c.deletedAt === null)
-        .map((c) => ({ ...c, saldoCentavos: saldoCliente(fiados, c.id) }))
-        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    listarClientes: (orden = "saldo") => clientesConSaldo(orden),
+
+    async obtenerCliente(clienteId: string): Promise<ClienteConSaldo | null> {
+      const fila = await db.clientes.get(clienteId);
+      if (!fila || fila.negocioId !== negocioId || fila.deletedAt !== null) return null;
+      // Índice por cliente: sólo los asientos de este cliente y ya ordenados.
+      const fiados = await rangoCompuesto(db.fiados, "[negocioId+clienteId+creadoEn]", [
+        negocioId,
+        clienteId,
+      ]).toArray();
+      return {
+        ...fila,
+        saldoCentavos: saldoCliente(fiados, clienteId),
+        ultimoMovimientoEn: fiados.at(-1)?.creadoEn ?? null,
+      };
+    },
+
+    async listarFiados(): Promise<FiadoFila[]> {
+      return db.fiados.where("negocioId").equals(negocioId).toArray();
     },
 
     async crearCliente(entrada: ClienteNuevo): Promise<ClienteFila> {

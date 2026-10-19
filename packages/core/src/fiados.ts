@@ -31,6 +31,53 @@ export function ordenarLibreta(fiados: readonly Fiado[]): Fiado[] {
   });
 }
 
+/** Cómo se ordena la libreta de clientes (C6.3). */
+export type OrdenLibreta = "saldo" | "antiguedad";
+
+/** Campos mínimos de un cliente para ordenar la libreta. */
+export interface ClienteOrdenable {
+  nombre: string;
+  saldoCentavos: number;
+  /** Epoch ms del último cargo/abono; null = todavía sin movimientos. */
+  ultimoMovimientoEn: number | null;
+}
+
+function compararAntiguedad(a: ClienteOrdenable, b: ClienteOrdenable): number {
+  // Sin movimientos = al final de cualquier empate (recién creado).
+  if (a.ultimoMovimientoEn === null && b.ultimoMovimientoEn === null) return 0;
+  if (a.ultimoMovimientoEn === null) return 1;
+  if (b.ultimoMovimientoEn === null) return -1;
+  return a.ultimoMovimientoEn - b.ultimoMovimientoEn;
+}
+
+/**
+ * Ordena la libreta (C6.3), sin mutar la entrada:
+ *
+ * - `"saldo"` (por defecto): primero quien más debe; a igual saldo, el
+ *   movimiento más antiguo; luego el nombre.
+ * - `"antiguedad"`: primero el movimiento más antiguo; a igual fecha, mayor
+ *   saldo; luego el nombre.
+ *
+ * Los clientes sin movimientos quedan al final de los empates.
+ */
+export function ordenarLibretaClientes<T extends ClienteOrdenable>(
+  clientes: readonly T[],
+  orden: OrdenLibreta = "saldo",
+): T[] {
+  return [...clientes].sort((a, b) => {
+    if (orden === "antiguedad") {
+      const porFecha = compararAntiguedad(a, b);
+      if (porFecha !== 0) return porFecha;
+      if (b.saldoCentavos !== a.saldoCentavos) return b.saldoCentavos - a.saldoCentavos;
+    } else {
+      if (b.saldoCentavos !== a.saldoCentavos) return b.saldoCentavos - a.saldoCentavos;
+      const porFecha = compararAntiguedad(a, b);
+      if (porFecha !== 0) return porFecha;
+    }
+    return a.nombre.localeCompare(b.nombre, "es");
+  });
+}
+
 export interface RegistrarFiadoInput {
   clienteId: string;
   montoCentavos: number;

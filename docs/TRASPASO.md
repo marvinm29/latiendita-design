@@ -28,13 +28,14 @@
 - **Producto:** PWA **offline-first** de inventario + fiados para tiendas de colonia de El Salvador.
   Usuarios: **Marta** (dueña, baja alfabetización digital, Android gama baja), **José** (empleado),
   **Carlos** (instalador). Open source, sin costo, **español primero**.
-- **Estado:** SDD y diseño (F1–F4) completos. **M0 ✅** · **M1 ✅** (núcleo offline + C5 persistente)
-  · **M2 🟡 S3 ✅** (negocio, invitación+PIN, sesión y desbloqueo offline). **S4/S5 pendientes.**
-- **Números:** 115 tests unitarios (85 core + 16 web + 14 api) · 14 e2e (offline C2–C5 + conteo +
-  acceso/PIN + OFF + axe AA) · bundle inicial **85.6 KB gzip** (presupuesto 150 KB) · 13 pantallas /
-  60 marcos · WCAG 2.2 AA.
+- **Estado:** SDD y diseño (F1–F4) completos. **M0 ✅** · **M1 ✅** · **M2 🟡 S3 ✅** (acceso) ·
+  **M3 🟡**: fiados (C6), PWA instalable/offline (C9) y export CSV/JSON (C10) ✅; faltan reportes,
+  import/restore e Inicio. **S4/S5 pendientes.**
+- **Números:** 125 tests unitarios (88 core + 23 web + 14 api) · 20 e2e (offline C2–C5 + conteo +
+  acceso/PIN + fiados + PWA + export + OFF + axe AA) · bundle inicial **103.1 KB gzip** (presupuesto
+  150 KB; SW fuera del bundle) · 13 pantallas / 60 marcos · WCAG 2.2 AA.
 - **Siguiente:** **S4 · M2** — `/sync/push|pull`, RLS en uso y aislamiento A/B; luego **S5** (LWW,
-  backoff, cierre de M2).
+  backoff) y el resto de M3 (reportes, import/restore, Inicio).
 
 ---
 
@@ -46,10 +47,10 @@ Comandos y resultados al cierre de S2 (18/10/2026):
 |---|---|---|
 | Tipos | `pnpm typecheck` | ✅ 0 errores (api, core, tokens, ui, web) |
 | Lint | `pnpm lint` | ✅ 0 errores (ESLint flat config) |
-| Unitarios | `pnpm test` | ✅ **115** (85 core + 16 web + 14 api) |
-| e2e | `pnpm --filter @latiendita/web test:e2e` | ✅ **14/14** |
-| Build | `pnpm build` | ✅ |
-| Presupuesto | `pnpm size` | ✅ **87 673 B gzip** / 153 600 B (57.1 %) |
+| Unitarios | `pnpm test` | ✅ **125** (88 core + 23 web + 14 api) |
+| e2e | `pnpm --filter @latiendita/web test:e2e` | ✅ **20/20** |
+| Build | `pnpm build` | ✅ (incluye `sw.js` + Workbox) |
+| Presupuesto | `pnpm size` | ✅ **105 608 B gzip** / 153 600 B (68.8 %) |
 | Contraste | `python3 design/tokens/verify_contrast.py` | ✅ 60/60 pares AA |
 | QA diseño | `python3 design/tools/qa.py` | ✅ 13 pantallas · 60 marcos · 0 hallazgos |
 
@@ -58,7 +59,8 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
 
 **Lo que NO está hecho (no lo asumas):**
 
-- Sin service worker / Workbox → **no hay recarga ni instalación offline** (C9, M3).
+- **PWA:** el SW solo existe en build/`vite preview`, no en `vite dev`. El WASM de ZXing (953 KB) no
+  se precachea: el escaneo por cámara necesita red la primera vez (el teclado manual sigue offline).
 - **S3 verificado con repo en memoria**: el adaptador Postgres/RLS compila pero **no se probó contra
   una instancia real**; `/auth` busca código/token con rol dueño (bypass RLS) hasta `SECURITY DEFINER` (S4).
 - La sesión **no cambia aún** el `negocioId` local ni dispara pull/sync (S4). Sin sesión, la app sigue
@@ -66,7 +68,8 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
 - Sin botón de “cerrar sesión / usar otra cuenta” en la UI (el repo ya lo soporta).
 - Sin endpoints de sync (`/sync/push`, `/sync/pull`) ni uso real de PostgreSQL en la API.
 - Lighthouse CI sigue pendiente (el gate de tamaño propio ya es real).
-- Fiados, reportes, empleados, respaldo e Inicio son **placeholders** de UI.
+- **M3 restante:** reportes (C11), import/restore (C10.2/C10.3), Inicio real y entrada a conteo;
+  empleados sigue siendo placeholder (la invitación real vive en la API, sin pantalla de gestión).
 - El escáner no se ha probado en dispositivos reales (formatos y linterna sí están implementados).
 
 ---
@@ -128,6 +131,23 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
   supera 150 KB gzip; CI actualizado.
 - **Diseño:** DS-31 “Sin mínimo” (issue #4 cerrada) y pantalla 05 regenerada.
 
+### S6 · M3 — fiados ✅ (C6)
+
+- Core: orden de libreta por saldo/antigüedad (`ordenarLibretaClientes`), `obtenerCliente` y
+  `listarFiados`; saldo y `ultimoMovimientoEn` derivados del ledger. 3 tests core nuevos.
+- Web: `fiadosRepo*` sobre la base compartida; `/fiados`, `/fiados/nuevo` y `/fiados/:id` con
+  cargos/abonos inmutables, teclado numérico, validación > 0 y compartir estado de cuenta local
+  (`navigator.share` → portapapeles → texto). 3 tests web + 2 e2e (flujo + axe).
+
+### S7 · M3 — PWA y datos ✅/parcial (C9/C10)
+
+- PWA: `vite-plugin-pwa` (Workbox), manifest, iconos 192/512/180, precache del app-shell,
+  `navigateFallback` y denylist `/auth|/off|/sync`; aviso “Hay una nueva versión — Reiniciar”
+  sin recarga forzada. 2 e2e contra `vite preview` (recarga offline + manifest).
+- Datos: export CSV de productos/movimientos/fiados + respaldo JSON completo (`datos/exportar.ts`),
+  descarga local con BOM UTF-8. 4 tests web + 2 e2e (descarga real + axe).
+- Pendiente: import/restore (C10.2/C10.3), reportes (C11) y backups del servidor.
+
 ---
 
 ## 4. Mapa de la implementación
@@ -164,11 +184,12 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
 │   │   │   ├── main.tsx           # render + sprite Lucide + persistencia
 │   │   │   ├── app.tsx            # shell, rutas, header, nav inferior
 │   │   │   ├── router.tsx         # router propio (History API + popstate)
-│   │   │   ├── datos/             # repos (catálogo, libro, conteos, sesión), authApi, OFF
-│   │   │   ├── componentes/       # BannerOffline, ChipStock, EstadoVacio
-│   │   │   └── paginas/           # auth, productos, escanear, movimiento, conteo
-│   │   ├── e2e/                   # Playwright (offline, OFF, auth/PIN, axe)
-│   │   ├── vite.config.ts         # proxy /off y /auth → :3000
+│   │   │   ├── datos/             # repos (catálogo, libro, conteos, fiados, sesión), authApi, OFF, exportar
+│   │   │   ├── componentes/       # BannerOffline, ChipStock, EstadoVacio, AvisoNuevaVersion
+│   │   │   ├── pwa/               # registro del SW y señales de actualización
+│   │   │   └── paginas/           # auth, productos, escanear, movimiento, conteo, fiados, respaldo
+│   │   ├── e2e/                   # Playwright (offline, auth/PIN, fiados, PWA, export, axe)
+│   │   ├── vite.config.ts         # VitePWA/Workbox + proxy /off y /auth → :3000
 │   │   ├── vitest.config.ts       # node + fake-indexeddb
 │   │   └── playwright.config.ts   # webServer = pnpm dev
 │   └── api/                       # Fastify
@@ -242,8 +263,9 @@ Toda escritura de negocio pasa por un repo de `core` que abre **una transacción
 | `/escanear` | escáner (cámara → ZXing → manual) | ✅ C3 |
 | `/movimiento` · `/movimiento/:id` · `/movimiento?producto=` | libro | ✅ C4 |
 | `/conteo` | conteo asistido (sesión persistente, se reanuda) | ✅ C5 (sin entrada en la nav; se abre por URL) |
-| `/fiados` · `/fiados/:id` | fiados | placeholder (M3) |
-| `/mas` · `/mas/reportes` · `/mas/empleados` · `/mas/respaldo` | más | placeholders |
+| `/fiados` · `/fiados/nuevo` · `/fiados/:id` | libreta, alta y detalle de cliente | ✅ C6 |
+| `/mas/respaldo` | export CSV/JSON | ✅ C10 (export) |
+| `/mas/reportes` · `/mas/empleados` | reportes y empleados | placeholders (M3) |
 
 Nav inferior: Inicio · Productos · **Escanear (FAB)** · Fiados · Más. Movimiento y conteo no tienen
 entrada directa en la nav (ver §8).
@@ -308,9 +330,10 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
 
 ## 7. Trampas conocidas (aprendidas a golpes)
 
-1. **`setOffline` corta también `localhost`.** En e2e, no uses `page.goto()` estando offline: la
-   navegación debe ser **SPA** (clic en enlaces o `navigate`). La recarga offline no existe hasta que
-   haya service worker (M3). El patrón correcto está en `e2e/offline-c2-c5.spec.ts`.
+1. **`setOffline` corta también `localhost`.** En los specs funcionales (dev, sin SW) no uses
+   `page.goto()` estando offline: la navegación debe ser **SPA** (clic o `navigate`). La recarga
+   offline real se prueba sólo en `e2e/pwa.spec.ts`, que corre contra `vite preview` con el SW. El
+   patrón offline C2–C5 está en `e2e/offline-c2-c5.spec.ts`.
 2. **Rutas que deben preservar estado usan el MISMO componente.** `/movimiento` y `/movimiento/:id`
    apuntaban a dos funciones distintas; Preact remontaba y se perdía el aviso “Movimiento registrado”.
    Si dos rutas renderizan la misma pantalla, comparten la misma referencia de componente.
@@ -341,6 +364,11 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
     verificador PBKDF2, nunca el PIN; el token vive sólo en IndexedDB, jamás en `localStorage`.
 16. **`cerrarSesion()` borra local y revoca best-effort.** Si no hay red, la sesión del servidor queda
     hasta que expire; no la reportes como “revocada” sin red.
+17. **La PWA no existe en `vite dev`.** Manifest/SW se generan en `pnpm build`; los specs funcionales
+    corren con `serviceWorkers: "block"` y sólo `pwa.spec.ts` usa `vite preview`. No cambies eso sin
+    revisar `playwright.config.ts` (dos webServers) ni precaches `/auth`, `/off` o `/sync`.
+18. **El WASM de ZXing no está precacheado.** El escaneo por cámara necesita red la primera vez; el
+    teclado manual es el camino offline (C3.2). Si se precachea, vigila el presupuesto y el arranque.
 
 ---
 
@@ -348,7 +376,7 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
 
 | # | Hueco | Impacto | Cuándo |
 |---|---|---|---|
-| 1 | Sin service worker/Workbox | no hay instalación ni recarga offline (C9) | M3 / S7 |
+| 1 | ~~Sin service worker/Workbox~~ | ✅ resuelto en S7: PWA instalable y recarga offline (C9) | — |
 | 2 | ~~La UI de conteo no persiste la sesión en `conteos`~~ | ✅ resuelto en S2+: reanuda y cierra con ajustes atómicos | — |
 | 3 | `/conteo` no tiene entrada en la nav ni en Inicio | se llega solo por URL | M3 (Inicio real) |
 | 4 | ~~Sin ESLint~~ | ✅ resuelto: `pnpm lint` = ESLint flat config | — |
@@ -358,11 +386,13 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
 | 8 | Caddy no sirve la web | despliegue real incompleto | M4 |
 | 9 | ~~Sin `LICENSE`~~ | ✅ resuelto: AGPL-3.0 (P1 cerrada) | — |
 | 10 | Escáner sin prueba en dispositivo real | formatos/linterna sin validar | campo / S9 |
-| 11 | Fiados, reportes, empleados, respaldo, Inicio | placeholders | M3 |
+| 11 | Reportes (C11), empleados e Inicio | placeholders (fiados y respaldo export ya son reales) | M3 |
 | 12 | Adaptador Postgres/RLS de auth **sin probar** contra una instancia real | riesgo de fallo sólo en despliegue | S4 |
 | 13 | `/auth` busca código/token con rol dueño (bypass RLS) | esas consultas no pasan por RLS | S4 (`SECURITY DEFINER`) |
-| 14 | Sin botón de cerrar sesión / usar otra cuenta en la UI | no se puede salir desde la app | S3b / M3 |
+| 14 | ~~Sin botón de cerrar sesión~~ | ✅ resuelto: cierre con confirmación en «Más» | — |
 | 15 | La sesión no cambia el `negocioId` local ni dispara pull | la app sigue en modo local hasta S4 | S4 |
+| 16 | Import/restore de JSON y CSV (C10.2/C10.3) | solo se puede exportar, no restaurar | M3 |
+| 17 | Reportes mínimos (C11) | valor de inventario y resumen de fiados ausentes | M3 |
 
 ---
 
@@ -395,11 +425,11 @@ Criterios cumplidos:
 
 ### Otros pendientes no bloqueados
 
-1. **Endurecer M0:** Lighthouse CI y `drizzle-kit` (ESLint y gate de tamaño ya activos).
-2. **Historial de conteos:** los datos ya se guardan en `conteos`; falta mostrarlos (M3).
-3. **Entrada a Conteo** desde Inicio/Más cuando exista Inicio real (M3).
-4. **DS-26** ([#3](https://github.com/marvinm29/latiendita-design/issues/3)); #4 ya cerrada con DS-31.
-5. **`pb-20` vs FAB** ([#5](https://github.com/marvinm29/latiendita-design/issues/5)) con datos reales.
+1. **M3 restante:** reportes (C11), import/restore (C10.2/C10.3), Inicio real, historial de conteos
+   y entrada a Conteo.
+2. **Endurecer M0:** Lighthouse CI y `drizzle-kit` (ESLint y gate de tamaño ya activos).
+3. **DS-26** ([#3](https://github.com/marvinm29/latiendita-design/issues/3)); #4 ya cerrada con DS-31.
+4. **`pb-20` vs FAB** ([#5](https://github.com/marvinm29/latiendita-design/issues/5)) con datos reales.
 
 ---
 
@@ -490,8 +520,8 @@ Antes de hacer nada, lee en este orden:
 7. design/DESIGN.md y design/ACCESSIBILITY.md (contrato de UI y WCAG 2.2 AA)
 
 Estado verificado: SDD y diseño (F1–F4) completos. M0 ✅ · M1 ✅ (dominio + Dexie + UI C2–C5 sobre
-IndexedDB, C5 persistente) · M2 en curso (S3 ✅: negocio, invitación/PIN, sesión, desbloqueo offline;
-115 tests + 14 e2e). P1 (AGPL-3.0) y P2 (código+PIN) cerradas. Siguiente: S4 (sync + RLS).
+IndexedDB, C5 persistente) · M2 en curso (S3 ✅) · M3 parcial (fiados, PWA, export).
+125 tests + 20 e2e. P1 (AGPL-3.0) y P2 (código+PIN) cerradas. Siguiente: S4 (sync + RLS).
 
 Protocolo: verifica la base (git status, typecheck, test) → plan pequeño → implementa → prueba →
 actualiza docs → reporta con evidencia. El spec manda; español primero; WCAG 2.2 AA es contrato;
@@ -522,6 +552,24 @@ trabajo no bloqueado de docs/TRASPASO.md §9).
 ---
 
 ## 14. Registro de sesiones
+
+### Sesión 4 (18/10/2026) — M3: fiados + PWA + export
+
+**Objetivo:** avanzar M3 en paralelo sin tocar sync/DB.
+
+**Cambios:**
+
+- **C6 fiados:** orden de libreta por saldo/antigüedad, `obtenerCliente`/`listarFiados`; adapter web,
+  `/fiados`, `/fiados/nuevo`, detalle con cargos/abonos y compartir local. 3 tests core + 3 web + 2 e2e.
+- **C9 PWA:** Workbox/`vite-plugin-pwa`, manifest + iconos, recarga offline y aviso de nueva versión;
+  2 e2e contra `vite preview`.
+- **C10 export:** CSV de productos/movimientos/fiados + respaldo JSON, descarga local; 4 tests web + 2 e2e.
+- **UI:** cierre de sesión en «Más»; `/mas/respaldo` real. Docs al día.
+
+**Verificación:** lint ✅ · typecheck ✅ · **125 tests** ✅ (88 core + 23 web + 14 api) · **20 e2e** ✅ ·
+build ✅ · `pnpm size` **105 608 B gzip** ✅ · QA diseño 13/60/0 ✅ · contraste 60/60 ✅.
+
+**Siguiente:** S4 (sync + RLS) y resto de M3 (reportes, import/restore, Inicio).
 
 ### Sesión 3 (18/10/2026) — P1/P2 + S3 · cuentas y acceso
 

@@ -253,10 +253,49 @@ describe("fiadosRepo", () => {
 
     clientes = await repos.fiados.listarClientes();
     expect(clientes[0]?.saldoCentavos).toBe(600);
+    expect(clientes[0]?.ultimoMovimientoEn).toBe(2000);
+
+    const detalle = await repos.fiados.obtenerCliente(cliente.id);
+    expect(detalle).toMatchObject({ id: cliente.id, saldoCentavos: 600 });
+    expect(await repos.fiados.listarFiados()).toHaveLength(2);
 
     const historial = await repos.fiados.historialPorCliente(cliente.id);
     expect(historial.map((f) => f.tipo)).toEqual(["cargo", "abono"]);
     expect(await repos.outbox.pendientes()).toHaveLength(3); // alta + cargo + abono
+  });
+
+  it("la libreta ordena por saldo y por antigüedad (C6.3)", async () => {
+    const rosa = await repos.fiados.crearCliente({ nombre: "Rosa" });
+    const ana = await repos.fiados.crearCliente({ nombre: "Ana" });
+    const beto = await repos.fiados.crearCliente({ nombre: "Beto" });
+
+    await repos.fiados.crearCargoConOp({
+      clienteId: rosa.id,
+      montoCentavos: 300,
+      creadoEn: 100,
+    });
+    await repos.fiados.crearCargoConOp({
+      clienteId: ana.id,
+      montoCentavos: 1200,
+      creadoEn: 900,
+    });
+    await repos.fiados.crearAbonoConOp({
+      clienteId: beto.id,
+      montoCentavos: 50,
+      creadoEn: 500,
+    });
+
+    expect((await repos.fiados.listarClientes()).map((c) => c.nombre)).toEqual([
+      "Ana",
+      "Rosa",
+      "Beto",
+    ]);
+    expect((await repos.fiados.listarClientes("antiguedad")).map((c) => c.nombre)).toEqual([
+      "Rosa",
+      "Beto",
+      "Ana",
+    ]);
+    expect(await repos.fiados.obtenerCliente("no-existe")).toBeNull();
   });
 
   it("no deja cargar fiado a un cliente inexistente", async () => {

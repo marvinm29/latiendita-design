@@ -1,0 +1,36 @@
+/* C9.2 — aviso de versión nueva (no intrusivo, encima de la nav inferior). */
+.aviso-version {
+  position: fixed;
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: calc(var(--size-nav-h) + env(safe-area-inset-bottom, 0px) + var(--space-3));
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-card);
+  border: var(--border-hairline) solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.aviso-version__texto {
+  margin: 0;
+  flex: 1 1 12ch;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: var(--color-text);
+}
+
+.aviso-version__acciones {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.aviso-version__acciones .btn {
+  padding: 0 var(--space-4);
+}

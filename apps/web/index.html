@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content="Inventario y fiados para tu tienda. Funciona sin internet." />
     <meta name="theme-color" content="#12a594" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- iOS (C9.1): pantalla completa y icono propio. El manifest lo genera e
+         inyecta vite-plugin-pwa en el build; en dev no hay SW ni manifest
+         (para probar instalación: pnpm build && pnpm preview). -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="LaTiendita" />
+    <link rel="apple-touch-icon" href="/icon-180.png" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <title>LaTiendita</title>
   </head>

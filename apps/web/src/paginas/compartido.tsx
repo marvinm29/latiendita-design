@@ -38,6 +38,19 @@ export function parseCantidad(texto: string): number | null {
   return Number.isFinite(valor) ? valor : null;
 }
 
+/**
+ * Texto de teclado/input de dinero → centavos enteros (nunca float).
+ * Acepta coma o punto y hasta 2 decimales: `"5"` → 500, `"5.5"` → 550.
+ * Devuelve `null` si no es un monto válido (la UI decide el mensaje).
+ */
+export function parseMontoCentavos(texto: string): number | null {
+  const limpio = texto.replace(/\s/g, "").replace(",", ".");
+  if (!/^\d{1,9}(\.\d{0,2})?$/.test(limpio)) return null;
+  const [enteros, decimales = ""] = limpio.split(".");
+  const centavos = Number(enteros) * 100 + Number(`${decimales}00`.slice(0, 2));
+  return Number.isSafeInteger(centavos) ? centavos : null;
+}
+
 /** op_id único para la outbox (idempotencia de sync, T-03). */
 export function nuevoOpId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -95,14 +108,18 @@ export function TecladoNumerico({
   valor,
   alPulsar,
   etiqueta,
+  prefijo,
 }: {
   valor: string;
   alPulsar: (tecla: Tecla) => void;
   etiqueta: string;
+  /** Símbolo visible antes del valor (p. ej. "$" en montos). */
+  prefijo?: string;
 }): VNode {
   return (
     <div class="keypad">
       <div class="keypad-display" role="status" aria-label={etiqueta}>
+        {prefijo ? <span class="currency">{prefijo}</span> : null}
         <span class="tabular">{valor === "" ? "0" : valor}</span>
       </div>
       <div class="keypad-grid" role="group" aria-label="Teclado numérico">

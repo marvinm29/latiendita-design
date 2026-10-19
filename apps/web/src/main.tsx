@@ -5,7 +5,10 @@ import "@latiendita/tokens/tokens.css";
 import "../../../design/assets/base.css";
 import "../../../design/assets/ui.css";
 import "./shell.css";
+import "./pwa/aviso.css";
 import { App } from "./app";
+import { AvisoNuevaVersion } from "./componentes/AvisoNuevaVersion";
+import { registrarServiceWorker } from "./pwa/registro";
 
 // Pide almacenamiento persistente (C8.5): protege IndexedDB de la evicción.
 // `solicitarPersistencia` ya guarda el entorno (no-op fuera del navegador).
@@ -20,5 +23,15 @@ document.body.prepend(spriteHost);
 
 const root = document.getElementById("app");
 if (root) {
-  render(<App />, root);
+  render(
+    <>
+      <App />
+      <AvisoNuevaVersion />
+    </>,
+    root,
+  );
 }
+
+// C9.2: el aviso “Hay una nueva versión — Reiniciar” se pinta cuando Workbox
+// detecta un SW esperando. En dev no registra nada (ver pwa/registro.ts).
+registrarServiceWorker();
