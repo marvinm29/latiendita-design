@@ -28,14 +28,14 @@
 - **Producto:** PWA **offline-first** de inventario + fiados para tiendas de colonia de El Salvador.
   Usuarios: **Marta** (dueña, baja alfabetización digital, Android gama baja), **José** (empleado),
   **Carlos** (instalador). Open source, sin costo, **español primero**.
-- **Estado:** SDD y diseño (F1–F4) completos. **M0 ✅** · **M1 ✅** · **M2 🟡 S3 ✅** (acceso) ·
-  **M3 🟡**: fiados (C6), PWA instalable/offline (C9) y export CSV/JSON (C10) ✅; faltan reportes,
-  import/restore e Inicio. **S4/S5 pendientes.**
-- **Números:** 125 tests unitarios (88 core + 23 web + 14 api) · 20 e2e (offline C2–C5 + conteo +
-  acceso/PIN + fiados + PWA + export + OFF + axe AA) · bundle inicial **103.1 KB gzip** (presupuesto
-  150 KB; SW fuera del bundle) · 13 pantallas / 60 marcos · WCAG 2.2 AA.
+- **Estado:** SDD y diseño (F1–F4) completos. **M0 ✅** · **M1 ✅** · **M2 🟡 S3 ✅** (acceso e
+  invitación desde la UI) · **M3 ✅** (fiados, PWA, datos export/import/restore, reportes e Inicio).
+  **S4/S5 pendientes.**
+- **Números:** 145 tests unitarios (88 core + 43 web + 14 api) · 30 e2e (offline C2–C5 + conteo +
+  acceso/empleados + fiados + PWA + datos + inicio/reportes + OFF + axe AA) · bundle inicial
+  **112.1 KB gzip** (presupuesto 150 KB; SW fuera del bundle) · 13 pantallas / 60 marcos · WCAG 2.2 AA.
 - **Siguiente:** **S4 · M2** — `/sync/push|pull`, RLS en uso y aislamiento A/B; luego **S5** (LWW,
-  backoff) y el resto de M3 (reportes, import/restore, Inicio).
+  backoff) y los backups del servidor.
 
 ---
 
@@ -47,10 +47,10 @@ Comandos y resultados al cierre de S2 (18/10/2026):
 |---|---|---|
 | Tipos | `pnpm typecheck` | ✅ 0 errores (api, core, tokens, ui, web) |
 | Lint | `pnpm lint` | ✅ 0 errores (ESLint flat config) |
-| Unitarios | `pnpm test` | ✅ **125** (88 core + 23 web + 14 api) |
-| e2e | `pnpm --filter @latiendita/web test:e2e` | ✅ **20/20** |
+| Unitarios | `pnpm test` | ✅ **145** (88 core + 43 web + 14 api) |
+| e2e | `pnpm --filter @latiendita/web test:e2e` | ✅ **30/30** |
 | Build | `pnpm build` | ✅ (incluye `sw.js` + Workbox) |
-| Presupuesto | `pnpm size` | ✅ **105 608 B gzip** / 153 600 B (68.8 %) |
+| Presupuesto | `pnpm size` | ✅ **114 828 B gzip** / 153 600 B (74.8 %) |
 | Contraste | `python3 design/tokens/verify_contrast.py` | ✅ 60/60 pares AA |
 | QA diseño | `python3 design/tools/qa.py` | ✅ 13 pantallas · 60 marcos · 0 hallazgos |
 
@@ -66,10 +66,10 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
 - La sesión **no cambia aún** el `negocioId` local ni dispara pull/sync (S4). Sin sesión, la app sigue
   en **modo local M1** (C2–C5) para no romper los flujos offline existentes.
 - Sin botón de “cerrar sesión / usar otra cuenta” en la UI (el repo ya lo soporta).
-- Sin endpoints de sync (`/sync/push`, `/sync/pull`) ni uso real de PostgreSQL en la API.
+- Sin endpoints de sync (`/sync/push`, `/sync/pull`) ni uso real de PostgreSQL en la API; el
+  restore/import es local y **no genera ops de outbox** hasta S4.
 - Lighthouse CI sigue pendiente (el gate de tamaño propio ya es real).
-- **M3 restante:** reportes (C11), import/restore (C10.2/C10.3), Inicio real y entrada a conteo;
-  empleados sigue siendo placeholder (la invitación real vive en la API, sin pantalla de gestión).
+- **Backups del servidor** (`pg_dump` + runbook) pendientes; dependen de S4.
 - El escáner no se ha probado en dispositivos reales (formatos y linterna sí están implementados).
 
 ---
@@ -131,22 +131,28 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
   supera 150 KB gzip; CI actualizado.
 - **Diseño:** DS-31 “Sin mínimo” (issue #4 cerrada) y pantalla 05 regenerada.
 
-### S6 · M3 — fiados ✅ (C6)
+### S6 · M3 — fiados, reportes e Inicio ✅ (C6/C11/C5.1)
 
 - Core: orden de libreta por saldo/antigüedad (`ordenarLibretaClientes`), `obtenerCliente` y
   `listarFiados`; saldo y `ultimoMovimientoEn` derivados del ledger. 3 tests core nuevos.
 - Web: `fiadosRepo*` sobre la base compartida; `/fiados`, `/fiados/nuevo` y `/fiados/:id` con
   cargos/abonos inmutables, teclado numérico, validación > 0 y compartir estado de cuenta local
   (`navigator.share` → portapapeles → texto). 3 tests web + 2 e2e (flujo + axe).
+- **Reportes (C11)** e **Inicio real**: valor de inventario costo/precio, top de movimientos por
+  rango, resumen de fiados, “lo que falta” y últimos movimientos. 9 tests web + 3 e2e.
+- **Empleados:** la dueña genera el código de invitación desde la UI (sólo dueña; rol empleado
+  recibe un mensaje claro). 3 e2e.
 
-### S7 · M3 — PWA y datos ✅/parcial (C9/C10)
+### S7 · M3 — PWA y datos ✅ (C9/C10)
 
 - PWA: `vite-plugin-pwa` (Workbox), manifest, iconos 192/512/180, precache del app-shell,
   `navigateFallback` y denylist `/auth|/off|/sync`; aviso “Hay una nueva versión — Reiniciar”
   sin recarga forzada. 2 e2e contra `vite preview` (recarga offline + manifest).
 - Datos: export CSV de productos/movimientos/fiados + respaldo JSON completo (`datos/exportar.ts`),
   descarga local con BOM UTF-8. 4 tests web + 2 e2e (descarga real + axe).
-- Pendiente: import/restore (C10.2/C10.3), reportes (C11) y backups del servidor.
+- **Import/restore:** importar productos CSV con plantilla y restaurar JSON con merge idempotente
+  (no duplica, recalcula `stock_cache` desde el libro). 11 tests web + 4 e2e.
+- Pendiente: backup del servidor (`pg_dump` + runbook), que depende de S4.
 
 ---
 
@@ -258,17 +264,18 @@ Toda escritura de negocio pasa por un repo de `core` que abre **una transacción
 |---|---|---|
 | `/` | crear tienda (nombre + PIN) | ✅ C1.1 |
 | `/unirse` | unirse con código + PIN | ✅ C1.2 |
-| `/inicio` | resumen | placeholder (M3) |
+| `/inicio` | resumen: lo que falta, fiado, movimientos y conteo en curso | ✅ C5.1 |
 | `/productos` · `/productos/nuevo` · `/productos/:id` | catálogo / alta / edición | ✅ C2 |
 | `/escanear` | escáner (cámara → ZXing → manual) | ✅ C3 |
 | `/movimiento` · `/movimiento/:id` · `/movimiento?producto=` | libro | ✅ C4 |
 | `/conteo` | conteo asistido (sesión persistente, se reanuda) | ✅ C5 (sin entrada en la nav; se abre por URL) |
 | `/fiados` · `/fiados/nuevo` · `/fiados/:id` | libreta, alta y detalle de cliente | ✅ C6 |
-| `/mas/respaldo` | export CSV/JSON | ✅ C10 (export) |
-| `/mas/reportes` · `/mas/empleados` | reportes y empleados | placeholders (M3) |
+| `/mas/respaldo` | export, import CSV y restore JSON | ✅ C10 |
+| `/mas/reportes` | inventario, top de movimientos y fiados | ✅ C11 |
+| `/mas/empleados` | la dueña genera el código de invitación | ✅ C1.2/C7 |
 
-Nav inferior: Inicio · Productos · **Escanear (FAB)** · Fiados · Más. Movimiento y conteo no tienen
-entrada directa en la nav (ver §8).
+Nav inferior: Inicio · Productos · **Escanear (FAB)** · Fiados · Más. Movimiento no tiene entrada
+directa en la nav; Inicio enlaza a Conteo (C5.2).
 
 ---
 
@@ -378,7 +385,7 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
 |---|---|---|---|
 | 1 | ~~Sin service worker/Workbox~~ | ✅ resuelto en S7: PWA instalable y recarga offline (C9) | — |
 | 2 | ~~La UI de conteo no persiste la sesión en `conteos`~~ | ✅ resuelto en S2+: reanuda y cierra con ajustes atómicos | — |
-| 3 | `/conteo` no tiene entrada en la nav ni en Inicio | se llega solo por URL | M3 (Inicio real) |
+| 3 | ~~`/conteo` sin entrada~~ | ✅ resuelto: Inicio enlaza al conteo en curso y a Conteo | — |
 | 4 | ~~Sin ESLint~~ | ✅ resuelto: `pnpm lint` = ESLint flat config | — |
 | 5 | Lighthouse CI pendiente | falta el gate de rendimiento en navegador (el tamaño ya es real) | M0/M4 |
 | 6 | API auth probada con repo en memoria; **sync pendiente** | M2 completo pendiente | S4–S5 |
@@ -386,13 +393,14 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
 | 8 | Caddy no sirve la web | despliegue real incompleto | M4 |
 | 9 | ~~Sin `LICENSE`~~ | ✅ resuelto: AGPL-3.0 (P1 cerrada) | — |
 | 10 | Escáner sin prueba en dispositivo real | formatos/linterna sin validar | campo / S9 |
-| 11 | Reportes (C11), empleados e Inicio | placeholders (fiados y respaldo export ya son reales) | M3 |
+| 11 | ~~Reportes, empleados e Inicio~~ | ✅ resueltos en S6/S7 | — |
 | 12 | Adaptador Postgres/RLS de auth **sin probar** contra una instancia real | riesgo de fallo sólo en despliegue | S4 |
 | 13 | `/auth` busca código/token con rol dueño (bypass RLS) | esas consultas no pasan por RLS | S4 (`SECURITY DEFINER`) |
 | 14 | ~~Sin botón de cerrar sesión~~ | ✅ resuelto: cierre con confirmación en «Más» | — |
 | 15 | La sesión no cambia el `negocioId` local ni dispara pull | la app sigue en modo local hasta S4 | S4 |
-| 16 | Import/restore de JSON y CSV (C10.2/C10.3) | solo se puede exportar, no restaurar | M3 |
-| 17 | Reportes mínimos (C11) | valor de inventario y resumen de fiados ausentes | M3 |
+| 16 | ~~Import/restore JSON/CSV~~ | ✅ resuelto: merge idempotente + plantilla CSV | — |
+| 17 | ~~Reportes mínimos (C11)~~ | ✅ resuelto: inventario, top y fiados | — |
+| 18 | Backup del servidor (`pg_dump` + runbook) | no hay respaldo automático de Postgres | S4/S7 |
 
 ---
 
@@ -425,8 +433,7 @@ Criterios cumplidos:
 
 ### Otros pendientes no bloqueados
 
-1. **M3 restante:** reportes (C11), import/restore (C10.2/C10.3), Inicio real, historial de conteos
-   y entrada a Conteo.
+1. **Backup del servidor:** `pg_dump` por cron + runbook (depende de S4/Postgres).
 2. **Endurecer M0:** Lighthouse CI y `drizzle-kit` (ESLint y gate de tamaño ya activos).
 3. **DS-26** ([#3](https://github.com/marvinm29/latiendita-design/issues/3)); #4 ya cerrada con DS-31.
 4. **`pb-20` vs FAB** ([#5](https://github.com/marvinm29/latiendita-design/issues/5)) con datos reales.
@@ -520,8 +527,8 @@ Antes de hacer nada, lee en este orden:
 7. design/DESIGN.md y design/ACCESSIBILITY.md (contrato de UI y WCAG 2.2 AA)
 
 Estado verificado: SDD y diseño (F1–F4) completos. M0 ✅ · M1 ✅ (dominio + Dexie + UI C2–C5 sobre
-IndexedDB, C5 persistente) · M2 en curso (S3 ✅) · M3 parcial (fiados, PWA, export).
-125 tests + 20 e2e. P1 (AGPL-3.0) y P2 (código+PIN) cerradas. Siguiente: S4 (sync + RLS).
+IndexedDB, C5 persistente) · M2 en curso (S3 ✅) · M3 ✅ (fiados, PWA, datos, reportes, Inicio).
+145 tests + 30 e2e. P1 (AGPL-3.0) y P2 (código+PIN) cerradas. Siguiente: S4 (sync + RLS).
 
 Protocolo: verifica la base (git status, typecheck, test) → plan pequeño → implementa → prueba →
 actualiza docs → reporta con evidencia. El spec manda; español primero; WCAG 2.2 AA es contrato;
@@ -552,6 +559,25 @@ trabajo no bloqueado de docs/TRASPASO.md §9).
 ---
 
 ## 14. Registro de sesiones
+
+### Sesión 5 (18/10/2026) — cierre de M3: Inicio, reportes, import/restore y empleados
+
+**Objetivo:** cerrar los huecos locales de M3 y la invitación desde la UI.
+
+**Cambios:**
+
+- **Inicio real + Reportes (C11):** `datos/reportes.ts`; “lo que falta”, fiado, movimientos, conteo
+  en curso; valor de inventario, top por rango y resumen de fiados. 9 tests web + 3 e2e.
+- **Import/restore (C10.2/C10.3):** `datos/importar.ts` (JSON con merge idempotente + CSV con
+  plantilla) y UI con vista previa/confirmación. 11 tests web + 4 e2e.
+- **Empleados:** la dueña genera el código de invitación desde `/mas/empleados` (rol empleado y
+  sin sesión tienen estados claros). 3 e2e.
+- **Documentación:** M3 cerrado; siguientes son S4/S5 (sync + RLS + LWW) y backups.
+
+**Verificación:** lint ✅ · typecheck ✅ · **145 tests** ✅ (88 core + 43 web + 14 api) · **30 e2e** ✅ ·
+build ✅ · `pnpm size` **114 828 B gzip** ✅ · QA diseño 13/60/0 ✅ · contraste 60/60 ✅.
+
+**Siguiente:** S4 — sync push/pull + RLS real + `negocioId` desde la sesión.
 
 ### Sesión 4 (18/10/2026) — M3: fiados + PWA + export
 

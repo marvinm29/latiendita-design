@@ -1,0 +1,207 @@
+/* Inicio (C5.1) — estilos de pantalla sobre design/assets/ui.css.
+ * Sólo tokens semánticos. El ámbar de fiado y el rojo de “por falta” siempre
+ * van acompañados de texto, nunca sólo color. */
+
+.inicio-subtitulo {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.inicio-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.inicio-enlace {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ---- Resumen: 3 tarjetas (Productos · Por falta · Fiado) ---- */
+.inicio-resumen {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.inicio-resumen-card {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-3);
+}
+
+.inicio-resumen-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+}
+
+.inicio-resumen-card .card-amount {
+  margin-top: var(--space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Falta stock: ámbar (dinero/atención) + la etiqueta “Por falta”. */
+.inicio-aviso-monto {
+  color: var(--color-warning-text);
+}
+
+/* ---- Conteo en curso ---- */
+.inicio-conteo {
+  padding: var(--space-3) var(--space-4);
+  min-height: var(--size-row-min);
+}
+
+.inicio-conteo-icono,
+.inicio-fiado-icono {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.inicio-conteo-cuerpo,
+.inicio-fiado-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.inicio-conteo .inicio-enlace,
+.inicio-fiado .inicio-enlace {
+  margin-top: var(--space-1);
+}
+
+/* ---- Lo que falta ---- */
+.inicio-faltantes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inicio-faltante {
+  padding: var(--space-3) var(--space-4);
+}
+
+.inicio-faltante .card-row {
+  min-height: var(--size-row-min);
+}
+
+.inicio-faltante-cuerpo {
+  flex: 1;
+  min-width: 0;
+}
+
+.inicio-faltante-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.inicio-faltante-titulos {
+  min-width: 0;
+}
+
+.inicio-faltante-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+/* ---- Fiado total ---- */
+.inicio-fiado {
+  padding: var(--space-3) var(--space-4);
+  min-height: var(--size-row-min);
+}
+
+.inicio-fiado-monto {
+  flex-shrink: 0;
+  color: var(--color-credit-text);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-lg);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+/* ---- Últimos movimientos ---- */
+.inicio-movimientos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inicio-movimiento {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.inicio-movimiento-icono {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--color-success-text);
+}
+
+.inicio-movimiento-icono.es-salida {
+  color: var(--color-text-muted);
+}
+
+.inicio-movimiento-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.inicio-movimiento-cantidad {
+  flex-shrink: 0;
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.inicio-boton {
+  align-self: flex-start;
+  margin-top: var(--space-2);
+}
+
+/* ---- Accesos rápidos ---- */
+.inicio-accesos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.inicio-acceso {
+  padding: var(--space-3) var(--space-4);
+  min-height: var(--size-row-min);
+}
+
+.inicio-acceso-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}

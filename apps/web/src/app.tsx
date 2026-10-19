@@ -24,6 +24,9 @@ import { LibretaFiados } from "./paginas/fiados/LibretaFiados";
 import { ClienteFiado } from "./paginas/fiados/ClienteFiado";
 import { NuevoCliente } from "./paginas/fiados/NuevoCliente";
 import { Respaldo } from "./paginas/respaldo/Respaldo";
+import { Empleados } from "./paginas/empleados/Empleados";
+import { Inicio } from "./paginas/inicio/Inicio";
+import { Reportes } from "./paginas/reportes/Reportes";
 
 type PageProps = { params: PathParams };
 type Page = (props: PageProps) => VNode;
@@ -45,30 +48,11 @@ type Route = {
   pie?: boolean;
 };
 
-function Placeholder({ title, note }: { title: string; note: string }): VNode {
-  return (
-    <section class="card">
-      <p class="card-title">{title}</p>
-      <p class="card-meta">{note}</p>
-    </section>
-  );
-}
-
 const crearTienda: Page = () => <CrearTienda />;
 
 const unirse: Page = () => <Unirse />;
 
-const inicio: Page = () => (
-  <>
-    <Placeholder
-      title="Hola, Marta"
-      note="Pantalla 3 — resumen, búsqueda local y lo urgente: stock bajo y fiado (C2.4)."
-    />
-    <div class="card">
-      <p class="card-meta">M0 · cimientos: el contenido real llega con M1 (catálogo offline).</p>
-    </div>
-  </>
-);
+const inicio: Page = () => <Inicio />;
 
 const escanear: Page = () => <Escanear />;
 
@@ -120,19 +104,9 @@ const mas: Page = () => (
   </>
 );
 
-const reportes: Page = () => (
-  <Placeholder
-    title="Reportes"
-    note="Pantalla 12 — valor de inventario y resumen de fiados por rango (C11)."
-  />
-);
+const reportes: Page = () => <Reportes />;
 
-const empleados: Page = () => (
-  <Placeholder
-    title="Empleados"
-    note="Pantalla 11 — dueña invita; empleado opera (C7 / D4). Login en M2 (P2)."
-  />
-);
+const empleados: Page = () => <Empleados />;
 
 const respaldo: Page = () => <Respaldo />;
 
@@ -140,7 +114,7 @@ const respaldo: Page = () => <Respaldo />;
 const routes: Route[] = [
   { path: "/", title: "Crear mi tienda", nav: false, page: crearTienda },
   { path: "/unirse", title: "Unirme a una tienda", nav: false, page: unirse },
-  { path: "/inicio", title: "Hola, Marta", nav: true, page: inicio },
+  { path: "/inicio", title: "Hola", nav: true, page: inicio },
   { path: "/escanear", title: "Escanear", nav: true, page: escanear },
   { path: "/productos", title: "Productos", nav: true, page: productos, accion: {
     href: "/productos/nuevo",
@@ -255,6 +229,12 @@ type EstadoCuenta = {
   bloqueada: boolean;
 };
 
+/** “Hola, Marta” con el nombre de la sesión local; “Hola” si no hay sesión. */
+function saludoCuenta(sesion: SesionCuenta | null): string {
+  const nombre = sesion?.nombre.trim().split(/\s+/)[0];
+  return nombre ? `Hola, ${nombre}` : "Hola";
+}
+
 export function App(): VNode {
   const { pathname } = useLocation();
 
@@ -291,10 +271,40 @@ export function App(): VNode {
     };
   }, []);
 
+  // Tras crear la tienda o unirse, la sesión se guarda y se navega a /inicio.
+  // El saludo del header se refresca al cambiar de ruta (sin rebloquear).
+  useEffect(() => {
+    if (cuenta.cargando || cuenta.bloqueada) return;
+    let vivo = true;
+    void repoSesion
+      .sesionActual()
+      .then((sesion) => {
+        if (!vivo) return;
+        setCuenta((actual) => {
+          if (actual.cargando || actual.bloqueada) return actual;
+          if (
+            actual.sesion?.usuarioId === sesion?.usuarioId &&
+            actual.sesion?.nombre === sesion?.nombre
+          ) {
+            return actual;
+          }
+          return { ...actual, sesion };
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      vivo = false;
+    };
+  }, [pathname, cuenta.cargando, cuenta.bloqueada]);
+
   const match = findRoute(pathname);
   const route = match?.route;
   const bloqueada = !cuenta.cargando && cuenta.sesion !== null && cuenta.bloqueada;
-  const title = bloqueada ? "Escribe tu PIN" : (route?.title ?? "LaTiendita");
+  const title = bloqueada
+    ? "Escribe tu PIN"
+    : route?.path === "/inicio"
+      ? saludoCuenta(cuenta.sesion)
+      : (route?.title ?? "LaTiendita");
   const showNav = route?.nav ?? false;
   const Page = route?.page;
 

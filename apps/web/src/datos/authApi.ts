@@ -9,6 +9,7 @@
  */
 import {
   RUTAS_AUTH,
+  type CrearInvitacionRespuesta,
   type CrearNegocioInput,
   type CrearNegocioRespuesta,
   type UnirseInput,
@@ -109,6 +110,11 @@ export function crearNegocio(input: CrearNegocioInput): Promise<CrearNegocioResp
 /** C1.2 · se une con un código de un solo uso (requiere internet). */
 export function unirse(input: UnirseInput): Promise<UnirseRespuesta> {
   return pedir<UnirseRespuesta>(RUTAS_AUTH.unirse, input);
+}
+
+/** C1.2 · la dueña genera un código de un solo uso (requiere internet). */
+export function crearInvitacion(token: string): Promise<CrearInvitacionRespuesta> {
+  return pedir<CrearInvitacionRespuesta>(RUTAS_AUTH.invitacion, {}, token);
 }
 
 /** Cierra la sesión en el servidor. El llamador decide si es best-effort. */

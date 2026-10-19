@@ -27,7 +27,7 @@ sostenibilidad aspiracional al estilo jshERP (código libre siempre; convenienci
 | `005-prompt-opendesigner.md` | Prompt maestro de prototipado, decisión de sistema de color (Radix/Teal/Sand/Amber, S8), protocolo de iteración en 4 fases | ✅ Completo — ejecutar con OpenDesigner para generar fundaciones + mockups |
 | `003-plan-tecnico.md` | **Plan técnico v1**: stack (Preact/Fastify/Postgres+RLS), arquitectura offline/sync (outbox + LWW por campo + ledger append-only), modelo de datos, seguridad, presupuesto de rendimiento, estrategia de pruebas y hitos M0–M4 | ✅ Completo — requiere revisión del dueño |
 | `004-roadmap.md` | **Roadmap y adopción**: hitos M0–M4 (tareas, criterios de salida, camino crítico), gates de calidad, plan de adopción D11 y post-v1 | ✅ Completo — requiere revisión del dueño |
-| `006-plan-sprints.md` | **Plan de sprints**: S1–S9 en semanas de 1 semana, retomando desde el estado real y mapeando M0–M4 hasta v1.0 | ✅ Escrito — **S2/S2+ ✅ · S3 ✅ · S6 ✅ · S7 parcial ✅ · M1 cerrado; M2/M3 en curso** |
+| `006-plan-sprints.md` | **Plan de sprints**: S1–S9 en semanas de 1 semana, retomando desde el estado real y mapeando M0–M4 hasta v1.0 | ✅ Escrito — **S2/S2+ ✅ · S3 ✅ · S6 ✅ · S7 ✅ · M1/M3 cerrados; M2 en curso** |
 
 ## 3. Decisiones cerradas en conversación (no repetidas en los docs)
 
@@ -55,9 +55,9 @@ Fase: Spec Driven Development
                                               + UI C2–C5 sobre Dexie ✅ + C5 persistente ✅
                                               + 11 tests web + 10 e2e offline/persistencia/axe ✅
                                               · M2 🟡 S3 ✅: auth API (14 tests) + sesión local/PIN
-                                              (5 tests web) + 4 e2e
-                                              · M3 parcial 🟡: fiados (C6), PWA (C9) y export (C10)
-                                              · 125 tests + 20 e2e totales; faltan reportes/import/Inicio
+                                              (5 tests web) + 7 e2e (incluye invitación UI)
+                                              · M3 ✅: fiados (C6), PWA (C9), datos export/import (C10),
+                                              reportes (C11) e Inicio · 145 tests + 30 e2e totales
 
 Fase: Diseño (OpenDesigner) — artefactos en design/
 ├── F1 Fundaciones (tokens DTCG + DESIGN.md + decisions.md) ..... ✅ aprobado

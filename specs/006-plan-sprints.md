@@ -28,7 +28,7 @@
 
 Comprobado en el repo a la fecha de este documento:
 
-- `pnpm lint` ✅ (ESLint real) · `pnpm typecheck` ✅ · `pnpm test` ✅ **125 tests** (88 `packages/core` + 23 web + 14 api) · `pnpm test:e2e` ✅ **20 e2e** · `pnpm build` ✅ · `pnpm size` ✅ 105 608 B / 153 600 B.
+- `pnpm lint` ✅ (ESLint real) · `pnpm typecheck` ✅ · `pnpm test` ✅ **145 tests** (88 `packages/core` + 43 web + 14 api) · `pnpm test:e2e` ✅ **30 e2e** · `pnpm build` ✅ · `pnpm size` ✅ 114 828 B / 153 600 B.
 - Bundle web: **~83 KB gzip** de JS inicial (presupuesto del spec: ≤150 KB, `003` §8).
 - **M0 · Cimientos** ✅ (monorepo, CI, RLS base, docker-compose, **ESLint real** y **gate de tamaño real**; Lighthouse sigue pendiente).
 - **M1 · Núcleo offline** ✅:
@@ -44,9 +44,10 @@ Comprobado en el repo a la fecha de este documento:
 - ✅ **S3 (M2)**: cuentas y acceso — negocio, invitación de un solo uso, argon2id, sesión rotativa,
     desbloqueo offline por PIN. **P1** (AGPL-3.0) y **P2** (código+PIN) cerradas.
 - **S4/S5** ⏳ pendientes: sync push/pull, RLS en uso, LWW y cierre de M2.
-- **S6 ✅ (C6 fiados)** y **S7 parcial ✅ (C9 PWA + C10 export)**; faltan reportes, import/restore e Inicio.
+- **S6 ✅** (C6 fiados + C11 reportes) y **S7 ✅** (C9 PWA + C10 export/import/restore + Inicio real).
+  Queda sólo el backup del servidor (`pg_dump` + runbook), que depende de S4.
 
-Conclusión: M1 completo, S3 entregado y M3 parcial (fiados/PWA/export). Siguiente: **S4** (sync + RLS).
+Conclusión: M1 y M3 completos, S3 entregado. Siguiente: **S4** (sync + RLS).
 
 ---
 
@@ -69,8 +70,8 @@ Conclusión: M1 completo, S3 entregado y M3 parcial (fiados/PWA/export). Siguien
 > Sprints S3+ dependen de **P2 (login)** e **P1 (licencia)**. Mientras no se cierren, S1–S2
 > (M1) avanzan en paralelo y sin bloqueo, tal como prevé `004` §4.
 >
-> **Estado:** S0 ✅ · S1 ✅ · **S2 ✅** · **S2+ ✅** (conteo) · **S3 ✅** (acceso) · **S6 ✅** (fiados)
-> · **S7 parcial ✅** (PWA + export) → **M1 cerrado; M2/M3 en curso**. Siguiente: **S4** (sync + RLS).
+> **Estado:** S0 ✅ · S1 ✅ · **S2 ✅** · **S2+ ✅** (conteo) · **S3 ✅** (acceso) · **S6 ✅** (fiados/reportes)
+> · **S7 ✅** (PWA/datos) → **M1 y M3 cerrados; M2 en curso**. Siguiente: **S4** (sync + RLS).
 
 ---
 
@@ -136,8 +137,9 @@ el **libro es la única fuente de stock** (C4.3) y toda escritura deja su op en 
   argon2id para PIN; token opaco con hash SHA-256, expiración 30 días, rotación y revocación;
   rate-limit 5/10 min por IP y código. 14 tests.
 - ✅ **Web** (`apps/web/src/paginas/auth/`): crear tienda, unirse con código, pantalla de bloqueo,
-  desbloqueo **offline** con PBKDF2-SHA-256 local y cierre de sesión desde «Más». Sesión en IndexedDB
-  (`sesion_local`, Dexie v2), nunca en `localStorage`. 5 tests + 4 e2e.
+  desbloqueo **offline** con PBKDF2-SHA-256 local, cierre de sesión desde «Más» y **generación del
+  código de invitación** en Empleados (sólo dueña). Sesión en IndexedDB (`sesion_local`, Dexie v2),
+  nunca en `localStorage`. 5 tests + 7 e2e.
 - ✅ **M0 endurecido:** ESLint real (`pnpm lint` ya no es alias) y `pnpm size` falla si JS+CSS supera
   150 KB gzip. Lighthouse CI sigue pendiente.
 - ✅ **P1/P2:** AGPL-3.0 + código de un solo uso/PIN (issues #1/#2 cerradas).
@@ -158,22 +160,25 @@ el **libro es la única fuente de stock** (C4.3) y toda escritura deja su op en 
   reinstalación = pull completo (C8.5).
 - **Gate:** **métrica 3 ≈ 100 operaciones con cortes aleatorios → 0 movimientos perdidos**; cierre de M2.
 
-### S6 · M3 · Fiados y reportes 🟡 (fiados ✅)
+### S6 · M3 · Fiados y reportes ✅
 
 - ✅ **Fiados (C6):** clientes, cargos/abonos inmutables, saldo derivado, orden por saldo/antigüedad,
   detalle en 2 toques y compartir estado de cuenta **generado localmente** (C6.5). 3 tests web +
   2 e2e (flujo + axe).
-- ⏳ **Reportes mínimos (C11):** valor de inventario, “lo que más se movió” y resumen de fiados.
-- **Gate parcial:** e2e C6 verde; falta C11.
+- ✅ **Reportes mínimos (C11):** valor de inventario al costo/precio, “lo que más se movió” por rango
+  y resumen de fiados; **Inicio real** con “lo que falta”, fiado y últimos movimientos. 9 tests web +
+  3 e2e (incluye axe).
+- **Gate:** e2e C6/C11 e Inicio verdes.
 
-### S7 · M3 · Datos y PWA 🟡 (PWA + export ✅)
+### S7 · M3 · Datos y PWA ✅ (salvo backup del servidor)
 
-- ✅ **Datos (C10.1/C10.2):** export CSV de productos/movimientos/fiados y respaldo JSON completo;
-  4 tests web + 2 e2e (descarga real + axe).
+- ✅ **Datos (C10):** export CSV de productos/movimientos/fiados, respaldo JSON completo, **import CSV
+  con plantilla** y **restore JSON con merge idempotente** (no duplica, recalcula stock desde el libro);
+  15 tests web + 6 e2e (descarga, import, restore, axe).
 - ✅ **PWA (C9):** Workbox, manifest, A2HS, recarga offline y aviso “hay una nueva versión — reiniciar”
   (T-07); 2 e2e contra `vite preview`.
-- ⏳ Import/restore JSON y **importar CSV** con plantilla; backups del servidor (`pg_dump` + runbook).
-- **Gate parcial:** export abrible en Excel ✅; PWA instalable/offline ✅; falta restore/import.
+- ⏳ Backups del servidor (`pg_dump` + runbook), que dependen de S4/Postgres.
+- **Gate:** export abrible en Excel ✅; restore probado ✅; PWA instalable/offline ✅.
 
 ### S8 · M4 · Endurecimiento
 

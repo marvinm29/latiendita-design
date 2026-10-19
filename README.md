@@ -74,16 +74,16 @@ manda sobre el diseño (si algo contradice el spec, se cambia el spec primero).
 | **F4 · Cierre** | checklist WCAG 2.2 AA (`ACCESSIBILITY.md`) + lint + cobertura | ✅ entregado |
 | Plan técnico (implementación) | `specs/003-plan-tecnico.md` | ✅ escrito — pendiente de revisión |
 | Roadmap / adopción | `specs/004-roadmap.md` | ✅ escrito — pendiente de revisión |
-| Plan de sprints | `specs/006-plan-sprints.md` | ✅ escrito — S2/C5 ✅ · S3 ✅ · S6 (fiados) ✅ · S7 parcial (PWA+export) ✅ |
+| Plan de sprints | `specs/006-plan-sprints.md` | ✅ escrito — S2/C5 ✅ · S3 ✅ · S6 ✅ · S7 ✅ · M1/M3 cerrados; M2 en curso |
 | **M0 · Cimientos** | monorepo pnpm (`apps/`, `packages/`, `infra/`) + CI + RLS base + ESLint + gate de tamaño | ✅ scaffold (Lighthouse pendiente) |
 | **M1 · Núcleo offline** | dominio puro `packages/core` + capa Dexie + UI C2–C5 sobre IndexedDB + conteo persistente + e2e offline + OFF | ✅ 96 tests + 10 e2e (axe AA) |
-| **M2 · Cuentas y acceso** | negocio, invitación de un solo uso, argon2id, sesión rotativa, desbloqueo offline por PIN, cierre de sesión + pantallas de alta/unión/bloqueo | ✅ S3 (14 API + 5 web + 4 e2e) · ⏳ S4/S5 sync |
-| **M3 · Producto** | fiados (C6), PWA instalable/offline (C9), export CSV/JSON (C10) | ✅ C6 · C9 · C10 export · ⏳ reportes/import/Inicio |
+| **M2 · Cuentas y acceso** | negocio, invitación de un solo uso, argon2id, sesión rotativa, desbloqueo offline por PIN, cierre de sesión + pantallas de alta/unión/bloqueo/empleados | ✅ S3 (14 API + 5 web + 7 e2e) · ⏳ S4/S5 sync |
+| **M3 · Producto** | fiados (C6), PWA instalable/offline (C9), datos CSV/JSON con import/restore (C10), reportes (C11) e Inicio real | ✅ C6 · C9 · C10 · C11 · Inicio · ⏳ backups del servidor |
 | Decisiones P1/P2/DS-26 | issues #1–#5 en GitHub | ✅ P1 (AGPL-3.0), P2 (código+PIN) y #4 (DS-31) · ⏳ DS-26/#5 |
 
 Números actuales: **60/60 pares de contraste AA** en ambos modos, **13 pantallas / 60 marcos**,
-**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **125 tests**
-(88 core + 23 web + 14 api) y **20 e2e** (offline C2–C5 + conteo + acceso/PIN + fiados + PWA + export + OFF + axe AA).
+**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **145 tests**
+(88 core + 43 web + 14 api) y **30 e2e** (offline C2–C5 + conteo + acceso/empleados + fiados + PWA + datos + inicio/reportes + OFF + axe AA).
 
 ---
 
@@ -331,10 +331,10 @@ pnpm --filter @latiendita/web dev                # http://localhost:5173
 pnpm --filter @latiendita/api dev                # http://localhost:3000 (/health, /off/:codigo)
 
 pnpm --filter @latiendita/web test:e2e:install   # una vez: Chromium de Playwright
-pnpm --filter @latiendita/web test:e2e           # offline + conteo + acceso/PIN + fiados + PWA + export + axe AA
+pnpm --filter @latiendita/web test:e2e           # offline + conteo + acceso/empleados + fiados + PWA + datos + reportes + axe AA
 ```
 
-Estado: **M0 ✅ · M1 ✅ · S3 ✅ · M3 parcial** (125 tests + 20 e2e). Ya funcionan cuentas/PIN, fiados, PWA instalable con recarga offline y export CSV/JSON; siguen **S4/S5** (sync + RLS + LWW) y reportes/import/Inicio. El detalle de arquitectura, invariantes y trampas está en [`docs/TRASPASO.md`](docs/TRASPASO.md).
+Estado: **M0 ✅ · M1 ✅ · M3 ✅ · S3 ✅** (145 tests + 30 e2e). Ya funcionan cuentas/PIN, invitaciones, fiados, PWA instalable con recarga offline, datos (export/import/restore), reportes e Inicio; sigue **S4/S5** (sync + RLS + LWW). El detalle de arquitectura, invariantes y trampas está en [`docs/TRASPASO.md`](docs/TRASPASO.md).
 
 ---
 
@@ -416,9 +416,9 @@ Las decisiones están registradas y justificadas una por una en [`design/decisio
 2. **Roadmap — ✅ [`specs/004-roadmap.md`](specs/004-roadmap.md):** hitos M0–M4 (tareas, criterios de
    salida, camino crítico), gates de calidad obligatorios, plan de adopción D11 (comunidad + self-host)
    y qué viene después de v1.
-3. **Implementación:** M0 ✅, M1 ✅, **S3 ✅** y **M3 parcial** (fiados, PWA instalable/offline y
-   export CSV/JSON). El siguiente paso es **S4**: `/sync/push|pull`, RLS en uso y aislamiento A/B;
-   después reportes, import/restore e Inicio. Ver `specs/006-plan-sprints.md`.
+3. **Implementación:** M0 ✅, M1 ✅, **S3 ✅** y **M3 ✅** (fiados, PWA instalable/offline, datos
+   CSV/JSON con import/restore, reportes e Inicio). El siguiente paso es **S4**: `/sync/push|pull`,
+   RLS en uso y aislamiento A/B, y luego S5 (LWW/backoff). Ver `specs/006-plan-sprints.md`.
 
 Todas las fases de diseño (F1 fundaciones, F2 componentes, F3 pantallas con lotes 1–3, F4 cierre
 WCAG) están **entregadas** y el núcleo offline de la v1 está implementado y probado.
