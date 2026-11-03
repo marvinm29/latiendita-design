@@ -1,9 +1,8 @@
 /**
  * Repositorio de la outbox local (003 §5.1).
  *
- * - `encolar` usa `put` con el `opId` como clave primaria: reintentar encolar
- *   la misma op N veces deja 1 sola fila (y el servidor es idempotente por
- *   `op_id` en M2).
+ * - `encolar` conserva el estado de una op existente y rechaza colisiones de
+ *   `opId` entre negocios o con datos diferentes.
  * - `pendientes` = ops aún no confirmadas (badge "por sincronizar").
  * - `opsListasParaEnviar` delega la elegibilidad (pendiente/error vencido con
  *   backoff) en el dominio `opsListasParaEnviar`.
@@ -12,6 +11,14 @@ import { marcarEnviando, marcarOk, marcarError, opsListasParaEnviar } from "../.
 import type { OpOutbox } from "../../tipos";
 import type { LaTienditaDb, OpOutboxFila } from "../schema";
 import { filaDeOp } from "./comun";
+
+/** Las operaciones de sync contienen JSON; el orden de las claves no cambia su contenido. */
+function jsonCanonico(valor: unknown): string | undefined {
+  return JSON.stringify(valor, (_clave: string, dato: unknown) => {
+    if (dato === null || typeof dato !== "object" || Array.isArray(dato)) return dato;
+    return Object.fromEntries(Object.entries(dato).sort(([a], [b]) => a.localeCompare(b)));
+  });
+}
 
 export interface OutboxRepo {
   /** Idempotente por `opId`: encolar dos veces = una fila. */
@@ -51,8 +58,17 @@ export function crearOutboxRepo(db: LaTienditaDb, negocioId: string): OutboxRepo
   return {
     async encolar(op: OpOutbox): Promise<OpOutboxFila> {
       const fila = filaDeOp(op, negocioId);
-      await db.outbox.put(fila);
-      return fila;
+      return db.transaction("rw", db.outbox, async () => {
+        const existente = await db.outbox.get(op.id);
+        if (existente) {
+          if (existente.negocioId !== negocioId || existente.endpoint !== op.endpoint || jsonCanonico(existente.payload) !== jsonCanonico(op.payload)) {
+            throw new Error(`op_id ya utilizado con otros datos: ${op.id}`);
+          }
+          return existente;
+        }
+        await db.outbox.add(fila);
+        return fila;
+      });
     },
 
     async pendientes(): Promise<OpOutboxFila[]> {

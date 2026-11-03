@@ -3,9 +3,9 @@
 > Artefacto SDD. Insumos: `002-especificacion-funcional.md` (métricas de éxito §6), `003-plan-tecnico.md`
 > (hitos §13, riesgos §14), decisiones D10–D14 (`001-research-global.md`), S1–S8 (`specs/README.md`).
 >
-> Estado: **borrador para revisión del dueño**. Las fechas se expresan en **semanas relativas** (S1…S16):
-> el arranque depende de cerrar **P1 (licencia)** y **P2 (login)** y de la disponibilidad real. Al
-> aprobarse, se fijan fechas de calendario.
+> Estado: **borrador para revisión del dueño**. Las semanas relativas S1…S16 son la estimación
+> original, no fechas comprometidas ni los sprints S0–S9 de `006`. P1 y P2 ya están resueltas.
+> Para estado y prioridades vigentes consulta `006-plan-sprints.md` y `docs/TRASPASO.md`.
 
 ---
 
@@ -27,18 +27,22 @@
 
 - **Equipo mínimo:** 1 desarrollador full-stack (maintainer) · 1 dueño de producto (Marta-focus, decide
   P1–P5 y valida en campo) · comunidad (issues, pruebas, traducciones, soporte).
-- **Cadencia:** iteraciones de 1 semana; demo al final de cada hito; el maintainer no abre una nueva
-  capacidad de producto hasta que el hito anterior cumple sus **gates** (§6).
+- **Cadencia:** iteraciones de 1 semana y demo al final de cada hito. Se adelantó trabajo local de M3
+  mientras M2 seguía pendiente; eso no sustituye los gates ni cierra el hito completo.
 - **Regla del proyecto:** *el spec manda*. Si implementar contradice `002`, se actualiza el spec primero.
   Los artefactos de diseño (`design/`, WCAG AA) son contrato, no referencia.
 - **Definition of Done (cada tarea):** código + tipos + prueba automatizada + sin violaciones de axe +
   bundle dentro de presupuesto (si toca el cliente) + copy en español llano + documentación en el PR.
-- **Multi-negocio / varias bodegas:** fuera de v1 (P3). El modelo ya lo permite (`negocio_id` en todo).
+- **Varios negocios:** previstos con aislamiento por `negocio_id`; **varias bodegas por negocio** están fuera de v1 (P3). El aislamiento real sigue pendiente de prueba.
 - **Sin POS, sin DTE, sin telemetría por defecto** (D8, NFR de privacidad).
 
 ---
 
 ## 2. Resumen de hitos
+
+Tabla y checklist originales de planificación: los cuadros vacíos describen el alcance previsto, no
+el avance actual. M0 tiene gates pendientes, M1 está implementado, M2 está en curso y M3 tiene trabajo
+local implementado; integración de restore con sync y backup del servidor pendientes. Ver `006` §1–§3.
 
 | Hito | Objetivo | Semanas | Criterio de salida (resumen) |
 |---|---|---|---|
@@ -140,8 +144,7 @@ P2 (login)   ─┴─► M0 ─► M1 (offline) ─► M2 (sync) ─► M3 (fia
                                    └─ riel de rendimiento/a11y (S3→S16) ──────────┘
 ```
 
-- **Bloqueantes de arranque:** P1 (licencia → `LICENSE`/SPDX, T-21) y P2 (login → define M2). Sin P2 se
-  puede avanzar M1 (offline) en paralelo, pero M2 no.
+- **Decisiones históricas:** P1 (licencia) y P2 (login) se cerraron; ya no bloquean M2.
 - **No bloqueantes:** P3 (una bodega — ya asumido), P4 (OFF — manual-first ya cubierto), P5 (límite de
   fiado → campo opcional ya reservado).
 - **Riel transversal:** presupuesto de rendimiento y accesibilidad se miden desde M0 (gates), no se dejan
@@ -192,7 +195,7 @@ OFF, cámara en iOS, PIN local). Riesgos de planificación propios:
 
 | Riesgo | Mitigación |
 |---|---|
-| P1/P2 sin cerrar frenan M2 | avanzar M1 (offline) en paralelo; escalar decisión P1/P2 en S1 |
+| Integridad del respaldo | integrar restore con sync y probar ida y vuelta (`006` §3) |
 | Dependencia de un solo maintainer | documentar todo en el repo; automatizar gates; reclutar colaboradores desde la comunidad (D11) |
 | Alcance v2 se cuela en v1 | alcance v1 cerrado en `002` §3 (POS/DTE/voz/APK = fuera) |
 | Pruebas de campo dependen del dueño | agendar sesiones desde S12; métricas 1/2/4/5 medidas, no estimadas |

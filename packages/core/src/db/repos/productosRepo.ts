@@ -110,8 +110,7 @@ export function crearProductosRepo(db: LaTienditaDb, negocioId: string): Product
       id: string,
       cambios: Partial<Omit<Producto, "id">>,
     ): Promise<ProductoFila> {
-      const ahora = Date.now();
-      return db.transaction("rw", db.productos, db.outbox, async () => {
+      return db.transaction("rw", db.productos, db.outbox, db.meta, async () => {
         const fila = await db.productos.get(id);
         if (!fila || fila.negocioId !== negocioId || fila.deletedAt !== null) {
           throw new Error(`producto no encontrado: ${id}`);
@@ -123,6 +122,18 @@ export function crearProductosRepo(db: LaTienditaDb, negocioId: string): Product
         if (reales.factor !== undefined && !(reales.factor > 0)) {
           throw new Error(`factor debe ser > 0, recibido: ${reales.factor}`);
         }
+        // La marca y el ID se guardan en la misma transacción que la edición.
+        const claveDispositivo = "sync:dispositivo:v1";
+        const claveReloj = "sync:ultimo_reloj:v1";
+        const guardado = await db.meta.get(claveDispositivo);
+        const dispositivoId = typeof guardado?.valor === "string" && guardado.valor
+          ? guardado.valor
+          : crypto.randomUUID();
+        const reloj = await db.meta.get(claveReloj);
+        const anterior = typeof reloj?.valor === "number" && Number.isSafeInteger(reloj.valor) ? reloj.valor : 0;
+        const ahora = Math.max(Date.now(), anterior + 1);
+        await db.meta.put({ clave: claveDispositivo, valor: dispositivoId, actualizadoEn: ahora });
+        await db.meta.put({ clave: claveReloj, valor: ahora, actualizadoEn: ahora });
         const siguiente: ProductoFila = {
           ...fila,
           ...reales,
@@ -134,7 +145,7 @@ export function crearProductosRepo(db: LaTienditaDb, negocioId: string): Product
         };
         await asegurarCodigoLibre(siguiente.codigoBarras, siguiente.id);
         await db.productos.put(siguiente);
-        const op = crearOpDe(negocioId, "producto", { edicion: siguiente }, { ahora });
+        const op = crearOpDe(negocioId, "producto", { edicion: siguiente, cambios: reales, dispositivoId }, { ahora });
         await db.outbox.add(filaDeOp(op, negocioId));
         return siguiente;
       });

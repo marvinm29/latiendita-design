@@ -68,8 +68,7 @@ export function SesionActual(): VNode | null {
             ¿Cerrar sesión?
           </p>
           <p class="card-meta" id="cerrar-sesion-texto">
-            Tus datos siguen guardados en este teléfono. Para volver a entrar
-            necesitarás tu PIN.
+            Tus datos siguen guardados en este teléfono. Se cerrará tu sesión.
           </p>
           <div
             style="display: flex; gap: var(--space-2); margin-top: var(--space-3);"

@@ -78,3 +78,42 @@ jobs:
           name: playwright-test-results
           path: apps/web/test-results
           retention-days: 7
+
+  postgres-sync:
+    name: PostgreSQL 16 · bitácora sync y RLS
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: latiendita_test
+          POSTGRES_PASSWORD: prueba
+          POSTGRES_DB: latiendita_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U latiendita_test -d latiendita_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+      - name: Pruebas de API con PostgreSQL
+        env:
+          SYNC_TEST_PG: "1"
+          PGHOST: 127.0.0.1
+          PGPORT: "5432"
+          PGUSER: latiendita_test
+          PGPASSWORD: prueba
+          PGDATABASE: latiendita_test
+        run: pnpm --filter @latiendita/api test

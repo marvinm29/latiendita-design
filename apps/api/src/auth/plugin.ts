@@ -64,7 +64,7 @@ function responderError(respuesta: FastifyReply, error: unknown): FastifyReply {
   throw error;
 }
 
-function leerToken(cabecera: string | undefined): string {
+export function leerToken(cabecera: string | undefined): string {
   if (!cabecera) throw new ErrorAuth(401, "sesion_invalida", "Tu sesión venció. Vuelve a entrar.");
   const [tipo, token] = cabecera.split(" ");
   if (tipo?.toLowerCase() !== "bearer" || !token) {

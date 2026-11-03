@@ -1,14 +1,15 @@
 # Infraestructura — LaTiendita
 
-Instalación de **1 comando** para Carlos (D7 / T-08): API + PostgreSQL 16 +
-Caddy (TLS) con **≤5 variables** de entorno.
+Objetivo de instalación para Carlos (D7 / T-08): API + PostgreSQL 16 + Caddy (TLS)
+con **≤5 variables**. El despliegue actual es un scaffold: no sirve la web, no
+incluye backups automáticos y todavía no se ha validado una instalación completa.
 
 ## Requisitos
 
 - Docker con plugin `docker compose` (Docker Desktop o docker-ce + compose plugin)
 - Un servidor con puerto 80/443 libres (para TLS con Caddy)
 
-## Instalar (≤15 min)
+## Arrancar el scaffold local
 
 ```bash
 git clone <repo> latiendita
@@ -37,9 +38,9 @@ docker compose --profile tls up -d
 |---|---|
 | `DOMAIN` | Dominio público (Caddy/Let's Encrypt). Dev: `localhost` |
 | `POSTGRES_PASSWORD` | Contraseña del usuario de Postgres |
-| `SESSION_SECRET` | Secreto de sesiones de la API |
-| `DEMO_SEED` | `true` = siembra tienda demo en el primer arranque |
-| `BACKUP_CRON` | Horario del respaldo `pg_dump` (cron), ej. `0 3 * * *` |
+| `SESSION_SECRET` | Compose lo exige y lo pasa a la API, pero el código actual no lo utiliza. |
+| `DEMO_SEED` | Compose lo pasa a la API, pero actualmente no activa una semilla en el servidor. La web tiene datos demo locales independientes. |
+| `BACKUP_CRON` | Reservado para el futuro servicio de respaldo; actualmente no hace nada. |
 
 ## Comandos útiles
 
@@ -60,14 +61,18 @@ git pull
 docker compose up -d --build
 ```
 
-Las migraciones son aditivas. La app PWA avisa cuando hay una versión nueva
-(no recarga a la fuerza — C9.2).
+Los scripts de `docker-entrypoint-initdb.d` se ejecutan solo al crear un volumen de
+Postgres vacío. Este comando no aplica migraciones nuevas a una base ya existente;
+el mecanismo de migración y su runbook siguen pendientes. La PWA avisa de una versión nueva.
 
 ## Respaldo
 
-- Automático: perfil `backup` con `BACKUP_CRON` → volumen `backup_data`
-  (activar cuando se descomente el servicio en `docker-compose.yml`).
-- Desde la app: **Más → Respaldo y datos** → export CSV/JSON (C10).
+- Automático del servidor: **no implementado**; el bloque de compose está comentado y no existe un runbook de restauración probado.
+- Desde la app: **Más → Respaldo y datos** → export CSV/JSON, incluyendo conteos. El restore conserva ediciones existentes y restaura las semillas demo sin modificar; aún no encola datos para sync (ver `specs/006-plan-sprints.md` §3).
+
+La API publica el puerto 3000 directamente; el perfil `tls` añade Caddy, pero no
+cierra esa exposición ni sirve la aplicación web. El aislamiento RLS de auth y
+una instalación segura completa siguen pendientes de verificación en S4/M4.
 
 ## Resolver problemas
 

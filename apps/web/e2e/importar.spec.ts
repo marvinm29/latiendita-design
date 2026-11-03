@@ -12,6 +12,25 @@ const CABECERA =
  * inicial de /mas/respaldo sigue sin violaciones WCAG 2.2 AA.
  */
 test.describe("C10 · importar y restaurar", () => {
+  test("el diálogo de restauración permite leer y confirmar en pantalla baja", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 280 });
+    await page.goto("/mas/respaldo");
+    await page.getByLabel("Archivo JSON de respaldo").setInputFiles({
+      name: "respaldo.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify({ version: 1, exportadoEn: new Date().toISOString(), negocioId: "local", productos: [], movimientos: [], clientes: [], fiados: [], categorias: [] })),
+    });
+    const dialogo = page.getByRole("dialog", { name: "Restaurar respaldo" });
+    const dimensiones = await dialogo.evaluate((el) => ({ altura: el.clientHeight, contenido: el.scrollHeight, arriba: el.getBoundingClientRect().top }));
+    expect(dimensiones.arriba).toBeGreaterThanOrEqual(0);
+    expect(dimensiones.contenido).toBeGreaterThan(dimensiones.altura);
+    await dialogo.evaluate((el) => { el.scrollTop = 0; });
+    await expect(dialogo.getByRole("heading", { name: "Restaurar respaldo" })).toBeInViewport();
+    await dialogo.getByRole("button", { name: "Cancelar" }).focus();
+    await page.keyboard.press("Tab");
+    await expect(dialogo.getByRole("button", { name: "Restaurar ahora" })).toBeFocused();
+    await expect(dialogo.getByRole("button", { name: "Restaurar ahora" })).toBeInViewport();
+  });
   test("descarga la plantilla e importa un producto CSV", async ({ page }) => {
     await page.goto("/mas/respaldo");
     await expect(page.getByText("Importar productos (CSV)")).toBeVisible();

@@ -16,6 +16,7 @@ import {
   stockDerivado,
   type CategoriaFila,
   type ClienteFila,
+  type ConteoFila,
   type FiadoFila,
   type MovimientoFila,
   type ProductoFila,
@@ -24,6 +25,7 @@ import {
 import type { Table } from "dexie";
 import { asegurarBaseLista, baseApp, type BaseLocal } from "./baseLocal";
 import { aCsv, type RespaldoJson } from "./exportar";
+import { PRODUCTOS_DEMO } from "./demo";
 
 /** Conteo de filas nuevas vs. ya presentes para una tabla del respaldo. */
 export interface ConteoMerge {
@@ -38,6 +40,7 @@ export interface ResultadoRestauracion {
   clientes: ConteoMerge;
   fiados: ConteoMerge;
   categorias: ConteoMerge;
+  conteos: ConteoMerge;
   /** Productos cuyo `stock_cache` se reconstruyó desde el libro. */
   stockRecalculado: number;
 }
@@ -51,6 +54,7 @@ export interface ResumenRespaldo {
   clientes: number;
   fiados: number;
   categorias: number;
+  conteos: number;
 }
 
 export type ValidacionRespaldo =
@@ -243,6 +247,17 @@ function errorCategoria(fila: unknown, indice: number): string | null {
   return errorSync(fila, contexto);
 }
 
+function errorConteo(fila: unknown, indice: number): string | null {
+  const contexto = `conteos, fila ${indice + 1}`;
+  if (!esObjeto(fila) || !esTextoNoVacio(fila.id) || !esTextoNoVacio(fila.negocioId)) return `${contexto}: id o negocioId inválido.`;
+  if (fila.estado !== "abierto" && fila.estado !== "cerrado") return `${contexto}: estado inválido.`;
+  if (!esNumero(fila.creadoEn) || !esNuloONumero(fila.cerradoEn) || !Array.isArray(fila.items)) return `${contexto}: fechas o capturas inválidas.`;
+  for (const item of fila.items) {
+    if (!esObjeto(item) || !esTextoNoVacio(item.productoId) || !esNumero(item.contado) || item.contado < 0 || !esNumero(item.sistema) || !esNumero(item.diferencia)) return `${contexto}: captura inválida.`;
+  }
+  return null;
+}
+
 function validarLista(
   valor: unknown,
   nombre: string,
@@ -296,7 +311,8 @@ export function validarRespaldoJson(texto: string): ValidacionRespaldo {
     validarLista(valor.movimientos, "movimientos", errorMovimiento) ??
     validarLista(valor.clientes, "clientes", errorCliente) ??
     validarLista(valor.fiados, "fiados", errorFiado) ??
-    validarLista(valor.categorias, "categorias", errorCategoria);
+    validarLista(valor.categorias, "categorias", errorCategoria) ??
+    (valor.conteos === undefined ? null : validarLista(valor.conteos, "conteos", errorConteo));
   if (error) return { ok: false, error };
 
   const datos = valor as unknown as RespaldoJson;
@@ -311,6 +327,7 @@ export function validarRespaldoJson(texto: string): ValidacionRespaldo {
       clientes: datos.clientes.length,
       fiados: datos.fiados.length,
       categorias: datos.categorias.length,
+      conteos: datos.conteos?.length ?? 0,
     },
   };
 }
@@ -339,7 +356,7 @@ export async function restaurarRespaldo(
 
   return db.transaction(
     "rw",
-    [db.productos, db.movimientos, db.clientes, db.fiados, db.categorias, db.stock_cache],
+    [db.productos, db.movimientos, db.clientes, db.fiados, db.categorias, db.conteos, db.stock_cache],
     async () => {
       async function fusionar<T extends { id: string }>(
         tabla: Table<T, string>,
@@ -369,6 +386,19 @@ export async function restaurarRespaldo(
         db.productos,
         datos.productos.map((p) => ({ ...p, negocioId })),
       );
+      // Solo sustituir una semilla intacta. Cualquier edición local prevalece.
+      for (const importado of datos.productos) {
+        const semilla = PRODUCTOS_DEMO.find((p) => p.id === importado.id);
+        const actual = semilla ? await db.productos.get(importado.id) : undefined;
+        if (!semilla || !actual || actual.negocioId !== negocioId || actual.deletedAt !== null || actual.serverSeq !== null || actual.rev !== 0) continue;
+        const intacto = (Object.keys(semilla) as Array<keyof typeof semilla>).every((clave) => actual[clave] === semilla[clave]);
+        if (!intacto) continue;
+        if (importado.codigoBarras && importado.deletedAt === null) {
+          const iguales = await db.productos.where("[negocioId+codigoBarras]").equals([negocioId, importado.codigoBarras]).toArray();
+          if (iguales.some((p) => p.id !== importado.id && p.deletedAt === null)) throw new Error("El respaldo contiene un código de barras que ya usa otro producto.");
+        }
+        await db.productos.put({ ...importado, negocioId });
+      }
       const clientes = await fusionar<ClienteFila>(
         db.clientes,
         datos.clientes.map((c) => ({ ...c, negocioId })),
@@ -385,6 +415,7 @@ export async function restaurarRespaldo(
         db.fiados,
         datos.fiados.map((f) => ({ ...f, negocioId })),
       );
+      const conteos = await fusionar<ConteoFila>(db.conteos, (datos.conteos ?? []).map((c) => ({ ...c, negocioId })));
 
       // Productos tocados: los nuevos y los que recibieron movimientos nuevos.
       const afectados = new Set<string>([
@@ -411,6 +442,7 @@ export async function restaurarRespaldo(
         clientes: clientes.conteo,
         fiados: fiados.conteo,
         categorias: categorias.conteo,
+        conteos: conteos.conteo,
         stockRecalculado,
       };
     },
@@ -486,9 +518,10 @@ function dineroACentavos(texto: string): number | null {
   } else if (limpio.includes(",")) {
     limpio = limpio.replace(",", ".");
   }
-  const numero = Number(limpio);
-  if (!Number.isFinite(numero)) return null;
-  return Math.round(numero * 100);
+  const partes = /^(\d+)(?:\.(\d{1,2}))?$/.exec(limpio);
+  if (!partes) return null;
+  const centavos = Number(partes[1]) * 100 + Number((partes[2] ?? "").padEnd(2, "0"));
+  return Number.isSafeInteger(centavos) ? centavos : null;
 }
 
 /** Convierte un número decimal del CSV (acepta coma decimal). */

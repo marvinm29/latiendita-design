@@ -27,7 +27,7 @@ sostenibilidad aspiracional al estilo jshERP (código libre siempre; convenienci
 | `005-prompt-opendesigner.md` | Prompt maestro de prototipado, decisión de sistema de color (Radix/Teal/Sand/Amber, S8), protocolo de iteración en 4 fases | ✅ Completo — ejecutar con OpenDesigner para generar fundaciones + mockups |
 | `003-plan-tecnico.md` | **Plan técnico v1**: stack (Preact/Fastify/Postgres+RLS), arquitectura offline/sync (outbox + LWW por campo + ledger append-only), modelo de datos, seguridad, presupuesto de rendimiento, estrategia de pruebas y hitos M0–M4 | ✅ Completo — requiere revisión del dueño |
 | `004-roadmap.md` | **Roadmap y adopción**: hitos M0–M4 (tareas, criterios de salida, camino crítico), gates de calidad, plan de adopción D11 y post-v1 | ✅ Completo — requiere revisión del dueño |
-| `006-plan-sprints.md` | **Plan de sprints**: S1–S9 en semanas de 1 semana, retomando desde el estado real y mapeando M0–M4 hasta v1.0 | ✅ Escrito — **S2/S2+ ✅ · S3 ✅ · S6 ✅ · S7 ✅ · M1/M3 cerrados; M2 en curso** |
+| `006-plan-sprints.md` | **Plan de sprints**: S0–S9 en semanas de 1 semana, desde el estado real hasta v1.0 | ✅ Escrito — M1/S3 entregados; M2 y cierre de M3 pendientes |
 
 ## 3. Decisiones cerradas en conversación (no repetidas en los docs)
 
@@ -36,7 +36,7 @@ sostenibilidad aspiracional al estilo jshERP (código libre siempre; convenienci
 | S1 | **Stack: PWA** (no Java, no React Native) | Java encierra en Android; RN duplica código móvil+web; PWA corre en cualquier dispositivo y ataca la debilidad de Loyverse (sin versión web). Salida de emergencia: envolver la PWA con **Capacitor** → APK si algún día hace falta Play Store/F-Droid |
 | S2 | **Offline-first obligatorio con warning claro** | El usuario eligió "quizás 1 pero con warning claro" → quedó especificado en C8.2 como aviso persistente |
 | S3 | **Fiados: módulo completo en v1** | Confirmado tras el research (gancho probado Khatabook/Peddlr) |
-| S4 | **Multiempleado por negocio** con roles (dueña/empleado) | Requisito del usuario desde el inicio; en v1 son 2 roles (P2 propone login por código de invitación + PIN) |
+| S4 | **Multiempleado por negocio** con roles (dueña/empleado) | Dos roles; P2 decidió código de invitación de un solo uso + PIN |
 | S5 | **Cero costo de infraestructura** en la operación inicial | free tiers + self-host; ver 003 cuando se escriba |
 | S6 | No se venderá el producto; se liberará open source | La preocupación de adopción se resolvió con el plan bifurcado D11 (Facebook/comunidad + GitHub/self-hosters) |
 | S7 | Idioma de trabajo del proyecto: **español** (docs del spec en español; README técnico podrá ser bilingüe) | — |
@@ -51,13 +51,13 @@ Fase: Spec Driven Development
 ├── Preguntas P1–P5 ......................... ✅ P1 AGPL-3.0 · P2 código+PIN (issues #1/#2 cerradas); P3–P5 asumidos
 ├── Plan técnico (003) ...................... ✅ escrito — pendiente de revisión del dueño
 ├── Roadmap/milestones (004) ................ ✅ escrito — pendiente de revisión del dueño
-└── Implementación .......................... ✅ M0 ✅ · M1 ✅: dominio core (64) + Dexie (21)
+└── Implementación .......................... 🟡 M0 con gates pendientes · M1 ✅: dominio core (64) + Dexie (21)
                                               + UI C2–C5 sobre Dexie ✅ + C5 persistente ✅
                                               + 11 tests web + 10 e2e offline/persistencia/axe ✅
                                               · M2 🟡 S3 ✅: auth API (14 tests) + sesión local/PIN
                                               (5 tests web) + 7 e2e (incluye invitación UI)
-                                              · M3 ✅: fiados (C6), PWA (C9), datos export/import (C10),
-                                              reportes (C11) e Inicio · 145 tests + 30 e2e totales
+                                              · M3 🟡: funciones locales implementadas; integrar restore con
+                                              sync y completar backup del servidor · 164 tests + 1 integración PG + 31 e2e
 
 Fase: Diseño (OpenDesigner) — artefactos en design/
 ├── F1 Fundaciones (tokens DTCG + DESIGN.md + decisions.md) ..... ✅ aprobado

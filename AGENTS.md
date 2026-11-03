@@ -39,14 +39,14 @@ el **plan técnico + roadmap**, y el **monorepo de implementación** (M0 + M1 + 
 | Diseño F1 fundaciones · F2 componentes · F3 pantallas (13) · F4 cierre WCAG | ✅ entregado |
 | Plan técnico (`003`) | ✅ escrito — pendiente de revisión del dueño |
 | Roadmap (`004`) | ✅ escrito — pendiente de revisión del dueño |
-| Plan de sprints (`006`) | ✅ escrito — **S2/S2+ ✅ · S3 ✅ · S6 ✅ · S7 ✅ · M1/M3 cerrados; M2 en curso** |
-| **M0 · Cimientos** | ✅ scaffold monorepo + CI + RLS base + docker-compose + **ESLint real** + **gate de tamaño real** (Lighthouse sigue pendiente) |
+| Plan de sprints (`006`) | ✅ escrito — **M1 y S3 entregados; M2 en curso; M3 con sync y backup del servidor pendientes** |
+| **M0 · Cimientos** | 🟡 scaffold monorepo + CI + RLS base + docker-compose + **ESLint real** + **gate de tamaño real**; Lighthouse y despliegue completo pendientes |
 | **M1 · Núcleo offline** | ✅ dominio puro (64 tests) + capa Dexie (21 tests, libro+outbox+conteo) + **UI C2–C5 toda sobre Dexie** (catálogo, libro y conteo comparten base; escáner BarcodeDetector lazy → **ZXing-wasm perezoso** → teclado manual) + **conteo persistente y reanudable (C5.2)** + 11 tests web + **10 e2e offline C2–C5 + conteo persistente + axe AA** + **OFF** (proxy + caché local) |
 | **M2 · Cuentas y sync** | 🟡 **S3 ✅** (negocio, invitación+PIN desde la UI de Empleados, sesión, desbloqueo offline y cierre; 14 tests API + 5 web + 7 e2e) · **S4/S5 pendientes** (sync push/pull + RLS en uso + LWW) |
-| **M3 · Producto** | ✅ **C6 fiados** · **C9 PWA** · **C10 export + import/restore** · **C11 reportes** · **Inicio real** · ⏳ backups del servidor (S7/M4) |
+| **M3 · Producto** | 🟡 fiados, PWA, import/export, reportes e Inicio implementados; restore local corregido; faltan integración con sync y backup del servidor |
 | Licencia del proyecto | ✅ **AGPL-3.0** (P1 cerrada 18/10/2026): `LICENSE` + `"license": "AGPL-3.0-only"` en los paquetes. |
 
-Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · **145 tests** (88 core + 43 web + 14 api) + **30 e2e** (offline C2–C5 + conteo + acceso/empleados + fiados + PWA + datos + inicio/reportes + OFF + axe AA) · bundle **112.1 KB gzip** / 150 KB (SW fuera del bundle).
+Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · **164 tests** (96 core + 48 web + 20 api) + **1 integración PostgreSQL optativa** + **31 e2e** · bundle **115 689 B gzip** / 153 600 B (SW fuera del bundle).
 
 ## 3. Decisiones cerradas — NO reabrir
 
@@ -60,6 +60,7 @@ Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 
 - **Diseño:** Radix Colors v3 (Teal acción / Sand neutros / Amber = dinero), base 16px, targets ≥48px,
   banner offline exacto “Sin conexión — se sincronizará al reconectar”, nunca color solo, WCAG 2.2 AA.
 - **Regla de oro:** *el spec manda*. Si algo contradice `specs/002`, se actualiza el spec **primero**.
+- **Calidad:** aplicar de forma proporcionada las prácticas de [SWEBOK v4](https://www.computer.org/education/bodies-of-knowledge/software-engineering): requisitos verificables, diseño, pruebas de riesgos y regresiones, seguridad y mantenimiento; usar los gates existentes y evitar burocracia adicional.
 
 ## 4. Tareas abiertas (issues en GitHub)
 
@@ -89,7 +90,7 @@ pnpm --filter @latiendita/web test:e2e:install   # una vez: Chromium de Playwrig
 pnpm --filter @latiendita/web test:e2e           # e2e offline C2–C5 + axe AA
 pnpm --filter @latiendita/api dev          # API en :3000 (health + /off/:codigo)
 pnpm --filter @latiendita/web dev          # Vite en :5173
-docker compose -f infra/docker-compose.yml up -d   # api + db + caddy (requiere plugin compose)
+docker compose -f infra/docker-compose.yml up -d   # api + db; Caddy requiere --profile tls
 
 gh issue list                              # decisiones abiertas DS-26/#5/…
 ```
@@ -99,7 +100,7 @@ No committear sin pedirlo explícitamente.
 
 ## 6. Próximos pasos sugeridos
 
-- **(1)** **S3 · M2** ✅ P1/P2 cerradas: negocio + invitación/PIN + sesión + desbloqueo offline por PIN.
+- **(1)** Conectar restore/import a sync y validar el diálogo con zoom 200 % (ver `006` §3).
 - **(2)** **S4 · M2**: `/sync/push|pull` + RLS en uso + pruebas de aislamiento A/B; luego S5 (LWW/backoff).
 - **(3)** Endurecer **M0**: Lighthouse CI real y `drizzle-kit` (ESLint y gate de tamaño ya activos).
 - **(4)** Aprobar **DS-26** (issue #3); la tarjeta “sin mínimo” (#4) ya quedó con DS-31.
@@ -120,10 +121,10 @@ Antes de hacer nada, lee en este orden:
 7. design/DESIGN.md y design/ACCESSIBILITY.md (contrato de UI y WCAG 2.2 AA)
 8. design/decisions.md (DS-01…DS-30)
 
-Estado: SDD y diseño (F1–F4) COMPLETOS. Implementación: M0 ✅ · M1 ✅ (dominio + Dexie + UI C2–C5
+Estado: SDD y diseño (F1–F4) COMPLETOS. Implementación: M0 🟡 · M1 ✅ (dominio + Dexie + UI C2–C5
 sobre IndexedDB, C5 persistente) · M2 en curso (S3 ✅: negocio + invitación/PIN + sesión + desbloqueo
-offline) · M3 ✅ (fiados, PWA, datos, reportes e Inicio). 145 tests + 30 e2e. P1 (AGPL-3.0) y P2
-(código+PIN) cerradas; sigue S4/S5 (sync + RLS + LWW).
+offline) · M3 🟡 (funciones locales implementadas; sync y backup del servidor pendientes).
+164 tests + 1 integración PostgreSQL optativa + 31 e2e. P1/P2 cerradas; sigue S4/S5 (sync + RLS + LWW).
 Todo el diseño se abre sin build con `python3 -m http.server`.
 
 Protocolo: verifica la base (git status, typecheck, test) → plan pequeño → implementa → prueba →
@@ -134,8 +135,7 @@ Verifica con `pnpm typecheck && pnpm test && pnpm build`,
 `pnpm --filter @latiendita/web test:e2e`, `python3 design/tokens/verify_contrast.py` y
 `python3 design/tools/qa.py`.
 
-Empieza confirmando que leíste el estado y proponme el siguiente incremento (S4: sync push/pull +
-RLS, o el trabajo no bloqueado de docs/TRASPASO.md §9).
+Empieza confirmando que leíste el estado y proponme el siguiente incremento de `006` §3.
 ```
 
 ## 8. Convenciones de git

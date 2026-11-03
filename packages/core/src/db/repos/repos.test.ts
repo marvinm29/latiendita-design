@@ -89,6 +89,33 @@ describe("productosRepo", () => {
     expect(await repos.outbox.pendientes()).toHaveLength(2); // alta + edición
   });
 
+  it("la edición registra solo los campos cambiados con una marca estable por dispositivo", async () => {
+    const producto = await crearProducto();
+    await repos.productos.actualizar(producto.id, { nombre: "Sal nueva" });
+    await repos.productos.actualizar(producto.id, { precioCentavos: 1500 });
+    const ediciones = (await repos.outbox.pendientes())
+      .map((op) => op.payload as { datos: { cambios?: Record<string, unknown>; dispositivoId?: string; edicion?: { updatedAt: number } } })
+      .filter((payload) => payload.datos.cambios)
+      .sort((a, b) => a.datos.edicion!.updatedAt - b.datos.edicion!.updatedAt);
+    expect(ediciones).toHaveLength(2);
+    expect(ediciones[0]?.datos.cambios).toEqual({ nombre: "Sal nueva" });
+    expect(ediciones[1]?.datos.cambios).toEqual({ precioCentavos: 1500 });
+    expect(ediciones[0]?.datos.dispositivoId).toBeTruthy();
+    expect(ediciones[1]?.datos.dispositivoId).toBe(ediciones[0]?.datos.dispositivoId);
+    expect(ediciones[1]!.datos.edicion!.updatedAt).toBeGreaterThan(ediciones[0]!.datos.edicion!.updatedAt);
+  });
+
+  it("si falla una edición, no guarda la marca del dispositivo ni la operación", async () => {
+    const primero = await crearProducto();
+    const segundo = await crearProducto({ nombre: "Otro", codigoBarras: "otro-codigo" });
+    const opsAntes = await db.outbox.count();
+    await expect(repos.productos.actualizar(segundo.id, { codigoBarras: primero.codigoBarras })).rejects.toThrow(/código/);
+    expect(await db.meta.get("sync:dispositivo:v1")).toBeUndefined();
+    expect(await db.meta.get("sync:ultimo_reloj:v1")).toBeUndefined();
+    expect(await db.outbox.count()).toBe(opsAntes);
+    expect((await db.productos.get(segundo.id))?.codigoBarras).toBe("otro-codigo");
+  });
+
   it("borrado lógico: sale del catálogo pero no borra el historial", async () => {
     const producto = await crearProducto();
     await repos.movimientos.registrarEntrada({
@@ -207,10 +234,28 @@ describe("outboxRepo", () => {
     expect(await repos.outbox.pendientes()).toHaveLength(0);
     expect(await repos.outbox.opsListasParaEnviar(1500)).toHaveLength(0);
 
-    // Reintento de push con el mismo opId: sigue habiendo 1 sola fila.
+    // Reencolar el mismo opId no vuelve a enviar una operación confirmada.
     await repos.outbox.encolar(op);
     expect(await db.outbox.count()).toBe(1);
-    expect(await repos.outbox.opsListasParaEnviar(1500)).toHaveLength(1);
+    expect(await repos.outbox.opsListasParaEnviar(1500)).toHaveLength(0);
+    expect((await db.outbox.get(op.id))?.estado).toBe("ok");
+  });
+
+  it("rechaza colisiones entre negocios o contenidos sin alterar la operación original", async () => {
+    const op = crearOp({ endpoint: "/sync/push", payload: { valor: 1 }, ahora: 1000, id: "op-compartida" });
+    await repos.outbox.encolar(op);
+    await expect(repos.outbox.encolar({ ...op, payload: { valor: 2 } })).rejects.toThrow();
+    const otro = crearRepos(db, "otro-negocio");
+    await expect(otro.outbox.encolar(op)).rejects.toThrow();
+    expect(await db.outbox.get(op.id)).toMatchObject({ negocioId: NEGOCIO, payload: { valor: 1 }, estado: "pendiente" });
+  });
+
+  it("conserva el backoff de un reintento ya registrado", async () => {
+    const op = crearOp({ endpoint: "/sync/push", payload: null, ahora: 0, id: "op-reintento" });
+    await repos.outbox.encolar(op);
+    await repos.outbox.marcarError(op.id, "sin red", 1000, () => 0.5);
+    await repos.outbox.encolar(op);
+    expect(await db.outbox.get(op.id)).toMatchObject({ estado: "error", intentos: 1, proximoIntentoEn: 2000 });
   });
 
   it("marcarError aplica backoff: no vuelve a ser elegible hasta vencer", async () => {

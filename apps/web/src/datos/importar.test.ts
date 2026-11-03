@@ -101,9 +101,65 @@ describe("validarRespaldoJson", () => {
       expect(validacion.error).toContain("factor");
     }
   });
+
+  it("acepta respaldos antiguos y rechaza capturas de conteo inválidas", async () => {
+    const respaldo = await respaldoJson(base);
+    const anterior = { ...respaldo };
+    delete anterior.conteos;
+    expect(validarRespaldoJson(JSON.stringify(anterior)).ok).toBe(true);
+    const invalido = { ...respaldo, conteos: [{ id: "c", negocioId: NEGOCIO, estado: "abierto", creadoEn: 1, cerradoEn: null, items: [{ productoId: "p", contado: -1, sistema: 0, diferencia: -1 }] }] };
+    expect(validarRespaldoJson(JSON.stringify(invalido)).ok).toBe(false);
+  });
 });
 
 describe("restaurarRespaldo", () => {
+  it("restaura cambios y eliminaciones de productos demo sin pisar ediciones del destino", async () => {
+    const origen = await nuevaBase(`origen-demo-${crypto.randomUUID()}`, NEGOCIO);
+    try {
+      await origen.repos.productos.actualizar("p-refresco-big-cola", { nombre: "Nombre de Marta" });
+      await origen.repos.productos.borrar("p-harina-selecta-5lb");
+      await origen.repos.productos.actualizar("p-galletas-charme", { nombre: "Cambio de origen" });
+      await base.repos.productos.actualizar("p-galletas-charme", { nombre: "Cambio de destino" });
+      const respaldo = await respaldoJson(origen);
+      await restaurarRespaldo(respaldo, base);
+      await restaurarRespaldo(respaldo, base);
+      expect((await db.productos.get("p-refresco-big-cola"))?.nombre).toBe("Nombre de Marta");
+      expect((await db.productos.get("p-harina-selecta-5lb"))?.deletedAt).not.toBeNull();
+      expect((await db.productos.get("p-galletas-charme"))?.nombre).toBe("Cambio de destino");
+    } finally {
+      await borrarDb(origen.db);
+    }
+  });
+
+  it("restaura un conteo abierto con sus capturas y no lo duplica", async () => {
+    const origen = await nuevaBase(`origen-conteo-${crypto.randomUUID()}`, NEGOCIO);
+    try {
+      const conteo = await origen.repos.conteo.iniciar();
+      await origen.repos.conteo.registrarItem(conteo.id, "p-refresco-big-cola", 7);
+      const respaldo = await respaldoJson(origen);
+      const validacion = validarRespaldoJson(JSON.stringify(respaldo));
+      expect(validacion.ok).toBe(true);
+      await restaurarRespaldo(respaldo, base);
+      await restaurarRespaldo(respaldo, base);
+      expect((await base.repos.conteo.listarAbierta())?.items[0]?.contado).toBe(7);
+      expect(await db.conteos.count()).toBe(1);
+    } finally {
+      await borrarDb(origen.db);
+    }
+  });
+
+  it("revierte todo el restore si una semilla importada colisiona con un código existente", async () => {
+    const origen = await nuevaBase(`origen-conflicto-${crypto.randomUUID()}`, NEGOCIO);
+    try {
+      await origen.repos.productos.actualizar("p-refresco-big-cola", { codigoBarras: "cod-conflicto" });
+      await base.repos.productos.crear({ nombre: "Destino", categoria: "", codigoBarras: "cod-conflicto", unidadBase: "unidad", unidadVenta: "unidad", factor: 1, costoCentavos: 0, precioCentavos: 1, stockMinimoBase: 0 });
+      const antes = await db.productos.get("p-refresco-big-cola");
+      await expect(restaurarRespaldo(await respaldoJson(origen), base)).rejects.toThrow(/código de barras/);
+      expect(await db.productos.get("p-refresco-big-cola")).toEqual(antes);
+    } finally {
+      await borrarDb(origen.db);
+    }
+  });
   it("combina los datos sin borrar ni duplicar ids", async () => {
     const origen = await nuevaBase(`origen-${crypto.randomUUID()}`, "origen");
     try {
@@ -246,6 +302,14 @@ describe("restaurarRespaldo", () => {
 describe("importarProductosCsv", () => {
   const cabecera =
     "nombre,categoria,codigo_barras,unidad_base,unidad_venta,factor,costo_usd,precio_usd,stock_minimo";
+
+  it("rechaza importes con más de dos decimales sin alterar otras filas", async () => {
+    const resultado = await importarProductosCsv(`${cabecera}\nInexacto,,,unidad,unidad,1,0,1.015,0\nExacto,,,unidad,unidad,1,0,1.01,0`, base);
+    expect(resultado.errores).toHaveLength(1);
+    expect(resultado.creados).toBe(1);
+    expect((await base.repos.productos.buscar("Inexacto"))).toHaveLength(0);
+    expect((await base.repos.productos.buscar("Exacto"))[0]?.precioCentavos).toBe(101);
+  });
 
   it("la plantilla trae la cabecera y dos ejemplos", () => {
     const filas = parsearCsv(plantillaProductosCsv());

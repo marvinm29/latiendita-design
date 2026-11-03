@@ -6,6 +6,8 @@
 >
 > Estado: **borrador para revisión del dueño**. Regla del proyecto: si algo contradice el spec, se
 > cambia el spec primero y el diseño después. Este plan **no reabre** lo ya decidido (§1).
+> Describe la arquitectura objetivo; el estado de implementación y la secuencia vigente están en
+> `006-plan-sprints.md` y `docs/TRASPASO.md`. No presupone que sync, RLS o despliegue estén completos.
 
 ---
 
@@ -36,7 +38,7 @@ Estas decisiones ya están cerradas y este plan las asume como restricciones, no
   Capacitor → APK (D14), sólo si la demanda lo pide.
 - **D2** — Escaneo: `BarcodeDetector` con fallback **ZXing/WASM**; entrada manual siempre disponible.
 - **D3 / P4** — Open Food Facts como **acelerador, no dependencia** (manual-first si no hay datos ni red).
-- **D4 / C7** — Multiempleado **gratis**; roles `dueña` / `empleado`; P2 propone **código de invitación + PIN**.
+- **D4 / C7** — Multiempleado **gratis**; roles `dueña` / `empleado`; P2 decidió **código de invitación de un solo uso + PIN**.
 - **D5 / C4** — **Libro de movimientos inmutable** como fuente de verdad del stock.
 - **D6 / C2.3** — Conversión de unidades / fraccionado como requisito de primera clase.
 - **D7** — Instalación `docker-compose` de **1 comando** + demo sembrada + **≤5 variables de entorno**.
@@ -50,8 +52,7 @@ Estas decisiones ya están cerradas y este plan las asume como restricciones, no
   pesadas; tokens DTCG + `DESIGN.md` como base de UI; copy en español llano.
 - **A11y** — `design/ACCESSIBILITY.md` (WCAG 2.2 AA) es contrato de implementación, no sugerencia.
 
-> **Licencia (P1) sigue abierta.** El plan es compatible tanto con MIT como con AGPL-3.0; si se elige
-> AGPL-3.0, se añade `LICENSE` y cabeceras SPDX (ver T-21).
+> **Licencia (P1):** AGPL-3.0, decidida el 18/10/2026; `LICENSE` y metadatos de paquetes están presentes.
 
 ---
 
@@ -122,6 +123,10 @@ recuperar foco/conexión. Actualización: detectar SW nuevo y mostrar **“hay u
 Variables: `DOMAIN`, `POSTGRES_PASSWORD`, `SESSION_SECRET`, `DEMO_SEED`, `BACKUP_CRON`. Un comando aplica
 migraciones y, si `DEMO_SEED=true`, siembra la tienda de demostración (D7).
 **Consecuencia:** instalación de Carlos ≤15 min (métrica 4, §13).
+
+**Estado actual:** compose arranca API y base; Caddy es opcional con perfil `tls` y solo redirige a la API.
+La web no se sirve desde Caddy; el SQL de `initdb.d` solo corre con un volumen nuevo. `DEMO_SEED`,
+`SESSION_SECRET` y `BACKUP_CRON` no tienen actualmente el comportamiento propuesto. Ver `infra/README.md`.
 
 ---
 
@@ -396,6 +401,9 @@ obligatorio: lint + tipos + unit + integración + e2e (contenedor) + size-limit 
 
 ## 12. Instalación (Carlos) y operación
 
+Los siguientes puntos son **objetivos**, no un procedimiento validado de producción. La instalación,
+las actualizaciones y la restauración verificadas se deben completar en S4/M4; estado en `infra/README.md`.
+
 - **Instalar:** `git clone` → editar `.env` (≤5 variables) → `docker compose up -d`. Caddy obtiene TLS;
   las migraciones corren al arrancar; con `DEMO_SEED=true` queda una tienda de demostración con datos.
 - **Actualizar:** `git pull && docker compose up -d --build`; la app avisa del SW nuevo (C9.2). Migraciones
@@ -447,7 +455,7 @@ infra/
 | OFF caído/cambiante | autocompletado ausente | manual-first; caché propia; sin dependencia dura |
 | iOS: cámara/PWA | escaneo/instalación limitados | instrucciones A2HS; teclado manual siempre; probar en iOS 16+ |
 | PIN local | candado débil offline | documentado en el modelo de amenaza; sesión revocable en línea |
-| Licencia sin cerrar (P1) | incompatibilidad | T-21: el código no depende de la licencia; se añade `LICENSE` al decidir |
+| Restore aún no integrado con sync | datos restaurados no se envían al servidor | implementar outbox y probar ida y vuelta en S4/S5 (`006` §3) |
 
 ---
 
@@ -455,8 +463,7 @@ infra/
 
 Técnicas (a resolver antes o durante M0–M2):
 
-1. **T-21 · Licencia** — depende de P1 (MIT vs AGPL-3.0). Mientras: sin cabeceras SPDX, con `LICENSE`
-   pendiente.
+1. **T-21 · Licencia** — P1 resuelta: AGPL-3.0; `LICENSE` presente. Las cabeceras SPDX por archivo no se han verificado.
 2. **T-22 · PIN offline** — confirmar parámetros de `argon2id` y política de intentos local.
 3. **T-23 · Fotos de producto** — ¿volumen del servidor + ruta, o `bytea`? Decidir en M1; el cliente ya
    redimensiona antes de guardar.

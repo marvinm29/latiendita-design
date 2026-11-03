@@ -4,7 +4,7 @@
 > `AGENTS.md` es la **entrada corta**; este documento es el **paquete de contexto**: estado real,
 > arquitectura, invariantes, trampas, deuda y protocolo de trabajo.
 >
-> **Última actualización:** 18 de octubre de 2026 (cierre de **S3 · cuentas y acceso**).
+> **Última actualización de estado:** 2 de noviembre de 2026 (revisión de documentación y plan).
 > Si cambias código, actualiza §2, §3 y §14 al final de la sesión.
 
 ---
@@ -28,20 +28,24 @@
 - **Producto:** PWA **offline-first** de inventario + fiados para tiendas de colonia de El Salvador.
   Usuarios: **Marta** (dueña, baja alfabetización digital, Android gama baja), **José** (empleado),
   **Carlos** (instalador). Open source, sin costo, **español primero**.
-- **Estado:** SDD y diseño (F1–F4) completos. **M0 ✅** · **M1 ✅** · **M2 🟡 S3 ✅** (acceso e
-  invitación desde la UI) · **M3 ✅** (fiados, PWA, datos export/import/restore, reportes e Inicio).
-  **S4/S5 pendientes.**
-- **Números:** 145 tests unitarios (88 core + 43 web + 14 api) · 30 e2e (offline C2–C5 + conteo +
+- **Estado:** SDD y diseño (F1–F4) entregados. **M0 🟡** (gates/despliegue pendientes) · **M1 ✅**
+  · **M2 🟡 S3 entregado** · **M3 🟡** (funciones locales implementadas; integración con sync y backup
+  de servidor pendiente). **S4/S5 pendientes.**
+- **Números:** 164 tests regulares (96 core + 48 web + 20 api) y 1 integración PostgreSQL optativa · 31 e2e (offline C2–C5 + conteo +
   acceso/empleados + fiados + PWA + datos + inicio/reportes + OFF + axe AA) · bundle inicial
-  **112.1 KB gzip** (presupuesto 150 KB; SW fuera del bundle) · 13 pantallas / 60 marcos · WCAG 2.2 AA.
-- **Siguiente:** **S4 · M2** — `/sync/push|pull`, RLS en uso y aislamiento A/B; luego **S5** (LWW,
-  backoff) y los backups del servidor.
+  **115 689 B gzip** (presupuesto 153 600 B; SW fuera del bundle) · 13 pantallas / 60 marcos · WCAG 2.2 AA.
+- **Siguiente:** **S4/S5** (sync, RLS, LWW y backoff), integración del restore y backup del servidor;
+  validar el diálogo con zoom 200 % en S8. Detalle y gates en `006` §3.
 
 ---
 
 ## 2. Estado verificado (no confiar en la memoria: re-verificar)
 
-Comandos y resultados al cierre de S2 (18/10/2026):
+Comandos y resultados históricos al cierre de la sesión 5 (18/10/2026); no son una ejecución actual:
+
+Última comprobación local (02/11/2026, sesión 10): `pnpm typecheck`, `pnpm lint`,
+`pnpm test` (164 pruebas regulares), `pnpm build` y la integración optativa de sync con
+PostgreSQL 16 pasaron. No se volvieron a ejecutar los e2e ni las pruebas de campo en esa sesión.
 
 | Gate | Comando | Resultado |
 |---|---|---|
@@ -65,9 +69,10 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
   una instancia real**; `/auth` busca código/token con rol dueño (bypass RLS) hasta `SECURITY DEFINER` (S4).
 - La sesión **no cambia aún** el `negocioId` local ni dispara pull/sync (S4). Sin sesión, la app sigue
   en **modo local M1** (C2–C5) para no romper los flujos offline existentes.
-- Sin botón de “cerrar sesión / usar otra cuenta” en la UI (el repo ya lo soporta).
-- Sin endpoints de sync (`/sync/push`, `/sync/pull`) ni uso real de PostgreSQL en la API; el
-  restore/import es local y **no genera ops de outbox** hasta S4.
+- La UI permite cerrar sesión; el flujo para volver a entrar y la renovación automática deben revisarse.
+- Sin endpoints de sync registrados en producción: existe una implementación experimental de bitácora
+  y materialización inicial de movimientos. Auth dispone de adaptador PostgreSQL no probado en una
+  instancia real. El restore/import es local y **no genera ops de outbox** hasta S4.
 - Lighthouse CI sigue pendiente (el gate de tamaño propio ya es real).
 - **Backups del servidor** (`pg_dump` + runbook) pendientes; dependen de S4.
 - El escáner no se ha probado en dispositivos reales (formatos y linterna sí están implementados).
@@ -75,6 +80,13 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
 ---
 
 ## 3. Qué se construyó (changelog)
+
+### S4 · Sync experimental — avance parcial
+
+- Bitácora y movimientos se guardan juntos en PostgreSQL con RLS y validación de asientos; la
+  prueba de integración cubre reintentos, colisiones, rollback y aislamiento entre negocios.
+- Las rutas no están registradas en producción. Faltan el resto de entidades, la reconciliación
+  de eventos anteriores, LWW integrado y el cliente de sincronización.
 
 ### S0 · M0 — cimientos ✅
 
@@ -143,7 +155,7 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
 - **Empleados:** la dueña genera el código de invitación desde la UI (sólo dueña; rol empleado
   recibe un mensaje claro). 3 e2e.
 
-### S7 · M3 — PWA y datos ✅ (C9/C10)
+### S7 · M3 — PWA y datos 🟡 (C9/C10; sync y backup del servidor pendientes)
 
 - PWA: `vite-plugin-pwa` (Workbox), manifest, iconos 192/512/180, precache del app-shell,
   `navigateFallback` y denylist `/auth|/off|/sync`; aviso “Hay una nueva versión — Reiniciar”
@@ -314,6 +326,10 @@ pnpm size
 pnpm --filter @latiendita/web test:e2e:install
 pnpm --filter @latiendita/web test:e2e
 
+# Integración PostgreSQL experimental: instancia desechable; el rol necesita
+# crear roles y esquemas. No ejecutar contra una base de producción.
+SYNC_TEST_PG=1 PGHOST=/ruta/al/socket PGPORT=5432 PGUSER=usuario_prueba PGDATABASE=postgres pnpm --filter @latiendita/api test
+
 # Desarrollo
 pnpm --filter @latiendita/web dev     # Vite en :5173
 pnpm --filter @latiendita/api dev     # API en :3000 (/health, /off/:codigo)
@@ -398,9 +414,17 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
 | 13 | `/auth` busca código/token con rol dueño (bypass RLS) | esas consultas no pasan por RLS | S4 (`SECURITY DEFINER`) |
 | 14 | ~~Sin botón de cerrar sesión~~ | ✅ resuelto: cierre con confirmación en «Más» | — |
 | 15 | La sesión no cambia el `negocioId` local ni dispara pull | la app sigue en modo local hasta S4 | S4 |
-| 16 | ~~Import/restore JSON/CSV~~ | ✅ resuelto: merge idempotente + plantilla CSV | — |
+| 16 | Import/restore JSON/CSV | restore local corregido; falta integración con sync | S4/S5 (`006` §3) |
 | 17 | ~~Reportes mínimos (C11)~~ | ✅ resuelto: inventario, top y fiados | — |
 | 18 | Backup del servidor (`pg_dump` + runbook) | no hay respaldo automático de Postgres | S4/S7 |
+| 19 | ~~Restore ignora cambios del respaldo en productos demo~~ | corregido para semillas intactas; conserva ediciones locales y rechaza colisiones | — |
+| 20 | ~~Respaldo JSON omite `conteos`~~ | corregido; acepta respaldos antiguos sin conteos | — |
+| 21 | ~~CSV usa flotantes para dinero~~ | corregido; se rechazan importes con más de dos decimales | — |
+| 22 | ~~Diálogo restore desborda en pantalla baja~~ | corregido y probado con teclado en Chromium; zoom 200 % manual pendiente | S8 |
+| 23 | API rota tokens, pero la web no llama a `/auth/renovar` | posible pérdida de acceso al vencer; investigar flujo de recuperación | S4 |
+| 24 | Spec exige sesiones firmadas; implementación usa tokens opacos | diferencia entre NFR y T-05; resolver explícitamente antes de cerrar seguridad sin asumir equivalencia | S4/S8 |
+| 25 | Fusión LWW sin conectar al servidor | núcleo puro y pruebas implementados; faltan persistencia, transporte y convergencia de extremo a extremo | S4/S5 |
+| 26 | Sync experimental incompleto | Materialización inicial de movimientos y bitácora en una transacción, probada en PostgreSQL 16 con rol restringido; otras entidades, reconciliación de eventos antiguos, auth/RLS general y push/pull real siguen pendientes. Rutas no registradas en producción | S4/S5 |
 
 ---
 
@@ -423,7 +447,12 @@ Criterios cumplidos:
 - ⚠️ Deuda honesta: adaptador Postgres/RLS sin probar contra instancia real y `/auth` con bypass de RLS
   hasta `SECURITY DEFINER` → **S4**.
 
-### S4 · M2 — API y sincronización (siguiente)
+### Integridad de datos
+
+Los tres defectos reproducidos y el diálogo en pantalla baja se corrigieron (§8, filas 19–22).
+La integración de restore con sync y el zoom manual continúan pendientes (`006` §3).
+
+### S4 · M2 — API y sincronización
 
 - `/sync/push` idempotente por `op_id` (`op_log`) y `/sync/pull` por `server_seq` (T-04).
 - Fastify + Drizzle + Postgres + **RLS efectiva**; matriz de permisos por rol (C7).
@@ -526,16 +555,16 @@ Antes de hacer nada, lee en este orden:
 6. specs/006-plan-sprints.md (sprint en curso y siguientes)
 7. design/DESIGN.md y design/ACCESSIBILITY.md (contrato de UI y WCAG 2.2 AA)
 
-Estado verificado: SDD y diseño (F1–F4) completos. M0 ✅ · M1 ✅ (dominio + Dexie + UI C2–C5 sobre
-IndexedDB, C5 persistente) · M2 en curso (S3 ✅) · M3 ✅ (fiados, PWA, datos, reportes, Inicio).
-145 tests + 30 e2e. P1 (AGPL-3.0) y P2 (código+PIN) cerradas. Siguiente: S4 (sync + RLS).
+Estado verificado: SDD y diseño (F1–F4) completos. M0 🟡 · M1 ✅ (dominio + Dexie + UI C2–C5 sobre
+IndexedDB, C5 persistente) · M2 en curso (S3 entregado) · M3 con funciones locales implementadas y
+restore local corregido; sync y backup de servidor pendientes. 164 tests + 1 integración PG + 31 e2e. P1/P2 cerradas.
+Siguiente: S4 (sync + RLS).
 
 Protocolo: verifica la base (git status, typecheck, test) → plan pequeño → implementa → prueba →
 actualiza docs → reporta con evidencia. El spec manda; español primero; WCAG 2.2 AA es contrato;
 nunca color solo; no commitees sin que se te pida; no reabras decisiones cerradas.
 
-Empieza confirmando que leíste el estado y proponme el siguiente incremento (S4: sync + RLS, o el
-trabajo no bloqueado de docs/TRASPASO.md §9).
+Empieza confirmando que leíste el estado y proponme el siguiente incremento de §9.
 ```
 
 ---
@@ -559,6 +588,53 @@ trabajo no bloqueado de docs/TRASPASO.md §9).
 ---
 
 ## 14. Registro de sesiones
+
+### Sesión 10 (02/11/2026) — primer asiento experimental
+
+`0003_sync_movimiento.sql` agrega un libro de movimientos con RLS; el repositorio experimental
+valida e inserta el movimiento y su evento en la misma transacción. La integración PostgreSQL 16
+verifica reintentos, colisión de ID, rechazo de datos inválidos, rollback y aislamiento con rol
+restringido. No habilitar las rutas: faltan las otras entidades, LWW, integración del cliente,
+permisos de producción y reconciliar eventos ya registrados antes de esta migración. La prueba
+usa un clúster desechable local; no se ha probado en dispositivos ni en campo.
+
+### Sesión 9 (02/11/2026) — bitácora experimental de sync
+
+**Cambios:** ediciones de producto conservan sus campos modificados y una marca monotónica por
+dispositivo; servicio y rutas HTTP experimentales, repositorios de prueba en memoria y bitácora
+PostgreSQL con transacción y RLS. **No registrado en producción:** el repositorio solo guarda
+operaciones, no materializa entidades; faltan integración con cliente, LWW, auth y RLS completas.
+**Pruebas:** 164 regulares, 31 e2e y 1 integración adicional con PostgreSQL 16.15 temporal y rol
+restringido (negocios A/B con datos, escrituras cruzadas denegadas, concurrencia e idempotencia).
+Tipos, lint y build correctos; tamaño **115 689 B gzip**. Se añadió un job de PostgreSQL 16 en CI
+para ejecutar la prueba automáticamente; la configuración aún no se ha ejecutado en GitHub.
+Ver `apps/api/src/sync/repoPostgres.test.ts`.
+
+### Sesión 8 (02/11/2026) — preparación de sincronización
+
+**Cambios:** la outbox conserva confirmaciones y backoff al reencolar y rechaza colisiones entre
+negocios o contenidos; lógica pura LWW por campo con pruebas de convergencia y desempate. Se corrigió
+el mensaje de cierre de sesión. **Pendiente:** integrar LWW, push/pull y RLS; esta sesión no implementa
+el servidor de sincronización. **Pruebas:** 156 unitarias, tipos, lint, build y 115 564 B gzip.
+
+### Sesión 7 (02/11/2026) — integridad de respaldo y dinero
+
+**Cambios:** backup transaccional incluye conteos y admite JSON v1 anterior; restore recupera cambios
+en semillas intactas, conserva ediciones del destino y rechaza colisiones. CSV valida centavos exactos;
+diálogo accesible por desplazamiento en pantalla baja. **Pendiente:** outbox de restore, sync y zoom manual.
+**Pruebas:** 150 unitarias; Chromium y PWA probados; build, tipos, lint y presupuesto 115 436 B gzip.
+La corrida conjunta e2e tuvo un timeout del service worker mientras se compilaba en paralelo; 30 pruebas
+pasaron en esa corrida y las 2 de PWA pasaron al repetirlas aisladamente. Para S4, este entorno no tiene
+plugin Docker Compose ni servidor PostgreSQL local; `docker info` confirmó que el daemon no está activo.
+
+### Sesión 6 (02/11/2026) — revisión de documentación y plan
+
+**Objetivo:** contrastar estado y planificación con el código y la auditoría de los últimos cinco commits.
+**Cambios:** se registran defectos reproducidos de respaldo y dinero, riesgos pendientes y prioridades;
+se distinguen el roadmap original y los sprints vigentes, y se aclaran las limitaciones de infraestructura.
+**Evidencia previa:** typecheck y 145 pruebas en verde; tres reproducciones fallaron como se esperaba.
+La suite e2e y el build indicados arriba son resultados históricos, no ejecutados en esta revisión documental.
+**Siguiente:** resolver `006` §3 y continuar con S4/S5.
 
 ### Sesión 5 (18/10/2026) — cierre de M3: Inicio, reportes, import/restore y empleados
 

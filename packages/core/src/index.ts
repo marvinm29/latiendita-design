@@ -13,6 +13,7 @@ export * from "./stock";
 export * from "./unidades";
 export * from "./fiados";
 export * from "./outbox";
+export * from "./lww";
 export * from "./indice";
 export * from "./auth";
 

@@ -228,7 +228,8 @@ export function Respaldo(): VNode {
       pendiente.resumen.movimientos +
       pendiente.resumen.clientes +
       pendiente.resumen.fiados +
-      pendiente.resumen.categorias
+      pendiente.resumen.categorias +
+      pendiente.resumen.conteos
     : 0;
 
   return (
@@ -422,7 +423,7 @@ export function Respaldo(): VNode {
             aria-modal="true"
             aria-labelledby="dialogo-respaldo-titulo"
             aria-describedby="dialogo-respaldo-texto"
-            style="width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); background: var(--color-surface-card); border: var(--border-hairline) solid var(--color-border-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs);"
+            style="width: 100%; max-width: 480px; max-height: calc(100dvh - 2 * var(--space-4)); overflow-y: auto; overflow-wrap: anywhere; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); background: var(--color-surface-card); border: var(--border-hairline) solid var(--color-border-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs);"
           >
             <div>
               <h2 class="card-title" id="dialogo-respaldo-titulo">
@@ -431,7 +432,7 @@ export function Respaldo(): VNode {
               <p class="card-meta" id="dialogo-respaldo-texto">
                 Se combinará con tus datos actuales, no se borra nada. Los
                 productos, movimientos, clientes y fiados que ya existen se
-                dejan como están.
+                dejan como están, salvo los productos de ejemplo sin cambios.
               </p>
             </div>
 
@@ -448,6 +449,8 @@ export function Respaldo(): VNode {
               <dd style="margin: 0; text-align: right;">{pendiente.resumen.fiados}</dd>
               <dt>Categorías</dt>
               <dd style="margin: 0; text-align: right;">{pendiente.resumen.categorias}</dd>
+              <dt>Conteos</dt>
+              <dd style="margin: 0; text-align: right;">{pendiente.resumen.conteos}</dd>
               <dt style="font-weight: var(--font-weight-bold);">Total de filas</dt>
               <dd style="margin: 0; text-align: right; font-weight: var(--font-weight-bold);">
                 {totalRespaldo}

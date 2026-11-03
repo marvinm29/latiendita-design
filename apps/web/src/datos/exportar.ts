@@ -9,6 +9,7 @@
 import type {
   CategoriaFila,
   ClienteFila,
+  ConteoFila,
   FiadoFila,
   MovimientoFila,
   ProductoFila,
@@ -24,6 +25,8 @@ export interface RespaldoJson {
   clientes: ClienteFila[];
   fiados: FiadoFila[];
   categorias: CategoriaFila[];
+  /** Ausente en respaldos v1 anteriores a la incorporación de conteos. */
+  conteos?: ConteoFila[];
 }
 
 /** Escapa un campo CSV: comillas dobles, comas, saltos de línea y `;`. */
@@ -135,13 +138,14 @@ export async function fiadosCsv(base: BaseLocal = baseApp): Promise<string> {
 /** Respaldo JSON completo del negocio (C10.2). */
 export async function respaldoJson(base: BaseLocal = baseApp): Promise<RespaldoJson> {
   await asegurarBaseLista(base);
-  const [productos, movimientos, clientes, fiados, categorias] = await Promise.all([
+  const [productos, movimientos, clientes, fiados, categorias, conteos] = await base.db.transaction("r", [base.db.productos, base.db.movimientos, base.db.clientes, base.db.fiados, base.db.categorias, base.db.conteos], () => Promise.all([
     base.db.productos.where("negocioId").equals(base.negocioId).toArray(),
     base.db.movimientos.where("negocioId").equals(base.negocioId).toArray(),
     base.db.clientes.where("negocioId").equals(base.negocioId).toArray(),
     base.db.fiados.where("negocioId").equals(base.negocioId).toArray(),
     base.db.categorias.where("negocioId").equals(base.negocioId).toArray(),
-  ]);
+    base.db.conteos.where("negocioId").equals(base.negocioId).toArray(),
+  ]));
   return {
     version: 1,
     exportadoEn: new Date().toISOString(),
@@ -151,6 +155,7 @@ export async function respaldoJson(base: BaseLocal = baseApp): Promise<RespaldoJ
     clientes,
     fiados,
     categorias,
+    conteos,
   };
 }
 

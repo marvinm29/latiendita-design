@@ -1,7 +1,7 @@
 # 006 · Plan de sprints — LaTiendita
 
 > Artefacto SDD. Traduce los hitos M0–M4 de `004-roadmap.md` a **sprints de 1 semana**
-> (cadencia de `004` §1), retomando desde el **estado real del repositorio** (M1 en curso),
+> (cadencia de `004` §1), retomando desde el **estado real del repositorio**,
 > no desde el plan teórico. No reabre decisiones cerradas (`AGENTS.md` §3).
 >
 > Insumos: `004-roadmap.md` (§2 hitos, §3 detalle, §6 gates), `003-plan-tecnico.md`
@@ -28,9 +28,8 @@
 
 Comprobado en el repo a la fecha de este documento:
 
-- `pnpm lint` ✅ (ESLint real) · `pnpm typecheck` ✅ · `pnpm test` ✅ **145 tests** (88 `packages/core` + 43 web + 14 api) · `pnpm test:e2e` ✅ **30 e2e** · `pnpm build` ✅ · `pnpm size` ✅ 114 828 B / 153 600 B.
-- Bundle web: **~83 KB gzip** de JS inicial (presupuesto del spec: ≤150 KB, `003` §8).
-- **M0 · Cimientos** ✅ (monorepo, CI, RLS base, docker-compose, **ESLint real** y **gate de tamaño real**; Lighthouse sigue pendiente).
+- Verificación histórica del 18/10/2026: `pnpm lint`, `pnpm typecheck`, `pnpm test` (**145 tests**), `pnpm --filter @latiendita/web test:e2e` (**30 e2e**), `pnpm build` y `pnpm size` en verde. Tamaño medido: **114 828 B gzip** de JS+CSS / 153 600 B; volver a medir en cada cambio.
+- **M0 · Cimientos** 🟡 (scaffold, CI, RLS base, ESLint y gate de tamaño implementados; Lighthouse, aislamiento real y despliegue completo pendientes).
 - **M1 · Núcleo offline** ✅:
   - ✅ dominio puro + capa Dexie de core (esquema, `abrirDb`, repos tipados, transacción libro+outbox).
   - ✅ UI C2–C5 (catálogo, producto, movimiento, conteo, escáner) **toda sobre Dexie**: catálogo, libro y
@@ -44,10 +43,9 @@ Comprobado en el repo a la fecha de este documento:
 - ✅ **S3 (M2)**: cuentas y acceso — negocio, invitación de un solo uso, argon2id, sesión rotativa,
     desbloqueo offline por PIN. **P1** (AGPL-3.0) y **P2** (código+PIN) cerradas.
 - **S4/S5** ⏳ pendientes: sync push/pull, RLS en uso, LWW y cierre de M2.
-- **S6 ✅** (C6 fiados + C11 reportes) y **S7 ✅** (C9 PWA + C10 export/import/restore + Inicio real).
-  Queda sólo el backup del servidor (`pg_dump` + runbook), que depende de S4.
+- **S6 ✅** (fiados/reportes) y **S7 🟡**: PWA y datos implementados; se corrigieron los fallos de restore y falta el backup del servidor y la integración con sync.
 
-Conclusión: M1 y M3 completos, S3 entregado. Siguiente: **S4** (sync + RLS).
+Conclusión: M1 y S3 entregados; M2 y el cierre de M3 pendientes. Siguiente: S4 (sync + RLS), sin perder datos locales.
 
 ---
 
@@ -55,7 +53,7 @@ Conclusión: M1 y M3 completos, S3 entregado. Siguiente: **S4** (sync + RLS).
 
 | Sprint | Hito | Objetivo | Criterio de salida (resumen) |
 |---|---|---|---|
-| **S0** | M0 | Cimientos (hecho) | Pipeline verde; `docker compose up` levanta web+api+db |
+| **S0** | M0 | Cimientos (parcial) | Pipeline verde; servir web+api+db, Lighthouse y RLS real aún pendientes |
 | **S1** | M1 | **Persistencia real de movimiento y conteo** (UI → Dexie) | El libro en IndexedDB es la única fuente de stock; tests de integración web |
 | **S2** | M1 | **Offline e2e C2–C5** + OFF + cierre de escáner | `context.setOffline(true)` recorre alta→movimiento→conteo→stock sin red |
 | **S2+** | M1 | **C5 persistente** (trabajo no bloqueado por P1/P2) | Recargar no pierde el conteo; sesión cerrada + ajustes atómicos |
@@ -67,15 +65,30 @@ Conclusión: M1 y M3 completos, S3 entregado. Siguiente: **S4** (sync + RLS).
 | **S8** | M4 | Rendimiento + accesibilidad (axe AA) + seguridad | TTI ≤3s Moto G4; axe sin violaciones AA; CSP/rate-limit |
 | **S9** | M4 | Campo (métricas 1/2/4/5) + demo docker + docs → **v1.0** | Métricas de `002` §6 verificadas y registradas |
 
-> Sprints S3+ dependen de **P2 (login)** e **P1 (licencia)**. Mientras no se cierren, S1–S2
-> (M1) avanzan en paralelo y sin bloqueo, tal como prevé `004` §4.
+Los sprints son incrementos de referencia de una semana, no fechas comprometidas ni una garantía de
+duración; reestimar tras el diagnóstico y repartir S4/S5 si integración o pruebas requieren más tiempo.
+
+> P1 y P2 se cerraron; ya no bloquean. Las semanas S1–S16 de `004` son la estimación original,
+> mientras S0–S9 aquí son incrementos replanteados desde el estado real: sus números no son equivalentes.
 >
-> **Estado:** S0 ✅ · S1 ✅ · **S2 ✅** · **S2+ ✅** (conteo) · **S3 ✅** (acceso) · **S6 ✅** (fiados/reportes)
-> · **S7 ✅** (PWA/datos) → **M1 y M3 cerrados; M2 en curso**. Siguiente: **S4** (sync + RLS).
+> **Estado:** S0 🟡 · S1 ✅ · **S2 ✅** · **S2+ ✅** (conteo) · **S3 ✅** (acceso) · **S6 ✅** (fiados/reportes)
+> · **S7 🟡** (PWA/datos implementados con pendientes) → **M1 cerrado; M2 y M3 pendientes**.
 
 ---
 
-## 3. Sprint en curso — S1 · Persistencia real de movimiento y conteo
+## 3. Incremento prioritario — proteger y restaurar datos
+
+Antes de dar C10.2 y M3 por cerrados:
+
+- [x] Restaurar productos demo modificados o eliminados en un destino recién inicializado, sin pisar ediciones locales. Hay pruebas de colisiones, tombstones e idempotencia.
+- [x] Incluir conteos en el respaldo, aceptar respaldos versión 1 anteriores y probar la restauración repetida de un conteo abierto.
+- [x] Corregir la conversión monetaria CSV: se aceptan hasta dos decimales y se rechazan enteros inseguros.
+- [x] Corregir el recorte del diálogo en pantalla baja y probar teclado y desplazamiento con Chromium; la validación manual a zoom 200 % sigue en S8.
+- [ ] Mantener explícito que restore/import aún no generan operaciones de outbox: integrar y probar su sincronización en S4/S5 sin duplicar movimientos.
+
+**Gate:** restaurar en una base nueva y en una base con datos, sin pérdida ni duplicados; verificar conteo reanudable, precios exactos y accesibilidad. La integración de outbox y el backup del servidor se cierran con S4/S5 y el runbook posterior.
+
+### Historial — S1 · Persistencia real de movimiento y conteo ✅
 
 **Meta:** que el catálogo, el libro de movimientos y el conteo usen **una sola base local**
 (IndexedDB vía `@latiendita/core`). Ninguna pantalla debe depender de un repo en memoria:
@@ -149,13 +162,17 @@ el **libro es la única fuente de stock** (C4.3) y toda escritura deja su op en 
 
 ### S4 · M2 · API y sincronización
 
+- Parcial: bitácora experimental con RLS y materialización inicial de movimientos en la misma transacción, verificadas en PostgreSQL 16 con rol restringido; rutas solo en pruebas y sin conexión al cliente. Faltan las demás entidades y reconciliar cualquier evento histórico registrado antes de la materialización. Las ediciones nuevas incluyen campos cambiados y marca de dispositivo; las operaciones antiguas necesitan una estrategia de compatibilidad.
 - `/sync/push` idempotente por `op_id` (`op_log`) y `/sync/pull` por `server_seq` (T-04).
 - Fastify + Drizzle + Postgres + **RLS por `negocio_id`**; matriz de permisos por rol (C7).
+- Probar auth/Postgres real y recuperación o renovación de sesiones; actualmente la web no llama a `/auth/renovar`.
+- Resolver la diferencia entre sesiones firmadas exigidas por `002` §5 y tokens opacos de T-05 y de la API; no asumir equivalencia ni modificar el spec sin decisión explícita.
 - **Gate:** repetir un lote no duplica; prueba de **aislamiento A/B**; migración aditiva.
 
 ### S5 · M2 · Convergencia y cierre de sync
 
 - **LWW por campo** en `producto`/`cliente` (`field_meta` jsonb) y **ledger append-only** (C8.4).
+- Núcleo puro LWW implementado y probado; aún falta integrarlo en servidor, almacenamiento y pull/push.
 - Outbox con backoff, reintento en foco/online, banner + badge “por sincronizar” (C8.2);
   reinstalación = pull completo (C8.5).
 - **Gate:** **métrica 3 ≈ 100 operaciones con cortes aleatorios → 0 movimientos perdidos**; cierre de M2.
@@ -170,7 +187,7 @@ el **libro es la única fuente de stock** (C4.3) y toda escritura deja su op en 
   3 e2e (incluye axe).
 - **Gate:** e2e C6/C11 e Inicio verdes.
 
-### S7 · M3 · Datos y PWA ✅ (salvo backup del servidor)
+### S7 · M3 · Datos y PWA 🟡 (sync y backup del servidor pendientes)
 
 - ✅ **Datos (C10):** export CSV de productos/movimientos/fiados, respaldo JSON completo, **import CSV
   con plantilla** y **restore JSON con merge idempotente** (no duplica, recalcula stock desde el libro);
@@ -178,7 +195,7 @@ el **libro es la única fuente de stock** (C4.3) y toda escritura deja su op en 
 - ✅ **PWA (C9):** Workbox, manifest, A2HS, recarga offline y aviso “hay una nueva versión — reiniciar”
   (T-07); 2 e2e contra `vite preview`.
 - ⏳ Backups del servidor (`pg_dump` + runbook), que dependen de S4/Postgres.
-- **Gate:** export abrible en Excel ✅; restore probado ✅; PWA instalable/offline ✅.
+- **Gate:** restore local con regresiones cubiertas (§3); aún faltan integración de sync, backup del servidor y verificación de accesibilidad manual.
 
 ### S8 · M4 · Endurecimiento
 
@@ -212,7 +229,8 @@ el **libro es la única fuente de stock** (C4.3) y toda escritura deja su op en 
 
 ## 6. Riesgos y seguimiento
 
-- **P1/P2 sin cerrar frenan S3+.** Mitigación: S1–S2 (M1) avanzan sin bloqueo; escalar la decisión.
+- **P1/P2:** resueltas (AGPL-3.0 y código de un solo uso + PIN); no bloquean.
+- **Integridad del respaldo:** colisiones con datos demo y omisión de conteos corregidas; verificar la integración con sync antes de cerrar M3.
 - **Un solo maintainer.** Mitigación: gates automatizados, todo documentado en el repo (D11).
 - **Alcance v2 que se cuela.** Mitigación: alcance v1 cerrado en `002` §3 (POS/DTE/voz/APK = fuera).
 - **Seguimiento:** issues con `type:`/`area:`/`priority:`/`milestone:` (`004` §11); tablero por sprint.
