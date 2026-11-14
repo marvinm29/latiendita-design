@@ -144,11 +144,21 @@ export class SesionRepoDexie implements SesionRepo {
     const fila = await this.db.sesion_local.get(ID_ACTUAL);
     if (!fila) return false;
     if (!(await coincidePin(pin, fila.verificadorPin))) return false;
-    await this.db.sesion_local.update(ID_ACTUAL, {
-      bloqueada: false,
-      actualizadoEn: Date.now(),
+    return this.db.transaction("rw", this.db.sesion_local, async () => {
+      const actual = await this.db.sesion_local.get(ID_ACTUAL);
+      // La derivación del PIN tarda: nunca desbloquear una cuenta que cambió
+      // mientras se verificaba, incluso si reutiliza el mismo PIN.
+      if (!actual || actual.sesion.token !== fila.sesion.token ||
+        actual.sesion.negocioId !== fila.sesion.negocioId ||
+        actual.sesion.usuarioId !== fila.sesion.usuarioId ||
+        actual.verificadorPin.sal !== fila.verificadorPin.sal ||
+        actual.verificadorPin.hash !== fila.verificadorPin.hash) return false;
+      await this.db.sesion_local.update(ID_ACTUAL, {
+        bloqueada: false,
+        actualizadoEn: Date.now(),
+      });
+      return true;
     });
-    return true;
   }
 
   async bloquear(): Promise<void> {
@@ -161,8 +171,11 @@ export class SesionRepoDexie implements SesionRepo {
 
   async cerrarSesion(): Promise<void> {
     await this.db.open();
-    const fila = await this.db.sesion_local.get(ID_ACTUAL);
-    await this.db.sesion_local.delete(ID_ACTUAL);
+    const fila = await this.db.transaction("rw", this.db.sesion_local, async () => {
+      const actual = await this.db.sesion_local.get(ID_ACTUAL);
+      await this.db.sesion_local.delete(ID_ACTUAL);
+      return actual;
+    });
     if (!fila?.sesion.token) return;
     // Best-effort: si no hay red, la sesión local ya quedó borrada.
     await salir(fila.sesion.token).catch(() => undefined);

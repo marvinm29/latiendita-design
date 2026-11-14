@@ -133,4 +133,64 @@ test.describe("acceso · crear tienda y desbloqueo por PIN", () => {
     );
     await expect(page).toHaveURL(/\/unirse$/);
   });
+
+  test("cambiar de A a B conserva la cola de A y el catálogo de B sigue aislado al desbloquear offline", async ({ page, context }) => {
+    await interceptarAlta(page);
+    await page.route("**/auth/salir", (ruta) => ruta.fulfill({ status: 204 }));
+    await crearTienda(page);
+    await expect(page).toHaveURL(/\/inicio$/);
+    await page.getByRole("link", { name: "Productos", exact: true }).click();
+    await expect(page.getByText("Refresco Big Cola 355ml")).toHaveCount(0);
+    await page.getByRole("banner").getByRole("link", { name: "Agregar producto", exact: true }).click();
+    await page.getByLabel("Nombre del producto").fill("Exclusivo tienda A");
+    await page.getByLabel("Precio de venta").fill("2.50");
+    await page.getByRole("button", { name: "Guardar producto" }).click();
+    await expect(page.getByText("Exclusivo tienda A").first()).toBeVisible();
+
+    const colaDeA = () => page.evaluate(async (negocioId) => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const abrir = indexedDB.open("latiendita");
+        abrir.onsuccess = () => resolve(abrir.result);
+        abrir.onerror = () => reject(abrir.error);
+      });
+      try {
+        return await new Promise<unknown[]>((resolve, reject) => {
+          const leer = db.transaction("outbox").objectStore("outbox").getAll();
+          leer.onsuccess = () => resolve(leer.result.filter((fila: { negocioId: string }) => fila.negocioId === negocioId));
+          leer.onerror = () => reject(leer.error);
+        });
+      } finally {
+        db.close();
+      }
+    }, NEGOCIO.id);
+    const pendientesA = await colaDeA();
+    expect(pendientesA).toHaveLength(1);
+
+    await page.getByRole("link", { name: "Más", exact: true }).click();
+    await page.getByRole("button", { name: "Cerrar sesión", exact: true }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Cerrar sesión", exact: true }).click();
+    await expect(page).toHaveURL(/\/$/);
+    const negocioB = { ...NEGOCIO, id: "negocio-b", nombre: "Tienda B" };
+    await page.route("**/auth/negocio", (ruta) => ruta.fulfill({
+      status: 201, contentType: "application/json",
+      body: JSON.stringify({ negocio: negocioB, sesion: { ...sesionDePrueba("Rosa"), negocioId: negocioB.id, usuarioId: "persona-b", token: "token-b" } }),
+    }));
+    await crearTienda(page);
+    await expect(page).toHaveURL(/\/inicio$/);
+    await page.getByRole("link", { name: "Productos", exact: true }).click();
+    await expect(page.getByText("Exclusivo tienda A")).toHaveCount(0);
+    await page.getByRole("banner").getByRole("link", { name: "Agregar producto", exact: true }).click();
+    await page.getByLabel("Nombre del producto").fill("Exclusivo tienda B");
+    await page.getByLabel("Precio de venta").fill("1.25");
+    await page.getByRole("button", { name: "Guardar producto" }).click();
+    await expect(page.getByText("Exclusivo tienda B").first()).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Escribe tu PIN" })).toBeVisible();
+    await context.setOffline(true);
+    await page.getByLabel("PIN", { exact: true }).fill("1234");
+    await page.getByRole("button", { name: "Desbloquear", exact: true }).click();
+    await expect(page.getByText("Exclusivo tienda B").first()).toBeVisible();
+    await expect(page.getByText("Exclusivo tienda A")).toHaveCount(0);
+    expect(await colaDeA()).toEqual(pendientesA);
+  });
 });

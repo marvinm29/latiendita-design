@@ -17,7 +17,7 @@ import {
   type Movimiento,
   type MovimientoFila,
 } from "@latiendita/core";
-import { asegurarBaseLista, baseApp, type BaseLocal } from "./baseLocal";
+import { asegurarBaseLista, resolverBaseLocal, baseApp, type BaseLocal } from "./baseLocal";
 import type { MovimientosRepo } from "./movimientosRepo";
 
 export class MovimientosRepoDexie implements MovimientosRepo {
@@ -28,34 +28,34 @@ export class MovimientosRepoDexie implements MovimientosRepo {
   }
 
   /** Resuelve cuando la base está abierta y la semilla demo ya corrió. */
-  private get listo(): Promise<void> {
+  private get listo(): Promise<BaseLocal> {
     return asegurarBaseLista(this.base);
   }
 
   async listarPorProducto(productoId: string): Promise<MovimientoFila[]> {
-    await this.listo;
-    return this.base.repos.movimientos.listarPorProducto(productoId);
+    const base = await this.listo;
+    return base.repos.movimientos.listarPorProducto(productoId);
   }
 
   async listarTodos(): Promise<MovimientoFila[]> {
-    await this.listo;
-    const filas = await this.base.db.movimientos
+    const base = await this.listo;
+    const filas = await base.db.movimientos
       .where("negocioId")
-      .equals(this.base.negocioId)
+      .equals(base.negocioId)
       .toArray();
     // Orden cronológico estable (el índice compuesto no cubre todo el negocio).
     return filas.sort((a, b) => a.ocurridoAt - b.ocurridoAt);
   }
 
   async stockDe(productoId: string): Promise<number> {
-    await this.listo;
-    return leerStockLocal(this.base.db, productoId);
+    const base = await this.listo;
+    return leerStockLocal(base.db, productoId, base.negocioId);
   }
 
   async agregar(input: CrearMovimientoInput): Promise<Movimiento> {
-    await this.listo;
+    const base = await this.listo;
     // Libro + op de outbox + caché de stock en una sola transacción (C4.3/C8.4).
-    const { movimiento } = await this.base.repos.movimientos.crearMovimientoConOp(input);
+    const { movimiento } = await base.repos.movimientos.crearMovimientoConOp(input);
     return movimiento;
   }
 
@@ -63,9 +63,10 @@ export class MovimientosRepoDexie implements MovimientosRepo {
     // liveQuery emite el valor inicial al suscribirse: se ignora para no
     // realimentar el `useVersionMovimientos` (bucle effect↔suscripción).
     let primera = true;
-    const subcripcion = liveQuery(() =>
-      this.base.db.movimientos.where("negocioId").equals(this.base.negocioId).toArray(),
-    ).subscribe({
+    const subcripcion = liveQuery(async () => {
+      const base = await resolverBaseLocal(this.base);
+      return base.db.movimientos.where("negocioId").equals(base.negocioId).toArray();
+    }).subscribe({
       next: () => {
         if (primera) {
           primera = false;

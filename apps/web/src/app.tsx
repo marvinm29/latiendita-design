@@ -284,6 +284,7 @@ export function App(): VNode {
           if (actual.cargando || actual.bloqueada) return actual;
           if (
             actual.sesion?.usuarioId === sesion?.usuarioId &&
+            actual.sesion?.negocioId === sesion?.negocioId &&
             actual.sesion?.nombre === sesion?.nombre
           ) {
             return actual;
@@ -371,7 +372,7 @@ export function App(): VNode {
             Cargando…
           </p>
         ) : Page && match ? (
-          <Page params={match.params} />
+          <Page key={cuenta.sesion ? `${cuenta.sesion.negocioId}:${cuenta.sesion.usuarioId}` : "local"} params={match.params} />
         ) : (
           <NotFound />
         )}

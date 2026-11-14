@@ -4,7 +4,7 @@
 > `AGENTS.md` es la **entrada corta**; este documento es el **paquete de contexto**: estado real,
 > arquitectura, invariantes, trampas, deuda y protocolo de trabajo.
 >
-> **Última actualización de estado:** 14 de noviembre de 2026 (incremento A: auth y mínimo privilegio).
+> **Última actualización de estado:** 14 de noviembre de 2026 (B1: aislamiento local por sesión).
 > Si cambias código, actualiza §2, §3 y §14 al final de la sesión.
 
 ---
@@ -31,19 +31,27 @@
 - **Estado:** SDD y diseño (F1–F4) entregados. **M0 🟡** (gates/despliegue pendientes) · **M1 ✅**
   · **M2 🟡 S3 entregado** · **M3 🟡** (funciones locales implementadas; integración con sync y backup
   de servidor pendiente). **S4/S5 pendientes.**
-- **Números:** 164 tests regulares (96 core + 48 web + 20 api) y 2 integraciones PostgreSQL optativas
-  (9 casos auth + bitácora sync) · 31 e2e (offline C2–C5 + conteo +
+- **Números:** 171 tests regulares (96 core + 55 web + 20 api) y 2 integraciones PostgreSQL optativas
+  (9 casos auth + bitácora sync) · 32 e2e (offline C2–C5 + conteo +
   acceso/empleados + fiados + PWA + datos + inicio/reportes + OFF + axe AA) · bundle inicial
-  **115 689 B gzip** (presupuesto 153 600 B; incluye SW/Workbox) · 13 pantallas / 60 marcos · WCAG 2.2 AA.
+  **116 186 B gzip** (presupuesto 153 600 B; incluye SW/Workbox) · 13 pantallas / 60 marcos · WCAG 2.2 AA.
 - **A ✅:** auth real, altas atómicas, RLS y rol de API restringido probados en PG16.15.
-- **Siguiente:** **B de `AGENTS.md` §6.3** (negocio local por sesión, migración de `local` y
-  continuidad de acceso), después C/D (sync, LWW y restore). Docker, backup y campo siguen pendientes.
+- **B1 ✅:** selección del negocio por sesión, aislamiento local y cola preservada al salir.
+- **Siguiente:** **B2 de `AGENTS.md` §6.3** (propiedad/migración explícita de `local` y
+  renovación/reingreso), después C/D (sync, LWW y restore). Docker, backup y campo siguen pendientes.
 
 ---
 
 ## 2. Estado verificado (no confiar en la memoria: re-verificar)
 
-Comprobación actual (14/11/2026, A): tipos, lint, **164 pruebas regulares**, build y tamaño
+Comprobación actual (14/11/2026, B1): tipos/lint, **171 pruebas regulares**, build y tamaño
+**116 186 / 153 600 B gzip**, correctos. **32 e2e Chromium/PWA con CI=1, sin reintentos**,
+fuera del sandbox. La corrida previa tuvo un selector ambiguo en la prueba nueva (31/32);
+se corrigió y se ejecutó de nuevo el conjunto completo. Dentro del sandbox, CI=1 no arrancó
+su servidor. PG no repetido: dos integraciones omitidas en la corrida regular, con evidencia
+previa de A. Sin cambios de diseño: contraste/QA no repetidos. Docker, dispositivos y campo sin ejecutar.
+
+Comprobación histórica inmediatamente anterior (14/11/2026, A): tipos, lint, **164 pruebas regulares**, build y tamaño
 **115 689 / 153 600 B gzip**, todos correctos. Integración en PG16.15 desechable: **31 pruebas API,
 0 fallos, 0 SKIP**, incluyendo 9 casos auth y la bitácora sync existente. **31 e2e Chromium/PWA
 sin reintentos** fuera del sandbox; dentro no arrancó el servidor de Playwright.
@@ -80,8 +88,9 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
 - **Auth/PG verificado en A:** búsquedas iniciales por hash con funciones acotadas `SECURITY DEFINER`,
   contexto de negocio por transacción y conexión sin superusuario/BYPASSRLS. Los e2e de acceso
   siguen simulando HTTP; no equivalen a navegador → API → PG real.
-- La sesión **no cambia aún** el `negocioId` local ni dispara pull/sync (S4). Sin sesión, la app sigue
-  en **modo local M1** (C2–C5) para no romper los flujos offline existentes.
+- La sesión **ya selecciona** el negocio para las operaciones locales (B1), sin disparar pull/sync.
+  Las cuentas reales empiezan vacías. Sin sesión sigue el modo local M1; sus datos heredados se
+  conservan sin trasladarlos a una cuenta. La política y migración explícita siguen pendientes en B2.
 - La UI permite cerrar sesión; el flujo para volver a entrar y la renovación automática deben revisarse.
 - Sin endpoints de sync registrados en producción: existe una implementación experimental de bitácora
   y materialización inicial de movimientos. Auth dispone de adaptador PostgreSQL probado en una
@@ -93,6 +102,18 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
 ---
 
 ## 3. Qué se construyó (changelog)
+
+### B1 · Aislamiento local por sesión ✅ (14/11/2026; B permanece abierto)
+
+- `asegurarBaseLista` devuelve una instantánea del negocio desde `sesion_local`; catálogo, libros,
+  conteos, fiados, reportes e import/export mantienen ese contexto hasta terminar. Las suscripciones
+  vuelven a consultar cuando cambia la sesión. Una sola base; no hay traslado de datos heredados.
+- Stock por negocio en caché/libro; restore rechaza IDs y referencias ajenas con rollback completo.
+  Se conservan las claves globales de IndexedDB: las colisiones entre negocios se rechazan.
+- Desbloqueo con comprobación transaccional después del PBKDF2: un PIN iniciado para A no puede
+  desbloquear B. Cierre local atómico; outbox intacta. La página se remonta al cambiar de cuenta.
+- Siete pruebas de regresión nuevas y un e2e de cambio A→B, recarga/desbloqueo offline de B y
+  conservación exacta de las operaciones pendientes de A. Auth del e2e simulado; no prueba reingreso real.
 
 ### A · Auth PostgreSQL y mínimo privilegio ✅ (14/11/2026)
 
@@ -291,8 +312,9 @@ Toda escritura de negocio pasa por un repo de `core` que abre **una transacción
 | `sesion_local` | `id` (`"actual"`) | sesión + verificador PBKDF2 del PIN; token sólo en IndexedDB (S3) |
 
 - Base: `latiendita` (singleton), **Dexie v2** (v1 + `sesion_local`, migración aditiva).
-  `negocioId = "local"` en M1; S3 guarda la sesión real pero **aún no cambia** el `negocioId` local
-  (eso llega con el pull de S4).
+  B1 resuelve el negocio desde la sesión antes de cada operación. `local` sigue siendo el contexto
+  sin sesión; sus filas no se asignan automáticamente. Consumir siempre la instantánea devuelta
+  por `asegurarBaseLista(base)`; `baseApp` es el selector, no una instantánea de una cuenta.
 - Semilla demo: flag `demo:sembrado:v1`; ids de movimiento deterministas
   `demo-semilla:entrada:<productoId>`; el stock inicial **entra por el libro**, nunca a mano.
 
@@ -439,7 +461,7 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
 | 12 | ~~Adaptador Postgres/RLS de auth sin probar~~ | ✅ A: migraciones y 9 casos de auth en PG16.15 con rol restringido | — |
 | 13 | ~~La conexión `/auth` usa el rol dueño~~ | ✅ A: búsquedas por funciones acotadas; rol de API sin propiedad ni BYPASSRLS | — |
 | 14 | ~~Sin botón de cerrar sesión~~ | ✅ resuelto: cierre con confirmación en «Más» | — |
-| 15 | La sesión no cambia el `negocioId` local ni dispara pull | la app sigue en modo local hasta S4 | S4 |
+| 15 | B1 liga las operaciones locales a la sesión; migración heredada y pull pendientes | No hay migración implícita de `local` ni recuperación del servidor | B2/D |
 | 16 | Import/restore JSON/CSV | restore local corregido; falta integración con sync | S4/S5 (`006` §3) |
 | 17 | ~~Reportes mínimos (C11)~~ | ✅ resuelto: inventario, top y fiados | — |
 | 18 | Backup del servidor (`pg_dump` + runbook) | no hay respaldo automático de Postgres | S4/S7 |
@@ -482,8 +504,8 @@ La integración de restore con sync y el zoom manual continúan pendientes (`006
 
 - `/sync/push` idempotente por `op_id` (`op_log`) y `/sync/pull` por `server_seq` (T-04).
 - Fastify + Drizzle + Postgres + **RLS efectiva**; matriz de permisos por rol (C7).
-- A (migración y auth real) completado. Seguir B de `AGENTS.md` §6.3: conectar `negocioId`
-  local a la sesión y preservar los datos heredados; C/D completan persistencia y transporte sync.
+- A y B1 completados. Seguir B2 de `AGENTS.md` §6.3: acordar propiedad/migración de `local`
+  y continuidad del acceso; C/D completan persistencia y transporte sync.
 - **Gate:** repetir un lote no duplica; aislamiento A/B; migración aditiva.
 
 ### Otros pendientes no bloqueados
@@ -583,8 +605,8 @@ Antes de hacer nada, lee en este orden:
 
 Estado verificado: SDD y diseño (F1–F4) completos. M0 🟡 · M1 ✅ (dominio + Dexie + UI C2–C5 sobre
 IndexedDB, C5 persistente) · M2 en curso (S3 entregado) · M3 con funciones locales implementadas y
-restore local corregido; sync y backup de servidor pendientes. 164 tests + 2 integraciones PG + 31 e2e. P1/P2 cerradas.
-A (auth real PG16 y mínimo privilegio) completado. Siguiente: B de AGENTS.md §6.3.
+restore local corregido; sync y backup de servidor pendientes. 171 tests + 2 integraciones PG + 32 e2e. P1/P2 cerradas.
+A (auth real PG16) y B1 (aislamiento local) completados. Siguiente: B2 de AGENTS.md §6.3.
 
 Protocolo: verifica la base (git status, typecheck, test) → plan pequeño → implementa → prueba →
 actualiza docs → reporta con evidencia. El spec manda; español primero; WCAG 2.2 AA es contrato;
@@ -614,6 +636,39 @@ Empieza confirmando que leíste el estado y proponme el siguiente incremento de 
 ---
 
 ## 14. Registro de sesiones
+
+### Sesión 12 (14/11/2026) — B1: aislamiento local sin mover datos heredados
+
+**Base:** `6b2de47`, árbol limpio al empezar. Un solo agente; continuación del plan, sin cambios
+de stack ni alcance. La autorización posterior del dueño para commit/push sigue vigente.
+
+**Archivos:** `baseLocal.ts`, adaptadores de catálogo/movimientos/conteos/fiados, import/export,
+reportes, `sesionRepoDexie.ts`, `app.tsx`, helpers de stock/conteo de core; nueva prueba
+`aislamientoLocal.test.ts`, carrera de PIN en `sesionRepo.test.ts` y e2e de cambio de cuenta.
+Se observaron pruebas rojas por demo de A visible en B, stock ajeno, restore con IDs/referencias
+cruzadas y PIN de A que desbloqueaba B después del cambio; todas quedaron verdes.
+
+**Decisiones:** conservar la base y los IDs globales actuales, resolver el negocio desde la sesión
+por operación y rechazar colisiones/referencias cruzadas. Cuentas reales sin semillas demo.
+Los heredados permanecen intactos bajo `local`; se preguntó al dueño la política de propiedad y
+no se inició su traslado sin respuesta. B1 no incorpora respaldo/migración heredada ni renovación
+automática/reingreso; B sigue abierto. Revisión propia del diff, sin agente revisor.
+
+**Verificación:** `pnpm typecheck`, `pnpm lint`, `pnpm test` → **171 regulares** (96 core + 55 web +
+20 API; 2 integraciones PG omitidas), `pnpm build`, `pnpm size` → **116 186 / 153 600 B gzip**.
+E2e final: `CI=1 pnpm --filter @latiendita/web test:e2e` → **32/32 sin reintentos**, fuera del sandbox.
+La primera corrida ejecutó todo el conjunto (31 aprobadas y un selector ambiguo en la prueba nueva,
+corregido después); una corrida CI=1 dentro del sandbox no pudo arrancar su servidor. La repetición
+final fue del conjunto completo. Sin nuevas dependencias ni cambios de esquema/índices.
+
+**Límites:** API HTTP de acceso simulada en e2e; el retorno a A inyectado en tests comprueba datos,
+no un login recuperable. PG sólo tiene la evidencia histórica de A, no una ejecución nueva.
+Sin cambios de diseño, no se repitió contraste/QA; sin Docker, dispositivos, lector/zoom ni campo.
+
+**Siguiente exacto:** B2 — resolver la política de propiedad de `local`; respaldar y migrar sólo
+con destino confirmado, de forma transaccional y preservando IDs/libros/cola. Después renovar antes
+del vencimiento y definir reingreso sin reutilizar invitaciones consumidas; si necesita un flujo
+nuevo, acordarlo y actualizar `002` primero. Sync sigue sin registrar.
 
 ### Sesión 11 (14/11/2026) — A: auth PostgreSQL y mínimo privilegio
 

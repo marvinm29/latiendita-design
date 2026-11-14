@@ -17,7 +17,7 @@ import type {
   FiadoFila,
   OrdenLibreta,
 } from "@latiendita/core";
-import { asegurarBaseLista, baseApp, type BaseLocal } from "./baseLocal";
+import { asegurarBaseLista, resolverBaseLocal, baseApp, type BaseLocal } from "./baseLocal";
 import type {
   ClienteLibreta,
   FiadosRepo,
@@ -58,13 +58,13 @@ export class FiadosRepoDexie implements FiadosRepo {
     this.base = base;
   }
 
-  private get listo(): Promise<void> {
+  private get listo(): Promise<BaseLocal> {
     return asegurarBaseLista(this.base);
   }
 
   async listarClientesConSaldo(orden: OrdenLibreta = "saldo"): Promise<ClienteLibreta[]> {
-    await this.listo;
-    const filas = await this.base.repos.fiados.listarClientes(orden);
+    const base = await this.listo;
+    const filas = await base.repos.fiados.listarClientes(orden);
     return filas.map((fila) => ({
       id: fila.id,
       nombre: fila.nombre,
@@ -77,17 +77,17 @@ export class FiadosRepoDexie implements FiadosRepo {
   }
 
   async obtenerCliente(clienteId: string): Promise<ClienteLibreta | null> {
-    await this.listo;
-    return aClienteLibreta(await this.base.repos.fiados.obtenerCliente(clienteId));
+    const base = await this.listo;
+    return aClienteLibreta(await base.repos.fiados.obtenerCliente(clienteId));
   }
 
   /** Alta de cliente + op de sync en una sola transacción (core). */
   async crearClienteConOp(entrada: NuevoCliente): Promise<Cliente> {
-    await this.listo;
+    const base = await this.listo;
     const nombre = entrada.nombre.trim();
     if (nombre === "") throw new Error("nombre es obligatorio");
     const telefono = entrada.telefono?.trim() ?? "";
-    const fila = await this.base.repos.fiados.crearCliente({
+    const fila = await base.repos.fiados.crearCliente({
       nombre,
       telefono: telefono === "" ? null : telefono,
     });
@@ -101,26 +101,26 @@ export class FiadosRepoDexie implements FiadosRepo {
   }
 
   async crearCargoConOp(input: MovimientoFiadoInput): Promise<Fiado> {
-    await this.listo;
-    const { fiado } = await this.base.repos.fiados.crearCargoConOp(input);
+    const base = await this.listo;
+    const { fiado } = await base.repos.fiados.crearCargoConOp(input);
     return fiado;
   }
 
   async crearAbonoConOp(input: MovimientoFiadoInput): Promise<Fiado> {
-    await this.listo;
-    const { fiado } = await this.base.repos.fiados.crearAbonoConOp(input);
+    const base = await this.listo;
+    const { fiado } = await base.repos.fiados.crearAbonoConOp(input);
     return fiado;
   }
 
   async listarMovimientos(clienteId: string): Promise<Fiado[]> {
-    await this.listo;
-    const filas = await this.base.repos.fiados.historialPorCliente(clienteId);
+    const base = await this.listo;
+    const filas = await base.repos.fiados.historialPorCliente(clienteId);
     return filas.map(filaAFiado);
   }
 
   async listarTodosLosMovimientos(): Promise<Fiado[]> {
-    await this.listo;
-    const filas = await this.base.repos.fiados.listarFiados();
+    const base = await this.listo;
+    const filas = await base.repos.fiados.listarFiados();
     return filas.sort((a, b) => a.creadoEn - b.creadoEn).map(filaAFiado);
   }
 
@@ -128,18 +128,19 @@ export class FiadosRepoDexie implements FiadosRepo {
     // liveQuery emite el valor inicial al suscribirse: se ignora para no
     // realimentar el `recargar` del hook (bucle effect↔suscripción).
     let primera = true;
-    const subcripcion = liveQuery(() =>
-      Promise.all([
-        this.base.db.clientes.where("negocioId").equals(this.base.negocioId).toArray(),
-        this.base.db.fiados.where("negocioId").equals(this.base.negocioId).toArray(),
+    const subcripcion = liveQuery(async () => {
+      const base = await resolverBaseLocal(this.base);
+      return Promise.all([
+        base.db.clientes.where("negocioId").equals(base.negocioId).toArray(),
+        base.db.fiados.where("negocioId").equals(base.negocioId).toArray(),
       ]).then(([clientes, fiados]) => {
         // Firma barata y estable: cambia con altas, ediciones y asientos.
         const clientesFirma = clientes
           .map((c) => `${c.id}:${c.updatedAt}:${c.deletedAt ?? ""}`)
           .join(",");
         return `${clientesFirma}|${fiados.length}|${fiados.map((f) => f.id).join(",")}`;
-      }),
-    ).subscribe({
+      });
+    }).subscribe({
       next: () => {
         if (primera) {
           primera = false;

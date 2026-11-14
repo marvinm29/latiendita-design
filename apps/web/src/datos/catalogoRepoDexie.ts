@@ -16,7 +16,7 @@
  */
 import { liveQuery } from "dexie";
 import { stockDerivado, type Producto, type ProductoFila } from "@latiendita/core";
-import { asegurarBaseLista, baseApp, type BaseLocal } from "./baseLocal";
+import { asegurarBaseLista, resolverBaseLocal, baseApp, type BaseLocal } from "./baseLocal";
 import type { CatalogoRepo, ItemCatalogo } from "./catalogoRepo";
 
 /** Quita los campos de sync — la UI sólo conoce el tipo `Producto` puro. */
@@ -59,13 +59,13 @@ export class CatalogoRepoDexie implements CatalogoRepo {
   }
 
   /** Resuelve cuando la base está abierta y la semilla demo ya corrió. */
-  private get listo(): Promise<void> {
+  private get listo(): Promise<BaseLocal> {
     return asegurarBaseLista(this.base);
   }
 
   /** Lectura compartida por `listar` y por `liveQuery` (no espera la semilla). */
-  private async listarInterno(): Promise<ItemCatalogo[]> {
-    const { db, repos, negocioId } = this.base;
+  private async listarInterno(base: BaseLocal): Promise<ItemCatalogo[]> {
+    const { db, repos, negocioId } = base;
     const filas = await repos.productos.listar();
     const caches = await db.stock_cache.toArray();
     const stocks = new Map(
@@ -80,6 +80,7 @@ export class CatalogoRepoDexie implements CatalogoRepo {
         const movimientos = await db.movimientos
           .where("productoId")
           .equals(fila.id)
+          .and((mov) => mov.negocioId === negocioId)
           .toArray();
         stock = stockDerivado(movimientos, fila.id);
       }
@@ -90,22 +91,21 @@ export class CatalogoRepoDexie implements CatalogoRepo {
   }
 
   async listar(): Promise<ItemCatalogo[]> {
-    await this.listo;
-    return this.listarInterno();
+    const base = await this.listo;
+    return this.listarInterno(base);
   }
 
   /** Incluye borrados lógicos (contrato: auditoría/edición). */
   async obtener(id: string): Promise<Producto | null> {
-    await this.listo;
-    const fila = await this.base.db.productos.get(id);
-    if (!fila || fila.negocioId !== this.base.negocioId) return null;
+    const base = await this.listo;
+    const fila = await base.db.productos.get(id);
+    if (!fila || fila.negocioId !== base.negocioId) return null;
     return filaAProducto(fila);
   }
 
   /** Upsert: crea o actualiza; los repos de core encolan la op en la misma tx. */
   async guardar(producto: Producto): Promise<Producto> {
-    await this.listo;
-    const { db, repos, negocioId } = this.base;
+    const { db, repos, negocioId } = await this.listo;
     const fila = await db.productos.get(producto.id);
     if (fila && fila.negocioId !== negocioId) {
       throw new Error(`producto de otro negocio: ${producto.id}`);
@@ -123,8 +123,8 @@ export class CatalogoRepoDexie implements CatalogoRepo {
   }
 
   async borrarLogico(id: string): Promise<void> {
-    await this.listo;
-    await this.base.repos.productos.borrar(id);
+    const base = await this.listo;
+    await base.repos.productos.borrar(id);
   }
 
   suscribir(listener: () => void): () => void {
@@ -132,7 +132,7 @@ export class CatalogoRepoDexie implements CatalogoRepo {
     // realimentar el `recargar` de useCatalogo (bucle effect↔suscripción).
     // Sólo se notifican CAMBIOS, igual que hacía el repo en memoria.
     let primera = true;
-    const subcripcion = liveQuery(() => this.listarInterno()).subscribe({
+    const subcripcion = liveQuery(async () => this.listarInterno(await resolverBaseLocal(this.base))).subscribe({
       next: () => {
         if (primera) {
           primera = false;

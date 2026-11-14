@@ -1,14 +1,14 @@
 /**
- * Base local compartida de la PWA (M1): un único `negocioId`, una única
- * instancia de IndexedDB y la siembra demo idempotente, en un solo lugar.
+ * Base compartida de la PWA: una instancia de IndexedDB y repositorios
+ * ligados al negocio de la sesión. La demo se limita al contexto `local`.
  *
  * Antes el catálogo duplicaba `NEGOCIO_LOCAL` y la semilla; con el libro ya
  * persistido (C4.3) el catálogo, los movimientos y el conteo DEBEN mirar la
- * MISMA base: por eso viven aquí. `asegurarBaseLista()` abre la base y siembra
- * UNA sola vez (promesa única por base; si falla, el siguiente uso reintenta).
+ * MISMA base: por eso viven aquí. `asegurarBaseLista()` prepara una instantánea
+ * por negocio; si falla, el siguiente uso reintenta.
  *
- * M1 sin login (P2 pendiente): un solo negocio local por dispositivo. En M2 lo
- * reemplaza el `negocioId` real de la invitación.
+ * La sesión selecciona el negocio sin reasignar los datos heredados `local`.
+ * Cada operación recibe una instantánea del contexto, nunca un objeto mutable.
  */
 import {
   abrirDb,
@@ -21,7 +21,7 @@ import {
 } from "@latiendita/core";
 import { PRODUCTOS_DEMO, STOCK_DEMO } from "./demo";
 
-/** M1 sin login: negocio local único. En M2 lo fija la invitación. */
+/** Contexto heredado/demo sin sesión; nunca se reasigna implícitamente a una cuenta. */
 export const NEGOCIO_LOCAL = "local";
 
 /** Flag de siembra en la tabla `meta`: el seed corre una sola vez por base. */
@@ -31,33 +31,62 @@ export interface BaseLocal {
   db: LaTienditaDb;
   repos: Repos;
   negocioId: string;
+  /** Contexto de la app: resolver la sesión guardada antes de cada operación. */
+  seguirSesion?: boolean;
+  /** Sólo el modo local/demo recibe semillas; las cuentas reales arrancan vacías. */
+  sembrarDemo?: boolean;
 }
 
 const db = abrirDb();
 const repos = crearRepos(db, NEGOCIO_LOCAL);
 
 /** Contexto local de la app: la base y los repos que consumen las pantallas. */
-export const baseApp: BaseLocal = { db, repos, negocioId: NEGOCIO_LOCAL };
+export const baseApp: BaseLocal = { db, repos, negocioId: NEGOCIO_LOCAL, seguirSesion: true };
 
-const listos = new WeakMap<LaTienditaDb, Promise<void>>();
+const listos = new WeakMap<LaTienditaDb, Map<string, Promise<void>>>();
 
-/** Resuelve cuando la base está abierta y la semilla demo ya corrió. */
-export function asegurarBaseLista(base: BaseLocal = baseApp): Promise<void> {
-  const existente = listos.get(base.db);
-  if (existente) return existente;
-  const promesa = iniciar(base).catch((error: unknown) => {
-    listos.delete(base.db); // el siguiente uso (p. ej. "Reintentar") reintenta
-    throw error;
-  });
-  listos.set(base.db, promesa);
-  return promesa;
+/** Selección por sesión; también registra la dependencia de `liveQuery`. No escribe. */
+export async function resolverBaseLocal(base: BaseLocal = baseApp): Promise<BaseLocal> {
+  if (!base.seguirSesion) return { ...base };
+  const fila = await base.db.sesion_local.get("actual");
+  const negocioId = fila?.sesion.negocioId ?? NEGOCIO_LOCAL;
+  if (fila && (!negocioId || negocioId === NEGOCIO_LOCAL)) {
+    throw new Error("La sesión no identifica un negocio válido.");
+  }
+  return {
+    db: base.db,
+    repos: crearRepos(base.db, negocioId),
+    negocioId,
+    sembrarDemo: !fila,
+  };
+}
+
+/** Devuelve el contexto preparado. El llamador debe usar esa instantánea hasta terminar. */
+export async function asegurarBaseLista(base: BaseLocal = baseApp): Promise<BaseLocal> {
+  const elegida = await resolverBaseLocal(base);
+  let porNegocio = listos.get(elegida.db);
+  if (!porNegocio) {
+    porNegocio = new Map();
+    listos.set(elegida.db, porNegocio);
+  }
+  const clave = JSON.stringify([elegida.negocioId, elegida.sembrarDemo !== false]);
+  let promesa = porNegocio.get(clave);
+  if (!promesa) {
+    promesa = iniciar(elegida).catch((error: unknown) => {
+      porNegocio.delete(clave);
+      throw error;
+    });
+    porNegocio.set(clave, promesa);
+  }
+  await promesa;
+  return elegida;
 }
 
 async function iniciar(base: BaseLocal): Promise<void> {
   await base.db.open();
   // Protege los datos del negocio de la evicción del navegador (C8.5).
   await solicitarPersistencia();
-  await sembrarDemoSiHaceFalta(base);
+  if (base.sembrarDemo !== false) await sembrarDemoSiHaceFalta(base);
 }
 
 /** Id determinista para la entrada inicial de cada producto demo. */
@@ -78,6 +107,9 @@ async function sembrarDemoSiHaceFalta(base: BaseLocal): Promise<void> {
 
   for (const producto of PRODUCTOS_DEMO) {
     const existente = await db.productos.get(producto.id);
+    if (existente && existente.negocioId !== base.negocioId) {
+      throw new Error(`producto demo de otro negocio: ${producto.id}`);
+    }
     if (!existente || existente.deletedAt !== null) {
       await repos.productos.crear({ ...producto, id: producto.id });
     }

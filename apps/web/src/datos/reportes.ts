@@ -249,7 +249,7 @@ export async function calcularResumenInicio(
   base: BaseLocal = baseApp,
   limiteRecientes = 5,
 ): Promise<ResumenInicio> {
-  await asegurarBaseLista(base);
+  base = await asegurarBaseLista(base);
   const [productos, movimientos, clientes, conteo] = await Promise.all([
     base.repos.productos.listar(),
     base.db.movimientos.where("negocioId").equals(base.negocioId).toArray(),
@@ -313,7 +313,7 @@ export async function calcularReportes(
   base: BaseLocal = baseApp,
   ahora: number = Date.now(),
 ): Promise<ReporteC11> {
-  await asegurarBaseLista(base);
+  base = await asegurarBaseLista(base);
   const [productos, movimientos, fiados, clientes] = await Promise.all([
     base.repos.productos.listar(),
     base.db.movimientos.where("negocioId").equals(base.negocioId).toArray(),

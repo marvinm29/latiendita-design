@@ -34,6 +34,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   await borrarDb(db);
 });
@@ -56,6 +57,33 @@ describe("sesionRepo · guardar y retomar (T-05)", () => {
 });
 
 describe("sesionRepo · bloqueo y desbloqueo sin red", () => {
+  it("un PIN de A que termina después del cambio a B no desbloquea B", async () => {
+    await repo.guardarSesion(sesionDePrueba(), PIN);
+    await repo.bloquear();
+    let liberar!: () => void;
+    let avisar!: () => void;
+    const pausa = new Promise<void>((resolve) => { liberar = resolve; });
+    const iniciada = new Promise<void>((resolve) => { avisar = resolve; });
+    const derivarOriginal = crypto.subtle.deriveBits.bind(crypto.subtle);
+    vi.spyOn(crypto.subtle, "deriveBits").mockImplementationOnce(async (...args) => {
+      const bits = await derivarOriginal(...args);
+      avisar();
+      await pausa;
+      return bits;
+    });
+    const pendiente = repo.desbloquear(PIN);
+    await iniciada;
+    try {
+      await repo.guardarSesion({ ...sesionDePrueba(), token: "token-b", negocioId: "negocio-b", usuarioId: "persona-b" }, "5678");
+      await repo.bloquear();
+    } finally {
+      liberar();
+    }
+    expect(await pendiente).toBe(false);
+    expect((await repo.sesionActual())?.negocioId).toBe("negocio-b");
+    expect(await repo.estaBloqueada()).toBe(true);
+  });
+
   it("bloquea, rechaza un PIN incorrecto y desbloquea con el correcto", async () => {
     await repo.guardarSesion(sesionDePrueba(), PIN);
 

@@ -42,11 +42,11 @@ el **plan técnico + roadmap**, y el **monorepo de implementación** (M0 + M1 + 
 | Plan de sprints (`006`) | ✅ escrito — **M1 y S3 entregados; M2 en curso; M3 con sync y backup del servidor pendientes** |
 | **M0 · Cimientos** | 🟡 scaffold monorepo + CI + RLS base + docker-compose + **ESLint real** + **gate de tamaño real**; Lighthouse y despliegue completo pendientes |
 | **M1 · Núcleo offline** | ✅ dominio puro (64 tests) + capa Dexie (21 tests, libro+outbox+conteo) + **UI C2–C5 toda sobre Dexie** (catálogo, libro y conteo comparten base; escáner BarcodeDetector lazy → **ZXing-wasm perezoso** → teclado manual) + **conteo persistente y reanudable (C5.2)** + 11 tests web + **10 e2e offline C2–C5 + conteo persistente + axe AA** + **OFF** (proxy + caché local) |
-| **M2 · Cuentas y sync** | 🟡 **S3 ✅ · A ✅** (auth real en PG16 con rol restringido, RLS A/B y altas atómicas) · **B–D pendientes** (negocio local, sync push/pull + LWW) |
+| **M2 · Cuentas y sync** | 🟡 **S3 ✅ · A ✅ · B1 ✅** (auth/RLS PG16 y aislamiento local por sesión) · **B parcial** (migración de `local` y renovación/reingreso pendientes) · C/D sync pendientes |
 | **M3 · Producto** | 🟡 fiados, PWA, import/export, reportes e Inicio implementados; restore local corregido; faltan integración con sync y backup del servidor |
 | Licencia del proyecto | ✅ **AGPL-3.0** (P1 cerrada 18/10/2026): `LICENSE` + `"license": "AGPL-3.0-only"` en los paquetes. |
 
-Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · **164 tests regulares** (96 core + 48 web + 20 api) + **2 integraciones PostgreSQL optativas** (9 casos auth + bitácora sync) + **31 e2e** · bundle **115 689 B gzip** / 153 600 B (total medido de JS+CSS, incluidos SW y Workbox).
+Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · **171 tests regulares** (96 core + 55 web + 20 api) + **2 integraciones PostgreSQL optativas** (9 casos auth + bitácora sync) + **32 e2e** · bundle **116 186 B gzip** / 153 600 B (total medido de JS+CSS, incluidos SW y Workbox).
 
 ## 3. Decisiones cerradas — NO reabrir
 
@@ -176,8 +176,11 @@ Si está disponible, usar `superpowers:executing-plans` para ejecución secuenci
 **Archivos:** `apps/web/src/datos/{baseLocal,sesionRepoDexie,authApi}.ts`, adaptadores Dexie
 vecinos, `packages/core/src/db/`, tests `sesionRepo.test.ts`, `repos.test.ts` y e2e de acceso.
 
-- [ ] Probar cambio de sesión A → B, cierre/reapertura y desbloqueo offline: B no ve ni modifica
+- [x] Probar cambio de sesión A → B, cierre/reapertura y desbloqueo offline: B no ve ni modifica
   filas, stock, conteos o cola de A; salir no borra operaciones pendientes.
+- [x] B1: resolver el negocio desde `sesion_local` por operación, con contexto estable para
+  catálogo/libros/conteos/fiados/reportes/import/export y suscripciones. Cuentas reales sin semillas.
+  Stock y referencias de restore comprueban negocio; un PIN pendiente de A no desbloquea B.
 - [ ] Sustituir el contexto fijo `local` por repositorios del negocio activo y revisar claves e
   índices globales de IndexedDB. Definir una migración transaccional de datos heredados `local`:
   respaldar, preservar IDs/libros/cola, distinguir demo y datos reales y no asignarlos a otro
@@ -285,9 +288,29 @@ IDs repetidos y operaciones antiguas sin marcas (C/D). Los casos correspondiente
 - **Omitido/límites:** sin Docker daemon ni plugin Compose: sólo sintaxis `sh -n` de sus scripts
   y SQL/permisos contra PG real; no se verificó el arranque ni la transición de volúmenes con Docker.
   Sin CI remoto, dispositivos reales ni campo. Sin cambios de diseño: no se repitió contraste/QA.
-- **Siguiente exacto:** B — probar cambio A→B, cierre/reapertura y desbloqueo offline con cola
+- **Siguiente al terminar A (histórico):** B — probar cambio A→B, cierre/reapertura y desbloqueo offline con cola
   pendiente; sustituir el contexto `local` y diseñar su migración sin asignar datos de propiedad
   ambigua. Revisar renovación/reingreso antes de implementar un flujo nuevo. Sync sigue sin registrar.
+- **Completado (14/11/2026, B1 sobre `6b2de47`):** `baseLocal.ts` resuelve el negocio desde
+  la sesión guardada y devuelve una instantánea por operación; adaptadores Dexie, stock de core,
+  reportes, CSV/JSON y suscripciones usan ese contexto. Se conserva una sola base y sus claves
+  globales: IDs ajenos se rechazan; la migración de los heredados queda pendiente, sin mover filas.
+  `sesionRepoDexie.ts` comprueba de nuevo la sesión dentro de una transacción al desbloquear;
+  cierre local atómico y cola intacta. `app.tsx` remonta la página al cambiar cuenta.
+- **Evidencia B1:** tipos/lint, **171 pruebas regulares** (96 core + 55 web + 20 API), build,
+  **116 186 / 153 600 B gzip** y **32 e2e con CI=1, sin reintentos**, correctos. Siete regresiones
+  nuevas: seis de aislamiento/restore/suscripciones y una carrera de PIN (PBKDF2 real pausado).
+  La primera corrida e2e tuvo 31 aprobadas y un selector ambiguo en la prueba nueva; se corrigió
+  el selector y se volvió a ejecutar el conjunto completo. CI=1 dentro del sandbox no arrancó
+  el servidor; la corrida final se ejecutó fuera del sandbox.
+- **Límites B1:** PG omitido en esta corrida (2 SKIP); evidencia de PG en A conservada como histórica.
+  Auth HTTP del e2e se simula: demuestra aislamiento local, no reingreso real ni sync. Sin cambios
+  de diseño: contraste/QA no repetidos. Sin Docker, campo ni dispositivos reales. Revisión propia,
+  un solo agente. Commit/push autorizados por la instrucción posterior del usuario en la conversación.
+- **Siguiente exacto (B2):** acordar la política de propiedad de `local` (pregunta enviada al dueño;
+  no se asignó ningún dato), implementar respaldo+migración transaccional explícita y después
+  renovación/reingreso recuperable. Si requiere un flujo nuevo, acordarlo y actualizar `002` primero.
+  **B permanece abierto**; no pasar a D ni habilitar sync como si estuviera cerrado.
 - **Al cerrar cada sesión:** añadir fecha, incremento/subtarea, archivos, comandos/resultados,
   pruebas omitidas, decisiones y siguiente acción exacta. Conservar resultados históricos como
   históricos; no reemplazarlos por promesas ni marcar casillas por código que sólo compila.
@@ -300,15 +323,16 @@ Retoma LaTiendita en /home/varm/Documents/testModels. Lee AGENTS.md, especialmen
 el traspaso y los specs relevantes según §1.
 
 Ejecuta el primer incremento pendiente de §6.3 con dependencias satisfechas; actualmente B:
-negocio local vinculado a sesión y continuidad de acceso. A quedó verificado en PG16.
+completar migración de datos heredados y continuidad de acceso (B2). A y B1 están terminados;
+el negocio ya se resuelve desde la sesión, pero no se han trasladado datos `local`.
 Trabaja secuencialmente con un solo agente,
 sin repetir la auditoría completa ni reabrir stack/decisiones. La tarea es implementar y
 verificar ese incremento, no quedarse en otro plan. Si requiere varias sesiones, termina
 una subtarea verificable y deja la siguiente exacta.
 
-Base histórica: commit f631449; A posterior en el árbol, 164 tests regulares, 31 e2e y dos
-integraciones PG verdes (9 casos auth + bitácora sync). Sync no está registrado,
-la web usa negocio local fijo, restore JSON no encola; CSV sí. No habilites sync prematuramente.
+Base: A en 6b2de47 y B1 posterior; 171 tests regulares, 32 e2e y 116 186 B gzip.
+Las dos integraciones PG pasaron en A (no repetidas en B1). Sync no está registrado,
+restore JSON no encola; CSV sí. No habilites sync prematuramente.
 
 Verifica git status y la base; conserva mis cambios. Usa PG desechable para pruebas, nunca
 una base real. Prueba aislamiento A/B con rol restringido y auth real, no sólo mocks.

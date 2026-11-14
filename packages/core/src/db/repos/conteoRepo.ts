@@ -68,7 +68,7 @@ export function crearConteoRepo(db: LaTienditaDb, negocioId: string): ConteoRepo
   async function recalcularItems(sesion: ConteoFila): Promise<ConteoItemFila[]> {
     const items: ConteoItemFila[] = [];
     for (const item of sesion.items) {
-      const sistema = await leerStockLocal(db, item.productoId);
+      const sistema = await leerStockLocal(db, item.productoId, negocioId);
       items.push({
         ...item,
         sistema,
@@ -118,7 +118,7 @@ export function crearConteoRepo(db: LaTienditaDb, negocioId: string): ConteoRepo
         async () => {
           const sesion = await obtenerAbierta(conteoId);
           await productoActivo(db, negocioId, productoId);
-          const sistema = await leerStockLocal(db, productoId);
+          const sistema = await leerStockLocal(db, productoId, negocioId);
           const item: ConteoItemFila = {
             productoId,
             contado,

@@ -77,10 +77,11 @@ export async function productoActivo(
  * Stock actual del producto: caché si existe; si no, derivado del libro.
  * No escribe nada (sólo lectura dentro de transacciones de sólo lectura).
  */
-export async function leerStockLocal(db: LaTienditaDb, productoId: string): Promise<number> {
+export async function leerStockLocal(db: LaTienditaDb, productoId: string, negocioId: string): Promise<number> {
   const cache = await db.stock_cache.get(productoId);
-  if (cache) return cache.stock;
-  const movimientos = await db.movimientos.where("productoId").equals(productoId).toArray();
+  if (cache?.negocioId === negocioId) return cache.stock;
+  const movimientos = await db.movimientos.where("productoId").equals(productoId)
+    .and((fila) => fila.negocioId === negocioId).toArray();
   return stockDerivado(movimientos, productoId);
 }
 
@@ -97,14 +98,15 @@ export async function refrescarStock(
 ): Promise<number> {
   const cache = await db.stock_cache.get(mov.productoId);
   let stock: number;
-  if (cache) {
+  if (cache?.negocioId === negocioId) {
     const mapa = new Map<string, number>([[mov.productoId, cache.stock]]);
     actualizarCache(mapa, mov.productoId, mov);
     const incremental = mapa.get(mov.productoId);
     if (incremental === undefined) throw new Error(`stock ilegible para ${mov.productoId}`);
     stock = incremental;
   } else {
-    const movimientos = await db.movimientos.where("productoId").equals(mov.productoId).toArray();
+    const movimientos = await db.movimientos.where("productoId").equals(mov.productoId)
+      .and((fila) => fila.negocioId === negocioId).toArray();
     stock = stockDerivado(movimientos, mov.productoId);
   }
   await db.stock_cache.put({ productoId: mov.productoId, negocioId, stock, actualizadoEn: ahora });

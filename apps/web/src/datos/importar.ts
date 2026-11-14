@@ -349,7 +349,7 @@ export async function restaurarRespaldo(
   datos: RespaldoJson,
   base: BaseLocal = baseApp,
 ): Promise<ResultadoRestauracion> {
-  await asegurarBaseLista(base);
+  base = await asegurarBaseLista(base);
   const { db } = base;
   const negocioId = base.negocioId;
   const ahora = Date.now();
@@ -358,7 +358,7 @@ export async function restaurarRespaldo(
     "rw",
     [db.productos, db.movimientos, db.clientes, db.fiados, db.categorias, db.conteos, db.stock_cache],
     async () => {
-      async function fusionar<T extends { id: string }>(
+      async function fusionar<T extends { id: string; negocioId: string }>(
         tabla: Table<T, string>,
         filas: readonly T[],
       ): Promise<{ conteo: ConteoMerge; nuevos: T[] }> {
@@ -367,6 +367,9 @@ export async function restaurarRespaldo(
         for (const fila of filas) {
           const existente = await tabla.get(fila.id);
           if (existente) {
+            if (existente.negocioId !== negocioId) {
+              throw new Error("El respaldo usa un ID de otro negocio.");
+            }
             conteo.existentes += 1;
             continue;
           }
@@ -417,6 +420,20 @@ export async function restaurarRespaldo(
       );
       const conteos = await fusionar<ConteoFila>(db.conteos, (datos.conteos ?? []).map((c) => ({ ...c, negocioId })));
 
+      // Los IDs son globales en IndexedDB. Un libro restaurado no puede
+      // referirse a una fila de otra tienda ni dejar una referencia huérfana.
+      async function exigirReferencia<T extends { negocioId: string }>(tabla: Table<T, string>, id: string): Promise<void> {
+        const fila = await tabla.get(id);
+        if (!fila || fila.negocioId !== negocioId) {
+          throw new Error("Una referencia del respaldo no pertenece a este negocio.");
+        }
+      }
+      for (const mov of movimientos.nuevos) await exigirReferencia(db.productos, mov.productoId);
+      for (const fiado of fiados.nuevos) await exigirReferencia(db.clientes, fiado.clienteId);
+      for (const conteo of conteos.nuevos) {
+        for (const item of conteo.items) await exigirReferencia(db.productos, item.productoId);
+      }
+
       // Productos tocados: los nuevos y los que recibieron movimientos nuevos.
       const afectados = new Set<string>([
         ...productos.nuevos.map((p) => p.id),
@@ -426,7 +443,8 @@ export async function restaurarRespaldo(
       for (const productoId of afectados) {
         const producto = await db.productos.get(productoId);
         if (!producto || producto.negocioId !== negocioId) continue;
-        const libro = await db.movimientos.where("productoId").equals(productoId).toArray();
+        const libro = await db.movimientos.where("productoId").equals(productoId)
+          .and((mov) => mov.negocioId === negocioId).toArray();
         await db.stock_cache.put({
           productoId,
           negocioId,
@@ -545,7 +563,7 @@ export async function importarProductosCsv(
   texto: string,
   base: BaseLocal = baseApp,
 ): Promise<ResultadoImportacionCsv> {
-  await asegurarBaseLista(base);
+  base = await asegurarBaseLista(base);
 
   const filas = parsearCsv(texto);
   if (filas.length === 0) {

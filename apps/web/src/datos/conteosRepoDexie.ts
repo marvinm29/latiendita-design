@@ -19,18 +19,18 @@ export class ConteosRepoDexie implements ConteosRepo {
   }
 
   /** Resuelve cuando la base está abierta y la semilla demo ya corrió. */
-  private get listo(): Promise<void> {
+  private get listo(): Promise<BaseLocal> {
     return asegurarBaseLista(this.base);
   }
 
   async retomar(): Promise<ConteoFila | undefined> {
-    await this.listo;
-    return this.base.repos.conteo.listarAbierta();
+    const base = await this.listo;
+    return base.repos.conteo.listarAbierta();
   }
 
   async iniciar(): Promise<ConteoFila> {
-    await this.listo;
-    return this.base.repos.conteo.iniciar();
+    const base = await this.listo;
+    return base.repos.conteo.iniciar();
   }
 
   async registrarItem(
@@ -38,13 +38,13 @@ export class ConteosRepoDexie implements ConteosRepo {
     productoId: string,
     contado: number,
   ): Promise<ConteoFila> {
-    await this.listo;
-    return this.base.repos.conteo.registrarItem(conteoId, productoId, contado);
+    const base = await this.listo;
+    return base.repos.conteo.registrarItem(conteoId, productoId, contado);
   }
 
   async cerrarConAjustes(conteoId: string): Promise<CierreConAjustes> {
-    await this.listo;
-    return this.base.repos.conteo.cerrarConAjustes(conteoId);
+    const base = await this.listo;
+    return base.repos.conteo.cerrarConAjustes(conteoId);
   }
 }
 

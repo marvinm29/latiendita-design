@@ -47,7 +47,7 @@ Comprobado en el repo a la fecha de este documento:
   sync push/pull, RLS de las entidades sincronizadas, LWW y cierre de M2.
 - **S6 ✅** (fiados/reportes) y **S7 🟡**: PWA y datos implementados; se corrigieron los fallos de restore y falta el backup del servidor y la integración con sync.
 
-Conclusión: M1, S3 y A entregados; M2 y el cierre de M3 pendientes. Siguiente: B de `AGENTS.md` §6.3 (negocio local y continuidad de acceso).
+Conclusión: M1, S3, A y B1 entregados; M2 y el cierre de M3 pendientes. Siguiente: B2 de `AGENTS.md` §6.3 (migración explícita de `local` y renovación/reingreso).
 
 ---
 
@@ -85,6 +85,14 @@ auth y aislamiento en PG16.15 con rol restringido; 9 casos de integración auth 
 sin `SKIP`. Tipos/lint, 164 pruebas regulares, build, tamaño **115 689 B gzip** y 31 e2e sin
 reintentos verdes. Los scripts de inicialización tienen sintaxis shell verificada, pero Docker
 y la transición de volúmenes siguen sin ejecutar. Sigue B; sync continúa sin registrar.
+
+**B1 cerrado el 14/11/2026:** contexto de negocio por sesión para catálogo, libros, conteos,
+fiados, reportes y CSV/JSON. Cuentas reales sin demo; los datos heredados quedan en `local`.
+Stock/restore comprueban negocio y referencias; un PIN de A pendiente no desbloquea B.
+Tipos/lint, **171 pruebas regulares**, build, **116 186 B gzip** y **32 e2e sin reintentos** verdes.
+Los e2e simulan auth HTTP; PG no repetido (dos integraciones omitidas en la corrida regular).
+**B sigue abierto:** falta decidir propiedad y migración transaccional con respaldo de `local`,
+además de renovación y reingreso real. No presentar el retorno a A inyectado en pruebas como login recuperable.
 
 Antes de dar C10.2 y M3 por cerrados:
 

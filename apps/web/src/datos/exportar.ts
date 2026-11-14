@@ -55,7 +55,7 @@ function dinero(centavos: number | null | undefined): string {
 
 /** CSV de productos vivos del negocio (stock no se exporta: se deriva). */
 export async function productosCsv(base: BaseLocal = baseApp): Promise<string> {
-  await asegurarBaseLista(base);
+  base = await asegurarBaseLista(base);
   const productos = await base.db.productos
     .where("negocioId")
     .equals(base.negocioId)
@@ -93,7 +93,7 @@ export async function productosCsv(base: BaseLocal = baseApp): Promise<string> {
 
 /** CSV del libro completo (append-only), con nombre de producto legible. */
 export async function movimientosCsv(base: BaseLocal = baseApp): Promise<string> {
-  await asegurarBaseLista(base);
+  base = await asegurarBaseLista(base);
   const [movimientos, productos] = await Promise.all([
     base.db.movimientos.where("negocioId").equals(base.negocioId).toArray(),
     base.db.productos.where("negocioId").equals(base.negocioId).toArray(),
@@ -115,7 +115,7 @@ export async function movimientosCsv(base: BaseLocal = baseApp): Promise<string>
 
 /** CSV de fiados con nombre de cliente y monto en USD. */
 export async function fiadosCsv(base: BaseLocal = baseApp): Promise<string> {
-  await asegurarBaseLista(base);
+  base = await asegurarBaseLista(base);
   const [fiados, clientes] = await Promise.all([
     base.db.fiados.where("negocioId").equals(base.negocioId).toArray(),
     base.db.clientes.where("negocioId").equals(base.negocioId).toArray(),
@@ -137,7 +137,7 @@ export async function fiadosCsv(base: BaseLocal = baseApp): Promise<string> {
 
 /** Respaldo JSON completo del negocio (C10.2). */
 export async function respaldoJson(base: BaseLocal = baseApp): Promise<RespaldoJson> {
-  await asegurarBaseLista(base);
+  base = await asegurarBaseLista(base);
   const [productos, movimientos, clientes, fiados, categorias, conteos] = await base.db.transaction("r", [base.db.productos, base.db.movimientos, base.db.clientes, base.db.fiados, base.db.categorias, base.db.conteos], () => Promise.all([
     base.db.productos.where("negocioId").equals(base.negocioId).toArray(),
     base.db.movimientos.where("negocioId").equals(base.negocioId).toArray(),
