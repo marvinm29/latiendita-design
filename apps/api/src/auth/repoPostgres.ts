@@ -4,16 +4,15 @@
  * Las escrituras y el canje de invitación van en una transacción: o queda el
  * usuario + membresía + sesión y el código marcado como usado, o no queda nada.
  * RLS: donde se conoce el negocio se fija `app.negocio_id` con `set_config`.
- * Las búsquedas previas de /auth (por hash de código o de token) corren con el
- * rol dueño; S4 las mueve a una función SECURITY DEFINER (ver 0001_init.sql).
+ * Sólo las búsquedas iniciales y altas atómicas usan las funciones acotadas
+ * de 0004. La conexión de la API no es dueña ni tiene BYPASSRLS.
  */
 import { and, eq, isNull, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { invitacion, membresia, negocio, sesion, usuario } from "../db/schema";
+import { invitacion, negocio, sesion, usuario } from "../db/schema";
 import type {
   CanjeInvitacion,
   FilaInvitacion,
-  FilaMembresia,
   FilaNegocio,
   FilaSesion,
   FilaUsuario,
@@ -24,27 +23,21 @@ import type {
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 const fecha = (ms: number): Date => new Date(ms);
-const ms = (valor: Date | null): number | null => (valor ? valor.getTime() : null);
 
 export class RepositorioAuthPostgres implements RepositorioAuth {
   constructor(private readonly db: Db) {}
 
   async crearNegocio(datos: NuevoNegocio): Promise<void> {
-    await this.db.transaction(async (tx) => {
-      await this.fijarNegocio(tx, datos.negocio.id);
-      await tx.insert(negocio).values({
-        id: datos.negocio.id,
-        nombre: datos.negocio.nombre,
-        moneda: datos.negocio.moneda,
-        createdAt: fecha(datos.negocio.creadoEn),
-      });
-      await this.insertarUsuario(tx, datos.usuario);
-      await this.insertarMembresia(tx, datos.membresia);
-    });
+    await this.db.execute(sql`select public.auth_crear_negocio(
+      ${datos.negocio.id}::uuid, ${datos.negocio.nombre}, ${datos.negocio.moneda},
+      ${fecha(datos.negocio.creadoEn)}::timestamptz, ${datos.usuario.id}::uuid,
+      ${datos.usuario.nombre}, ${datos.usuario.pinHash}, ${datos.membresia.id}::uuid,
+      ${datos.sesion.id}::uuid, ${datos.sesion.tokenHash}, ${fecha(datos.sesion.expiraEn)}::timestamptz
+    )`);
   }
 
   async buscarNegocio(id: string): Promise<FilaNegocio | null> {
-    const [fila] = await this.db.select().from(negocio).where(eq(negocio.id, id)).limit(1);
+    const [fila] = await this.conNegocio(id, (tx) => tx.select().from(negocio).where(eq(negocio.id, id)).limit(1));
     if (!fila || fila.deletedAt !== null) return null;
     return {
       id: fila.id,
@@ -70,44 +63,29 @@ export class RepositorioAuthPostgres implements RepositorioAuth {
   }
 
   async buscarInvitacionPorCodigo(codigoHash: string): Promise<FilaInvitacion | null> {
-    const [fila] = await this.db
-      .select()
-      .from(invitacion)
-      .where(eq(invitacion.codigoHash, codigoHash))
-      .limit(1);
-    if (!fila) return null;
-    return {
-      id: fila.id,
-      negocioId: fila.negocioId,
-      codigoHash: fila.codigoHash,
-      expiraEn: fila.expiraAt.getTime(),
-      usadaEn: ms(fila.usadaAt),
-      createdBy: fila.createdBy,
-      creadoEn: fila.createdAt.getTime(),
-    };
+    const { rows } = await this.db.execute<FilaInvitacion & Record<string, unknown>>(sql`
+      select id, negocio_id as "negocioId", codigo_hash as "codigoHash", created_by as "createdBy",
+        (extract(epoch from expira_at) * 1000)::double precision as "expiraEn",
+        (extract(epoch from usada_at) * 1000)::double precision as "usadaEn",
+        (extract(epoch from created_at) * 1000)::double precision as "creadoEn"
+      from public.auth_buscar_invitacion(${codigoHash})
+    `);
+    return rows[0] ?? null;
   }
 
   async canjearInvitacion(datos: CanjeInvitacion): Promise<boolean> {
-    return this.db.transaction(async (tx) => {
-      await this.fijarNegocio(tx, datos.membresia.negocioId);
-
-      // Un solo uso: sólo el primero que marque `usada_at` gana la carrera.
-      const usadas = await tx
-        .update(invitacion)
-        .set({ usadaAt: fecha(datos.ahora) })
-        .where(and(eq(invitacion.id, datos.invitacionId), isNull(invitacion.usadaAt)))
-        .returning({ id: invitacion.id });
-      if (usadas.length === 0) return false;
-
-      await this.insertarUsuario(tx, datos.usuario);
-      await this.insertarMembresia(tx, datos.membresia);
-      await this.insertarSesion(tx, datos.sesion);
-      return true;
-    });
+    const { rows } = await this.db.execute<{ canjeado: boolean }>(sql`
+      select public.auth_canjear_invitacion(
+        ${datos.invitacionId}::uuid, ${datos.membresia.negocioId}::uuid, ${fecha(datos.ahora)}::timestamptz,
+        ${datos.usuario.id}::uuid, ${datos.usuario.nombre}, ${datos.usuario.pinHash}, ${datos.membresia.id}::uuid,
+        ${datos.sesion.id}::uuid, ${datos.sesion.tokenHash}, ${fecha(datos.sesion.expiraEn)}::timestamptz
+      ) as canjeado
+    `);
+    return rows[0]?.canjeado === true;
   }
 
-  async buscarUsuario(id: string): Promise<FilaUsuario | null> {
-    const [fila] = await this.db.select().from(usuario).where(eq(usuario.id, id)).limit(1);
+  async buscarUsuario(id: string, negocioId: string): Promise<FilaUsuario | null> {
+    const [fila] = await this.conNegocio(negocioId, (tx) => tx.select().from(usuario).where(eq(usuario.id, id)).limit(1));
     if (!fila || fila.deletedAt !== null) return null;
     return {
       id: fila.id,
@@ -125,23 +103,15 @@ export class RepositorioAuthPostgres implements RepositorioAuth {
   }
 
   async buscarSesionPorToken(tokenHash: string): Promise<FilaSesion | null> {
-    const [fila] = await this.db
-      .select()
-      .from(sesion)
-      .where(eq(sesion.tokenHash, tokenHash))
-      .limit(1);
-    if (!fila) return null;
-    return {
-      id: fila.id,
-      negocioId: fila.negocioId,
-      usuarioId: fila.usuarioId,
-      tokenHash: fila.tokenHash,
-      rol: fila.rol,
-      expiraEn: fila.expiraAt.getTime(),
-      revocadaEn: ms(fila.revocadaAt),
-      ultimoUsoEn: ms(fila.ultimoUsoAt),
-      creadoEn: fila.createdAt.getTime(),
-    };
+    const { rows } = await this.db.execute<FilaSesion & Record<string, unknown>>(sql`
+      select id, negocio_id as "negocioId", usuario_id as "usuarioId", token_hash as "tokenHash", rol,
+        (extract(epoch from expira_at) * 1000)::double precision as "expiraEn",
+        (extract(epoch from revocada_at) * 1000)::double precision as "revocadaEn",
+        (extract(epoch from ultimo_uso_at) * 1000)::double precision as "ultimoUsoEn",
+        (extract(epoch from created_at) * 1000)::double precision as "creadoEn"
+      from public.auth_buscar_sesion(${tokenHash})
+    `);
+    return rows[0] ?? null;
   }
 
   async rotarSesion(idAnterior: string, nueva: FilaSesion): Promise<boolean> {
@@ -159,37 +129,26 @@ export class RepositorioAuthPostgres implements RepositorioAuth {
     });
   }
 
-  async marcarUsoSesion(id: string, ahora: number): Promise<void> {
-    await this.db.update(sesion).set({ ultimoUsoAt: fecha(ahora) }).where(eq(sesion.id, id));
+  async marcarUsoSesion(id: string, ahora: number, negocioId: string): Promise<void> {
+    await this.conNegocio(negocioId, (tx) => tx.update(sesion).set({ ultimoUsoAt: fecha(ahora) }).where(eq(sesion.id, id)));
   }
 
-  async revocarSesion(id: string, ahora: number): Promise<void> {
-    await this.db
+  async revocarSesion(id: string, ahora: number, negocioId: string): Promise<void> {
+    await this.conNegocio(negocioId, (tx) => tx
       .update(sesion)
       .set({ revocadaAt: fecha(ahora) })
-      .where(and(eq(sesion.id, id), isNull(sesion.revocadaAt)));
+      .where(and(eq(sesion.id, id), isNull(sesion.revocadaAt))));
+  }
+
+  private async conNegocio<T>(negocioId: string, ejecutar: (tx: Tx) => Promise<T>): Promise<T> {
+    return this.db.transaction(async (tx) => {
+      await this.fijarNegocio(tx, negocioId);
+      return ejecutar(tx);
+    });
   }
 
   private async fijarNegocio(tx: Tx, negocioId: string): Promise<void> {
     await tx.execute(sql`select set_config('app.negocio_id', ${negocioId}, true)`);
-  }
-
-  private async insertarUsuario(tx: Tx, fila: FilaUsuario): Promise<void> {
-    await tx.insert(usuario).values({
-      id: fila.id,
-      nombre: fila.nombre,
-      pinHash: fila.pinHash,
-      createdAt: fecha(fila.creadoEn),
-    });
-  }
-
-  private async insertarMembresia(tx: Tx, fila: FilaMembresia): Promise<void> {
-    await tx.insert(membresia).values({
-      id: fila.id,
-      negocioId: fila.negocioId,
-      usuarioId: fila.usuarioId,
-      rol: fila.rol,
-    });
   }
 
   private async insertarSesion(tx: Tx, fila: FilaSesion): Promise<void> {

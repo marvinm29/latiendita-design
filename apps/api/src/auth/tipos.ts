@@ -94,6 +94,7 @@ export interface NuevoNegocio {
   negocio: FilaNegocio;
   usuario: FilaUsuario;
   membresia: FilaMembresia;
+  sesion: FilaSesion;
 }
 
 export interface CanjeInvitacion {
@@ -121,14 +122,14 @@ export interface RepositorioAuth {
    */
   canjearInvitacion(datos: CanjeInvitacion): Promise<boolean>;
 
-  buscarUsuario(id: string): Promise<FilaUsuario | null>;
+  buscarUsuario(id: string, negocioId: string): Promise<FilaUsuario | null>;
 
   crearSesion(sesion: FilaSesion): Promise<void>;
   buscarSesionPorToken(tokenHash: string): Promise<FilaSesion | null>;
   /** Rotación atómica: revoca la anterior y crea la nueva. */
   rotarSesion(idAnterior: string, nueva: FilaSesion): Promise<boolean>;
-  marcarUsoSesion(id: string, ahora: number): Promise<void>;
-  revocarSesion(id: string, ahora: number): Promise<void>;
+  marcarUsoSesion(id: string, ahora: number, negocioId: string): Promise<void>;
+  revocarSesion(id: string, ahora: number, negocioId: string): Promise<void>;
 }
 
 /* -------------------------------------------------------------------------- */

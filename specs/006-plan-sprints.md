@@ -42,10 +42,12 @@ Comprobado en el repo a la fecha de este documento:
     cerrar aplica sus diferencias como ajustes en una sola transacción.
 - ✅ **S3 (M2)**: cuentas y acceso — negocio, invitación de un solo uso, argon2id, sesión rotativa,
     desbloqueo offline por PIN. **P1** (AGPL-3.0) y **P2** (código+PIN) cerradas.
-- **S4/S5** ⏳ pendientes: sync push/pull, RLS en uso, LWW y cierre de M2.
+- **A ✅ (14/11/2026):** auth real en PG16 con RLS y rol restringido, altas atómicas,
+  canje/rotación concurrentes y revocación. **S4/S5** siguen pendientes: negocio local por sesión,
+  sync push/pull, RLS de las entidades sincronizadas, LWW y cierre de M2.
 - **S6 ✅** (fiados/reportes) y **S7 🟡**: PWA y datos implementados; se corrigieron los fallos de restore y falta el backup del servidor y la integración con sync.
 
-Conclusión: M1 y S3 entregados; M2 y el cierre de M3 pendientes. Siguiente: S4 (sync + RLS), sin perder datos locales.
+Conclusión: M1, S3 y A entregados; M2 y el cierre de M3 pendientes. Siguiente: B de `AGENTS.md` §6.3 (negocio local y continuidad de acceso).
 
 ---
 
@@ -78,13 +80,19 @@ duración; reestimar tras el diagnóstico y repartir S4/S5 si integración o pru
 
 ## 3. Incremento prioritario — proteger y restaurar datos
 
+El orden vigente es `AGENTS.md` §6.3. **A cerrado el 14/11/2026:** migraciones desde base vacía,
+auth y aislamiento en PG16.15 con rol restringido; 9 casos de integración auth más bitácora sync,
+sin `SKIP`. Tipos/lint, 164 pruebas regulares, build, tamaño **115 689 B gzip** y 31 e2e sin
+reintentos verdes. Los scripts de inicialización tienen sintaxis shell verificada, pero Docker
+y la transición de volúmenes siguen sin ejecutar. Sigue B; sync continúa sin registrar.
+
 Antes de dar C10.2 y M3 por cerrados:
 
 - [x] Restaurar productos demo modificados o eliminados en un destino recién inicializado, sin pisar ediciones locales. Hay pruebas de colisiones, tombstones e idempotencia.
 - [x] Incluir conteos en el respaldo, aceptar respaldos versión 1 anteriores y probar la restauración repetida de un conteo abierto.
 - [x] Corregir la conversión monetaria CSV: se aceptan hasta dos decimales y se rechazan enteros inseguros.
 - [x] Corregir el recorte del diálogo en pantalla baja y probar teclado y desplazamiento con Chromium; la validación manual a zoom 200 % sigue en S8.
-- [ ] Mantener explícito que restore/import aún no generan operaciones de outbox: integrar y probar su sincronización en S4/S5 sin duplicar movimientos.
+- [ ] Integrar y probar la sincronización del restore JSON en S4/S5 sin duplicar movimientos. CSV ya encola mediante el repositorio de productos.
 
 **Gate:** restaurar en una base nueva y en una base con datos, sin pérdida ni duplicados; verificar conteo reanudable, precios exactos y accesibilidad. La integración de outbox y el backup del servidor se cierran con S4/S5 y el runbook posterior.
 
@@ -157,15 +165,16 @@ el **libro es la única fuente de stock** (C4.3) y toda escritura deja su op en 
   150 KB gzip. Lighthouse CI sigue pendiente.
 - ✅ **P1/P2:** AGPL-3.0 + código de un solo uso/PIN (issues #1/#2 cerradas).
 - **Gate:** ✅ invitar ↔ unirse funciona (API con repo en memoria); ✅ la sesión sobrevive recarga;
-  ✅ el PIN desbloquea sin red. **Pendiente honesto:** probar el adaptador Postgres/RLS contra una
-  instancia real y mover la búsqueda de código/token a `SECURITY DEFINER` (S4).
+  ✅ el PIN desbloquea sin red. **A ✅:** adaptador probado en PG16 y búsquedas iniciales mediante
+  funciones `SECURITY DEFINER` acotadas, con rol de API restringido.
 
 ### S4 · M2 · API y sincronización
 
 - Parcial: bitácora experimental con RLS y materialización inicial de movimientos en la misma transacción, verificadas en PostgreSQL 16 con rol restringido; rutas solo en pruebas y sin conexión al cliente. Faltan las demás entidades y reconciliar cualquier evento histórico registrado antes de la materialización. Las ediciones nuevas incluyen campos cambiados y marca de dispositivo; las operaciones antiguas necesitan una estrategia de compatibilidad.
 - `/sync/push` idempotente por `op_id` (`op_log`) y `/sync/pull` por `server_seq` (T-04).
 - Fastify + Drizzle + Postgres + **RLS por `negocio_id`**; matriz de permisos por rol (C7).
-- Probar auth/Postgres real y recuperación o renovación de sesiones; actualmente la web no llama a `/auth/renovar`.
+- Auth/Postgres real verificado en A; en B faltan recuperación y renovación automática del cliente,
+  que actualmente no llama a `/auth/renovar`.
 - Resolver la diferencia entre sesiones firmadas exigidas por `002` §5 y tokens opacos de T-05 y de la API; no asumir equivalencia ni modificar el spec sin decisión explícita.
 - **Gate:** repetir un lote no duplica; prueba de **aislamiento A/B**; migración aditiva.
 

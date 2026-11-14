@@ -80,7 +80,7 @@ jobs:
           retention-days: 7
 
   postgres-sync:
-    name: PostgreSQL 16 · bitácora sync y RLS
+    name: PostgreSQL 16 · auth, bitácora sync y RLS
     runs-on: ubuntu-latest
     services:
       postgres:

@@ -54,10 +54,10 @@ Fase: Spec Driven Development
 └── Implementación .......................... 🟡 M0 con gates pendientes · M1 ✅: dominio core (64) + Dexie (21)
                                               + UI C2–C5 sobre Dexie ✅ + C5 persistente ✅
                                               + 11 tests web + 10 e2e offline/persistencia/axe ✅
-                                              · M2 🟡 S3 ✅: auth API (14 tests) + sesión local/PIN
+                                              · M2 🟡 S3 + A ✅: auth/RLS real PG16 + sesión local/PIN
                                               (5 tests web) + 7 e2e (incluye invitación UI)
                                               · M3 🟡: funciones locales implementadas; integrar restore con
-                                              sync y completar backup del servidor · 164 tests + 1 integración PG + 31 e2e
+                                              sync y completar backup del servidor · 164 tests + 2 integraciones PG + 31 e2e
 
 Fase: Diseño (OpenDesigner) — artefactos en design/
 ├── F1 Fundaciones (tokens DTCG + DESIGN.md + decisions.md) ..... ✅ aprobado
@@ -67,6 +67,11 @@ Fase: Diseño (OpenDesigner) — artefactos en design/
 ```
 
 ## 5. Para retomar en una sesión nueva
+
+Continuidad de implementación: **A completado el 14/11/2026** (PG16.15, 9 casos de auth,
+bitácora sync existente, rol restringido y gates verdes). Sigue **B de `AGENTS.md` §6.3**:
+vincular el negocio local a la sesión sin perder datos heredados ni cola pendiente.
+Docker/Compose y despliegue completo siguen sin verificar; no habilitar sync todavía.
 
 1. Lee `002-especificacion-funcional.md` (fuente de verdad del producto) y `003-plan-tecnico.md` (cómo se construye).
 2. P1 (licencia **AGPL-3.0**) y P2 (login **código+PIN**) ya están cerradas; P3–P5 quedaron asumidas en el spec.

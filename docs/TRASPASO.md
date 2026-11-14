@@ -4,7 +4,7 @@
 > `AGENTS.md` es la **entrada corta**; este documento es el **paquete de contexto**: estado real,
 > arquitectura, invariantes, trampas, deuda y protocolo de trabajo.
 >
-> **Última actualización de estado:** 2 de noviembre de 2026 (revisión de documentación y plan).
+> **Última actualización de estado:** 14 de noviembre de 2026 (incremento A: auth y mínimo privilegio).
 > Si cambias código, actualiza §2, §3 y §14 al final de la sesión.
 
 ---
@@ -31,15 +31,27 @@
 - **Estado:** SDD y diseño (F1–F4) entregados. **M0 🟡** (gates/despliegue pendientes) · **M1 ✅**
   · **M2 🟡 S3 entregado** · **M3 🟡** (funciones locales implementadas; integración con sync y backup
   de servidor pendiente). **S4/S5 pendientes.**
-- **Números:** 164 tests regulares (96 core + 48 web + 20 api) y 1 integración PostgreSQL optativa · 31 e2e (offline C2–C5 + conteo +
+- **Números:** 164 tests regulares (96 core + 48 web + 20 api) y 2 integraciones PostgreSQL optativas
+  (9 casos auth + bitácora sync) · 31 e2e (offline C2–C5 + conteo +
   acceso/empleados + fiados + PWA + datos + inicio/reportes + OFF + axe AA) · bundle inicial
-  **115 689 B gzip** (presupuesto 153 600 B; SW fuera del bundle) · 13 pantallas / 60 marcos · WCAG 2.2 AA.
-- **Siguiente:** **S4/S5** (sync, RLS, LWW y backoff), integración del restore y backup del servidor;
-  validar el diálogo con zoom 200 % en S8. Detalle y gates en `006` §3.
+  **115 689 B gzip** (presupuesto 153 600 B; incluye SW/Workbox) · 13 pantallas / 60 marcos · WCAG 2.2 AA.
+- **A ✅:** auth real, altas atómicas, RLS y rol de API restringido probados en PG16.15.
+- **Siguiente:** **B de `AGENTS.md` §6.3** (negocio local por sesión, migración de `local` y
+  continuidad de acceso), después C/D (sync, LWW y restore). Docker, backup y campo siguen pendientes.
 
 ---
 
 ## 2. Estado verificado (no confiar en la memoria: re-verificar)
+
+Comprobación actual (14/11/2026, A): tipos, lint, **164 pruebas regulares**, build y tamaño
+**115 689 / 153 600 B gzip**, todos correctos. Integración en PG16.15 desechable: **31 pruebas API,
+0 fallos, 0 SKIP**, incluyendo 9 casos auth y la bitácora sync existente. **31 e2e Chromium/PWA
+sin reintentos** fuera del sandbox; dentro no arrancó el servidor de Playwright.
+`sh -n infra/db-init/001_migrar.sh infra/db-init/002_rol_api.sh` correcto.
+No se ejecutaron Docker/Compose (sin daemon ni plugin), CI remoto, contraste/QA de diseño
+(sin cambios de diseño), dispositivos reales, zoom/lector manual ni campo. Registro en §14.
+
+Resultados históricos anteriores (no sustituyen la comprobación actual):
 
 Comandos y resultados históricos al cierre de la sesión 5 (18/10/2026); no son una ejecución actual:
 
@@ -65,14 +77,15 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
 
 - **PWA:** el SW solo existe en build/`vite preview`, no en `vite dev`. El WASM de ZXing (953 KB) no
   se precachea: el escaneo por cámara necesita red la primera vez (el teclado manual sigue offline).
-- **S3 verificado con repo en memoria**: el adaptador Postgres/RLS compila pero **no se probó contra
-  una instancia real**; `/auth` busca código/token con rol dueño (bypass RLS) hasta `SECURITY DEFINER` (S4).
+- **Auth/PG verificado en A:** búsquedas iniciales por hash con funciones acotadas `SECURITY DEFINER`,
+  contexto de negocio por transacción y conexión sin superusuario/BYPASSRLS. Los e2e de acceso
+  siguen simulando HTTP; no equivalen a navegador → API → PG real.
 - La sesión **no cambia aún** el `negocioId` local ni dispara pull/sync (S4). Sin sesión, la app sigue
   en **modo local M1** (C2–C5) para no romper los flujos offline existentes.
 - La UI permite cerrar sesión; el flujo para volver a entrar y la renovación automática deben revisarse.
 - Sin endpoints de sync registrados en producción: existe una implementación experimental de bitácora
-  y materialización inicial de movimientos. Auth dispone de adaptador PostgreSQL no probado en una
-  instancia real. El restore/import es local y **no genera ops de outbox** hasta S4.
+  y materialización inicial de movimientos. Auth dispone de adaptador PostgreSQL probado en una
+  instancia real en A. Restore JSON no genera ops de outbox; CSV **sí encola** mediante el repo.
 - Lighthouse CI sigue pendiente (el gate de tamaño propio ya es real).
 - **Backups del servidor** (`pg_dump` + runbook) pendientes; dependen de S4.
 - El escáner no se ha probado en dispositivos reales (formatos y linterna sí están implementados).
@@ -80,6 +93,19 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
 ---
 
 ## 3. Qué se construyó (changelog)
+
+### A · Auth PostgreSQL y mínimo privilegio ✅ (14/11/2026)
+
+- `0004_auth_minimo_privilegio.sql`: cuatro funciones acotadas con `search_path` fijo y ejecución
+  pública revocada; alta completa y canje atómicos, invitación de un uso/vencimiento y sesión
+  válida sólo con negocio/persona/membresía activos. RLS rechaza referencias entre negocios.
+- El repositorio fija contexto también al consultar negocio/persona y al usar/revocar sesión.
+  El servicio incluye la sesión inicial en el alta; se reprodujo y corrigió su persistencia parcial.
+- `infra/permisos-app.sql` y scripts de inicialización: rol de API sin propiedad, superusuario
+  ni BYPASSRLS; la única contraseña externa queda en ese rol. Administración por socket local
+  dentro del contenedor. Compose conserva las cinco variables externas; arranque Docker sin verificar.
+- Integración real con migraciones desde base vacía, rollback de alta/canje, carreras, expiración,
+  revocación y aislamiento A/B. SQL de permisos compartido entre fixture y aprovisionamiento.
 
 ### S4 · Sync experimental — avance parcial
 
@@ -229,7 +255,7 @@ UI (Preact)  →  datos/ (repos web)  →  @latiendita/core/db (Dexie)  →  Ind
                         └── dominio puro (@latiendita/core: libro, stock, unidades, fiados, outbox)
 
 API (Fastify) →  /off/:codigo  →  Open Food Facts (solo servidor; nunca el cliente)
-              →  /auth/*       →  PostgreSQL (S3 probado con repo en memoria; S4 conecta RLS)
+              →  /auth/*       →  PostgreSQL (A: auth real, RLS y rol restringido probados)
 ```
 
 Regla: **la UI no escribe IndexedDB directamente** (excepto lecturas de apoyo en los repos web).
@@ -404,14 +430,14 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
 | 3 | ~~`/conteo` sin entrada~~ | ✅ resuelto: Inicio enlaza al conteo en curso y a Conteo | — |
 | 4 | ~~Sin ESLint~~ | ✅ resuelto: `pnpm lint` = ESLint flat config | — |
 | 5 | Lighthouse CI pendiente | falta el gate de rendimiento en navegador (el tamaño ya es real) | M0/M4 |
-| 6 | API auth probada con repo en memoria; **sync pendiente** | M2 completo pendiente | S4–S5 |
+| 6 | Auth probada en memoria y PG16 con rol restringido; **sync pendiente** | M2 completo pendiente | B–D |
 | 7 | Caché OFF del servidor en memoria | se pierde al reiniciar (la caché local del cliente sí persiste) | M2 (junto a DB) |
 | 8 | Caddy no sirve la web | despliegue real incompleto | M4 |
 | 9 | ~~Sin `LICENSE`~~ | ✅ resuelto: AGPL-3.0 (P1 cerrada) | — |
 | 10 | Escáner sin prueba en dispositivo real | formatos/linterna sin validar | campo / S9 |
 | 11 | ~~Reportes, empleados e Inicio~~ | ✅ resueltos en S6/S7 | — |
-| 12 | Adaptador Postgres/RLS de auth **sin probar** contra una instancia real | riesgo de fallo sólo en despliegue | S4 |
-| 13 | `/auth` busca código/token con rol dueño (bypass RLS) | esas consultas no pasan por RLS | S4 (`SECURITY DEFINER`) |
+| 12 | ~~Adaptador Postgres/RLS de auth sin probar~~ | ✅ A: migraciones y 9 casos de auth en PG16.15 con rol restringido | — |
+| 13 | ~~La conexión `/auth` usa el rol dueño~~ | ✅ A: búsquedas por funciones acotadas; rol de API sin propiedad ni BYPASSRLS | — |
 | 14 | ~~Sin botón de cerrar sesión~~ | ✅ resuelto: cierre con confirmación en «Más» | — |
 | 15 | La sesión no cambia el `negocioId` local ni dispara pull | la app sigue en modo local hasta S4 | S4 |
 | 16 | Import/restore JSON/CSV | restore local corregido; falta integración con sync | S4/S5 (`006` §3) |
@@ -424,7 +450,7 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
 | 23 | API rota tokens, pero la web no llama a `/auth/renovar` | posible pérdida de acceso al vencer; investigar flujo de recuperación | S4 |
 | 24 | Spec exige sesiones firmadas; implementación usa tokens opacos | diferencia entre NFR y T-05; resolver explícitamente antes de cerrar seguridad sin asumir equivalencia | S4/S8 |
 | 25 | Fusión LWW sin conectar al servidor | núcleo puro y pruebas implementados; faltan persistencia, transporte y convergencia de extremo a extremo | S4/S5 |
-| 26 | Sync experimental incompleto | Materialización inicial de movimientos y bitácora en una transacción, probada en PostgreSQL 16 con rol restringido; otras entidades, reconciliación de eventos antiguos, auth/RLS general y push/pull real siguen pendientes. Rutas no registradas en producción | S4/S5 |
+| 26 | Sync experimental incompleto | Materialización inicial de movimientos y bitácora en una transacción, probada en PostgreSQL 16 con rol restringido; otras entidades, reconciliación de eventos antiguos, permisos de sync y push/pull real siguen pendientes. Rutas no registradas en producción | C/D |
 
 ---
 
@@ -444,8 +470,8 @@ Criterios cumplidos:
 - ✅ PIN con argon2id en servidor; sesión opaca en IndexedDB; rotación y revocación.
 - ✅ **Desbloqueo offline por PIN local** (PBKDF2, sin red).
 - ✅ Gate: invitar ↔ unirse (API, repo memoria); la sesión sobrevive recarga; el PIN desbloquea sin red.
-- ⚠️ Deuda honesta: adaptador Postgres/RLS sin probar contra instancia real y `/auth` con bypass de RLS
-  hasta `SECURITY DEFINER` → **S4**.
+- ✅ A: adaptador Postgres/RLS probado con migraciones reales, rol restringido y funciones
+  `SECURITY DEFINER` acotadas. Despliegue con Docker y continuidad del acceso del cliente pendientes.
 
 ### Integridad de datos
 
@@ -456,8 +482,8 @@ La integración de restore con sync y el zoom manual continúan pendientes (`006
 
 - `/sync/push` idempotente por `op_id` (`op_log`) y `/sync/pull` por `server_seq` (T-04).
 - Fastify + Drizzle + Postgres + **RLS efectiva**; matriz de permisos por rol (C7).
-- Probar la migración real, mover búsquedas de auth a `SECURITY DEFINER` y conectar el `negocioId`
-  local de la web a la sesión (dejar el modo local M1 atrás).
+- A (migración y auth real) completado. Seguir B de `AGENTS.md` §6.3: conectar `negocioId`
+  local a la sesión y preservar los datos heredados; C/D completan persistencia y transporte sync.
 - **Gate:** repetir un lote no duplica; aislamiento A/B; migración aditiva.
 
 ### Otros pendientes no bloqueados
@@ -557,8 +583,8 @@ Antes de hacer nada, lee en este orden:
 
 Estado verificado: SDD y diseño (F1–F4) completos. M0 🟡 · M1 ✅ (dominio + Dexie + UI C2–C5 sobre
 IndexedDB, C5 persistente) · M2 en curso (S3 entregado) · M3 con funciones locales implementadas y
-restore local corregido; sync y backup de servidor pendientes. 164 tests + 1 integración PG + 31 e2e. P1/P2 cerradas.
-Siguiente: S4 (sync + RLS).
+restore local corregido; sync y backup de servidor pendientes. 164 tests + 2 integraciones PG + 31 e2e. P1/P2 cerradas.
+A (auth real PG16 y mínimo privilegio) completado. Siguiente: B de AGENTS.md §6.3.
 
 Protocolo: verifica la base (git status, typecheck, test) → plan pequeño → implementa → prueba →
 actualiza docs → reporta con evidencia. El spec manda; español primero; WCAG 2.2 AA es contrato;
@@ -588,6 +614,37 @@ Empieza confirmando que leíste el estado y proponme el siguiente incremento de 
 ---
 
 ## 14. Registro de sesiones
+
+### Sesión 11 (14/11/2026) — A: auth PostgreSQL y mínimo privilegio
+
+**Base:** `f631449`; `AGENTS.md` ya contenía cambios del dueño, conservados. Node 26.11.1,
+pnpm 9.15.9; un solo agente en el árbol indicado, sin commit/push/despliegue ni cambios de alcance.
+
+**Archivos:** `auth/{repoPostgres,repoMemoria,servicio,tipos}.ts`, `db/client.ts`, nueva integración
+`auth/repoPostgres.test.ts`, migración `0004`, `infra/{docker-compose.yml,permisos-app.sql,db-init/*,.env.example,README.md}`,
+nombre del job PG de CI y documentos de estado. Cuatro funciones con permisos acotados y RLS
+en lecturas/escrituras normales; se corrigió además el alta parcial cuando fallaba la sesión inicial.
+Primero fallaron las pruebas por permiso denegado en `negocio` y por filas del alta que sobrevivían
+al fallo de sesión; después quedaron verdes. La revisión final fue propia, sin agente revisor,
+respetando la instrucción de trabajar con un solo agente.
+
+**Evidencia:** clúster temporal PG16.15 en `/tmp/latiendita-auth-pg16-data`, socket `/tmp`, puerto 55439, detenido al cierre;
+no se usaron datos de una tienda. `SYNC_TEST_PG=1 PGHOST=/tmp PGPORT=55439 PGUSER=sync_admin PGDATABASE=postgres pnpm --filter @latiendita/api test`
+→ **31 pruebas API, 0 fallos, 0 SKIP** (9 casos auth, su contenedor, bitácora sync y 20 regulares).
+Tipos/lint, 164 pruebas regulares, build y tamaño **115 689 B gzip** correctos.
+`CI=1 pnpm --filter @latiendita/web test:e2e` → **31/31 sin reintentos**, fuera del sandbox
+tras bloqueo de arranque del servidor dentro del sandbox. Sintaxis de ambos scripts shell correcta.
+
+**Límites/decisiones:** Docker sigue sin daemon ni plugin Compose: SQL y permisos probados contra PG
+real, scripts de contenedor sólo con `sh -n`; arranque y transición con volúmenes existentes sin ejecutar.
+El administrador queda sin contraseña remota y se administra por socket dentro del contenedor;
+el rol restringido recibe `POSTGRES_PASSWORD`, conservando las cinco variables externas.
+Sin CI remoto, dispositivos, lector/zoom manual ni campo. Sin cambios de diseño, no se repitieron
+contraste/QA. Sync no se registró y B–F siguen abiertos.
+
+**Siguiente exacto:** B — probar sesión A→B, cierre/reapertura y desbloqueo offline con cola
+pendiente; sustituir el negocio `local` y definir su migración sin apropiación silenciosa de datos.
+Investigar renovación/reingreso; si requiere un flujo nuevo, acordarlo y actualizar `002` primero.
 
 ### Sesión 10 (02/11/2026) — primer asiento experimental
 

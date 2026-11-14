@@ -31,6 +31,7 @@ export class RepositorioAuthMemoria implements RepositorioAuth {
     this.negocios.set(datos.negocio.id, copiar(datos.negocio));
     this.usuarios.set(datos.usuario.id, copiar(datos.usuario));
     this.membresias.set(datos.membresia.id, copiar(datos.membresia));
+    this.guardarSesion(datos.sesion);
   }
 
   async buscarNegocio(id: string): Promise<FilaNegocio | null> {

@@ -78,6 +78,12 @@ export class ServicioAuth {
     };
     const usuarioId = nuevoId();
     const pinHash = await hashearPin(input.pin);
+    const token = nuevoToken();
+    const filaSesion: FilaSesion = {
+      id: nuevoId(), negocioId: negocio.id, usuarioId, tokenHash: hashearToken(token),
+      rol: "dueña", expiraEn: ahora + DURACION_SESION_MS,
+      revocadaEn: null, ultimoUsoEn: null, creadoEn: ahora,
+    };
 
     await this.repo.crearNegocio({
       negocio,
@@ -93,9 +99,10 @@ export class ServicioAuth {
         usuarioId,
         rol: "dueña",
       },
+      sesion: filaSesion,
     });
 
-    const sesion = await this.abrirSesion(negocio.id, usuarioId, nombreDueno, "dueña", ahora);
+    const sesion = this.cuentaSesion(token, filaSesion, nombreDueno);
     return {
       negocio: {
         id: negocio.id,
@@ -200,7 +207,7 @@ export class ServicioAuth {
 
   async autenticarToken(token: string): Promise<SesionCuenta> {
     const { sesion, usuario } = await this.resolver(token);
-    await this.repo.marcarUsoSesion(sesion.id, this.ahora());
+    await this.repo.marcarUsoSesion(sesion.id, this.ahora(), sesion.negocioId);
     return this.cuentaSesion(token, sesion, usuario.nombre);
   }
 
@@ -232,30 +239,7 @@ export class ServicioAuth {
     if (token === "") return;
     const sesion = await this.repo.buscarSesionPorToken(hashearToken(token));
     if (!sesion || sesion.revocadaEn !== null) return;
-    await this.repo.revocarSesion(sesion.id, this.ahora());
-  }
-
-  private async abrirSesion(
-    negocioId: string,
-    usuarioId: string,
-    nombre: string,
-    rol: Rol,
-    ahora: number,
-  ): Promise<SesionCuenta> {
-    const token = nuevoToken();
-    const sesion: FilaSesion = {
-      id: nuevoId(),
-      negocioId,
-      usuarioId,
-      tokenHash: hashearToken(token),
-      rol,
-      expiraEn: ahora + DURACION_SESION_MS,
-      revocadaEn: null,
-      ultimoUsoEn: null,
-      creadoEn: ahora,
-    };
-    await this.repo.crearSesion(sesion);
-    return this.cuentaSesion(token, sesion, nombre);
+    await this.repo.revocarSesion(sesion.id, this.ahora(), sesion.negocioId);
   }
 
   private async resolver(token: string): Promise<{
@@ -267,7 +251,7 @@ export class ServicioAuth {
     if (!sesion || sesion.revocadaEn !== null || sesion.expiraEn <= this.ahora()) {
       throw new ErrorAuth(401, "sesion_invalida", ERROR_SESION);
     }
-    const usuario = await this.repo.buscarUsuario(sesion.usuarioId);
+    const usuario = await this.repo.buscarUsuario(sesion.usuarioId, sesion.negocioId);
     if (!usuario) throw new ErrorAuth(401, "sesion_invalida", ERROR_SESION);
     return { sesion, usuario };
   }

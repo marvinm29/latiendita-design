@@ -77,13 +77,14 @@ manda sobre el diseño (si algo contradice el spec, se cambia el spec primero).
 | Plan de sprints | `specs/006-plan-sprints.md` | ✅ escrito — M1 y S3 entregados; M2 y cierre de M3 pendientes |
 | **M0 · Cimientos** | monorepo pnpm (`apps/`, `packages/`, `infra/`) + CI + RLS base + ESLint + gate de tamaño | 🟡 scaffold; Lighthouse y despliegue completo pendientes |
 | **M1 · Núcleo offline** | dominio puro `packages/core` + capa Dexie + UI C2–C5 sobre IndexedDB + conteo persistente + e2e offline + OFF | ✅ 96 tests + 10 e2e (axe AA) |
-| **M2 · Cuentas y acceso** | negocio, invitación de un solo uso, argon2id, sesión rotativa, desbloqueo offline por PIN, cierre de sesión + pantallas de alta/unión/bloqueo/empleados | ✅ S3 (14 API + 5 web + 7 e2e) · ⏳ S4/S5 sync |
+| **M2 · Cuentas y acceso** | negocio, invitación de un solo uso, argon2id, sesión rotativa, desbloqueo offline por PIN, cierre de sesión + pantallas de alta/unión/bloqueo/empleados | ✅ S3 + A (auth real y RLS con rol restringido en PG16) · ⏳ B–D (datos locales/sync) |
 | **M3 · Producto** | fiados (C6), PWA (C9), datos CSV/JSON (C10), reportes (C11) e Inicio | 🟡 funciones locales implementadas; integración con sync y backup del servidor pendientes |
 | Decisiones P1/P2/DS-26 | issues #1–#5 en GitHub | ✅ P1 (AGPL-3.0), P2 (código+PIN) y #4 (DS-31) · ⏳ DS-26/#5 |
 
 Números actuales: **60/60 pares de contraste AA** en ambos modos, **13 pantallas / 60 marcos**,
 **42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **164 tests**
-(96 core + 48 web + 20 api), 1 integración PostgreSQL optativa y **31 e2e** (offline C2–C5 + conteo + acceso/empleados + fiados + PWA + datos + inicio/reportes + OFF + axe AA).
+(96 core + 48 web + 20 api), 2 integraciones PostgreSQL optativas (9 casos auth + bitácora sync)
+y **31 e2e** (offline C2–C5 + conteo + acceso/empleados + fiados + PWA + datos + inicio/reportes + OFF + axe AA).
 
 ---
 
@@ -334,7 +335,7 @@ pnpm --filter @latiendita/web test:e2e:install   # una vez: Chromium de Playwrig
 pnpm --filter @latiendita/web test:e2e           # offline + conteo + acceso/empleados + fiados + PWA + datos + reportes + axe AA
 ```
 
-Estado: **M0 🟡 · M1 ✅ · M2 🟡 · M3 🟡**. Hay cuentas/PIN, invitaciones, fiados, PWA, import/export, reportes e Inicio. El restore local incluye conteos y conserva ediciones existentes; todavía no genera operaciones para sync. Sync, RLS efectivo y backup del servidor siguen pendientes. Detalles en [`docs/TRASPASO.md`](docs/TRASPASO.md).
+Estado: **M0 🟡 · M1 ✅ · M2 🟡 · M3 🟡**. Hay cuentas/PIN, invitaciones, fiados, PWA, import/export, reportes e Inicio. Auth y su aislamiento RLS están probados en PG16 con rol restringido (A). El restore JSON conserva conteos y ediciones existentes; todavía no genera operaciones para sync. Siguen pendientes negocio local por sesión (B), sync (C/D) y operación/backups (E). Detalles en [`docs/TRASPASO.md`](docs/TRASPASO.md).
 
 ---
 
@@ -416,8 +417,9 @@ Las decisiones están registradas y justificadas una por una en [`design/decisio
 2. **Roadmap — ✅ [`specs/004-roadmap.md`](specs/004-roadmap.md):** hitos M0–M4 (tareas, criterios de
    salida, camino crítico), gates de calidad obligatorios, plan de adopción D11 (comunidad + self-host)
    y qué viene después de v1.
-3. **Implementación:** M1 y S3 entregados; M0, M2 y M3 conservan pendientes. Sigue S4: `/sync/push|pull`, RLS
-   y aislamiento A/B, seguido de S5 (LWW/backoff). Ver `specs/006-plan-sprints.md`.
+3. **Implementación:** M1, S3 y A (auth/RLS en PG16) entregados; M0, M2 y M3 conservan pendientes.
+   Sigue B (negocio local y continuidad de acceso), después C/D (sync y LWW/backoff).
+   Ver `AGENTS.md` §6 y `specs/006-plan-sprints.md`.
 
 Todas las fases de diseño (F1 fundaciones, F2 componentes, F3 pantallas con lotes 1–3, F4 cierre
 WCAG) están **entregadas** y el núcleo offline de la v1 está implementado y probado.

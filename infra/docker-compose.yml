@@ -13,8 +13,10 @@ services:
       POSTGRES_DB: latiendita
     volumes:
       - db_data:/var/lib/postgresql/data
-      # Migraciones SQL se aplican en el primer arranque (initdb.d).
-      - ../apps/api/src/migrations:/docker-entrypoint-initdb.d:ro
+      # Migraciones + rol de API restringido, sólo en volúmenes nuevos.
+      - ../apps/api/src/migrations:/migrations:ro
+      - ./db-init:/docker-entrypoint-initdb.d:ro
+      - ./permisos-app.sql:/permisos-app.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U latiendita -d latiendita"]
       interval: 5s
@@ -28,8 +30,12 @@ services:
       dockerfile: infra/api.Dockerfile
     restart: unless-stopped
     environment:
-      # Mismo usuario/DB que el servicio db (no son variables externas).
-      DATABASE_URL: postgres://latiendita:${POSTGRES_PASSWORD:?Definí POSTGRES_PASSWORD en infra/.env}@db:5432/latiendita
+      # Rol sin propiedad de tablas ni BYPASSRLS. Variables separadas evitan
+      # codificar contraseñas con caracteres reservados dentro de una URL.
+      POSTGRES_HOST: db
+      POSTGRES_USER: latiendita_api
+      POSTGRES_DB: latiendita
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Definí POSTGRES_PASSWORD en infra/.env}
       SESSION_SECRET: ${SESSION_SECRET:?Definí SESSION_SECRET en infra/.env}
       DEMO_SEED: ${DEMO_SEED:-false}
       PORT: "3000"
