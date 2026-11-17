@@ -6,6 +6,7 @@
  * refresca `stock_cache` (caché de velocidad, C4.3). Si la op no cabe en la
  * outbox (p. ej. `opId` repetido), la escritura entera se revierte.
  */
+import { exigirOrigenDisponible } from "../meta";
 import { crearMovimiento, type CrearMovimientoInput } from "../../libro";
 import type { Movimiento, OpOutbox } from "../../tipos";
 import type { LaTienditaDb, MovimientoFila } from "../schema";
@@ -43,11 +44,9 @@ export function crearMovimientosRepo(db: LaTienditaDb, negocioId: string): Movim
     // rw: valida producto (lectura) + inserta libro + outbox + caché — todo junto.
     return db.transaction(
       "rw",
-      db.productos,
-      db.movimientos,
-      db.outbox,
-      db.stock_cache,
+      [db.meta, db.productos, db.movimientos, db.outbox, db.stock_cache],
       async () => {
+        await exigirOrigenDisponible(db, negocioId);
         await productoActivo(db, negocioId, input.productoId);
         const movimiento = crearMovimiento({ ...input, opId });
         const op = crearOpDe(negocioId, "movimiento", { movimiento }, { ahora, id: opId });

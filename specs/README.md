@@ -54,10 +54,10 @@ Fase: Spec Driven Development
 └── Implementación .......................... 🟡 M0 con gates pendientes · M1 ✅: dominio core (64) + Dexie (21)
                                               + UI C2–C5 sobre Dexie ✅ + C5 persistente ✅
                                               + 11 tests web + 10 e2e offline/persistencia/axe ✅
-                                              · M2 🟡 S3 + A + B1 ✅: auth/RLS PG16 + aislamiento local
+                                              · M2 🟡 S3 + A + B1 + B2a ✅: auth/RLS PG16 + aislamiento local + traslado heredado
                                               (5 tests web) + 7 e2e (incluye invitación UI)
                                               · M3 🟡: funciones locales implementadas; integrar restore con
-                                              sync y completar backup del servidor · 171 tests + 2 integraciones PG + 32 e2e
+                                              sync y completar backup del servidor · 186 tests + 2 integraciones PG + 33 e2e
 
 Fase: Diseño (OpenDesigner) — artefactos en design/
 ├── F1 Fundaciones (tokens DTCG + DESIGN.md + decisions.md) ..... ✅ aprobado
@@ -69,8 +69,9 @@ Fase: Diseño (OpenDesigner) — artefactos en design/
 ## 5. Para retomar en una sesión nueva
 
 Continuidad de implementación: **A y B1 completados el 14/11/2026**: auth/RLS PG16 y aislamiento
-local por sesión. B1 pasa 171 pruebas regulares, 32 e2e y tamaño 116 186 B gzip; PG histórico de A.
-Sigue **B2 de `AGENTS.md` §6.3**: propiedad/migración explícita de datos `local` y renovación/reingreso.
+local por sesión. **B2a completado el 16/11/2026**: traslado de heredados con confirmación de
+la dueña y respaldo (C1.4). Pasan 186 regulares, 33 e2e y tamaño 118 513 B gzip; PG histórico de A.
+Sigue **B2b de `AGENTS.md` §6.3**: renovación y reingreso recuperable.
 Docker/Compose y despliegue completo siguen sin verificar; no habilitar sync todavía.
 
 1. Lee `002-especificacion-funcional.md` (fuente de verdad del producto) y `003-plan-tecnico.md` (cómo se construye).

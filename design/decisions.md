@@ -169,6 +169,18 @@ Outcome: the variant reads without color (icon + words), stays inside the same 4
 
 ---
 
+### DS-32 · Traslado de datos anteriores con confirmación de propiedad y respaldo
+Contexto (16/11/2026): `local` puede mezclar ejemplos editados con datos reales. El dueño eligió
+confirmación explícita de la dueña y respaldo antes de trasladar todo; descartar ejemplos por ID
+no demuestra que sean prescindibles. Contrato: `specs/002-especificacion-funcional.md` C1.4.
+Decisión: tarjeta en «Respaldo y datos», resumen, checkbox «Estos datos son de mi tienda» y botón
+«Guardar respaldo y trasladar». Cancelar no escribe. Sólo destino local vacío; no hay merge
+automático. Respaldo persistente y descargable, incluida la cola original, sin credenciales.
+La descarga vuelve a comprobar la cuenta; traslado y respaldo comparten una transacción.
+Resultado verificado: `e2e/migracion-local.spec.ts` comprueba confirmación/cancelación, descarga
+tras recarga/desbloqueo offline, cambio de cuenta y axe AA. Reutiliza tokens y controles actuales;
+no añade colores, iconos ni marcos a los mockups. Renovación/reingreso y sync siguen pendientes.
+
 ## Verification ledger
 
 | Check | Command | Status |

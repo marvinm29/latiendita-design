@@ -6,6 +6,16 @@
  */
 import type { LaTienditaDb } from "./schema";
 
+/** Marca terminal del traslado explícito del contexto heredado. */
+export const CLAVE_TRASLADO_LOCAL = "migracion:local:v1";
+
+/** Debe ejecutarse dentro de la transacción de escritura, incluyendo `meta`. */
+export async function exigirOrigenDisponible(db: LaTienditaDb, negocioId: string): Promise<void> {
+  if (negocioId === "local" && await db.meta.get(CLAVE_TRASLADO_LOCAL)) {
+    throw new Error("Los datos anteriores ya se trasladaron. Entra con la cuenta de tu tienda.");
+  }
+}
+
 /** Lee un valor genérico de `meta`. */
 export async function leerMeta<T>(db: LaTienditaDb, clave: string): Promise<T | undefined> {
   const fila = await db.meta.get(clave);

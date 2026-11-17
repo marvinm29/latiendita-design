@@ -42,11 +42,11 @@ el **plan técnico + roadmap**, y el **monorepo de implementación** (M0 + M1 + 
 | Plan de sprints (`006`) | ✅ escrito — **M1 y S3 entregados; M2 en curso; M3 con sync y backup del servidor pendientes** |
 | **M0 · Cimientos** | 🟡 scaffold monorepo + CI + RLS base + docker-compose + **ESLint real** + **gate de tamaño real**; Lighthouse y despliegue completo pendientes |
 | **M1 · Núcleo offline** | ✅ dominio puro (64 tests) + capa Dexie (21 tests, libro+outbox+conteo) + **UI C2–C5 toda sobre Dexie** (catálogo, libro y conteo comparten base; escáner BarcodeDetector lazy → **ZXing-wasm perezoso** → teclado manual) + **conteo persistente y reanudable (C5.2)** + 11 tests web + **10 e2e offline C2–C5 + conteo persistente + axe AA** + **OFF** (proxy + caché local) |
-| **M2 · Cuentas y sync** | 🟡 **S3 ✅ · A ✅ · B1 ✅** (auth/RLS PG16 y aislamiento local por sesión) · **B parcial** (migración de `local` y renovación/reingreso pendientes) · C/D sync pendientes |
+| **M2 · Cuentas y sync** | 🟡 **S3 ✅ · A ✅ · B1 ✅ · B2a ✅** (auth/RLS PG16, aislamiento local y traslado explícito de heredados con respaldo) · **B parcial** (renovación/reingreso pendientes) · C/D sync pendientes |
 | **M3 · Producto** | 🟡 fiados, PWA, import/export, reportes e Inicio implementados; restore local corregido; faltan integración con sync y backup del servidor |
 | Licencia del proyecto | ✅ **AGPL-3.0** (P1 cerrada 18/10/2026): `LICENSE` + `"license": "AGPL-3.0-only"` en los paquetes. |
 
-Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · **171 tests regulares** (96 core + 55 web + 20 api) + **2 integraciones PostgreSQL optativas** (9 casos auth + bitácora sync) + **32 e2e** · bundle **116 186 B gzip** / 153 600 B (total medido de JS+CSS, incluidos SW y Workbox).
+Números: 13 pantallas / 60 marcos a 360×640 · 60/60 pares de contraste AA · 42 iconos Lucide · **186 tests regulares** (96 core + 70 web + 20 api) + **2 integraciones PostgreSQL optativas** (9 casos auth + bitácora sync) + **33 e2e** · bundle **118 513 B gzip** / 153 600 B (total medido de JS+CSS, incluidos SW y Workbox).
 
 ## 3. Decisiones cerradas — NO reabrir
 
@@ -181,10 +181,13 @@ vecinos, `packages/core/src/db/`, tests `sesionRepo.test.ts`, `repos.test.ts` y 
 - [x] B1: resolver el negocio desde `sesion_local` por operación, con contexto estable para
   catálogo/libros/conteos/fiados/reportes/import/export y suscripciones. Cuentas reales sin semillas.
   Stock y referencias de restore comprueban negocio; un PIN pendiente de A no desbloquea B.
-- [ ] Sustituir el contexto fijo `local` por repositorios del negocio activo y revisar claves e
+- [x] Sustituir el contexto fijo `local` por repositorios del negocio activo y revisar claves e
   índices globales de IndexedDB. Definir una migración transaccional de datos heredados `local`:
   respaldar, preservar IDs/libros/cola, distinguir demo y datos reales y no asignarlos a otro
   negocio silenciosamente. Si la propiedad de los datos es ambigua, pedir una decisión concreta.
+  **B2a (16/11/2026):** dueña confirma pertenencia de todo el origen, incluidos ejemplos;
+  respaldo y traslado atómicos a destino vacío. Se mantienen base e IDs globales.
+  C1.4 documenta la política elegida; la marca terminal impide resiembra/escrituras tardías.
 - [ ] Conectar renovación antes del vencimiento y probar fallos de red/rotación. Revisar el
   reingreso después de salir o perder la sesión sin reutilizar invitaciones consumidas; si exige
   un nuevo flujo de producto, acordarlo y actualizar `002` antes de implementarlo.
@@ -307,10 +310,35 @@ IDs repetidos y operaciones antiguas sin marcas (C/D). Los casos correspondiente
   Auth HTTP del e2e se simula: demuestra aislamiento local, no reingreso real ni sync. Sin cambios
   de diseño: contraste/QA no repetidos. Sin Docker, campo ni dispositivos reales. Revisión propia,
   un solo agente. Commit/push autorizados por la instrucción posterior del usuario en la conversación.
-- **Siguiente exacto (B2):** acordar la política de propiedad de `local` (pregunta enviada al dueño;
+- **Siguiente al terminar B1 (histórico):** acordar la política de propiedad de `local` (pregunta enviada al dueño;
   no se asignó ningún dato), implementar respaldo+migración transaccional explícita y después
   renovación/reingreso recuperable. Si requiere un flujo nuevo, acordarlo y actualizar `002` primero.
   **B permanece abierto**; no pasar a D ni habilitar sync como si estuviera cerrado.
+- **Completado (16/11/2026, B2a sobre `acf23df`):** el dueño eligió confirmación de la dueña
+  y respaldo antes de trasladar todo. Spec C1.4 actualizado primero; plan/registro en
+  `docs/planes/2026-11-16-b2-datos-heredados.md`. `migracionLocal.ts` y tarjeta en Respaldo
+  implementan resumen sin escritura, confirmación, respaldo original persistente/descargable
+  (incluye unidades, conteos, outbox y caché; sin sesión/PIN), traslado en una transacción,
+  rechazo de destino ocupado/referencias ajenas/ops desconocidas y repetición idempotente.
+  Conserva IDs, libros, marcas LWW y metadatos de reintento. No copia cursores ni confirmaciones:
+  `serverSeq` queda null; ops `ok`/`enviando` vuelven a pendientes. Stock se deriva del libro.
+  Core e importador impiden escrituras con contexto `local` capturado antes del traslado;
+  al salir no reaparece demo. La descarga revalida la cuenta actual.
+- **Evidencia B2a:** tipos, lint, **186 regulares** (96 core + 70 web + 20 API), build y
+  **118 513 / 153 600 B gzip** correctos. `CI=1 pnpm --filter @latiendita/web test:e2e --retries=0`
+  → **33/33 (24.7 s)**. 15 pruebas web nuevas y un e2e con cancelación, confirmación,
+  recarga/desbloqueo offline, descarga real y axe. Pruebas rojas antes de implementar;
+  revisión final reprodujo caché 999 frente a stock 10 y descarga con cuenta cambiada,
+  ambas corregidas con regresiones rojas→verdes. El conjunto final se ejecutó completo.
+- **Límites B2a:** tests/e2e fuera del sandbox tras EPERM de sockets/arranque bloqueado.
+  PG omitido (2 SKIP): sin cambios API/SQL, evidencia A sólo histórica. HTTP auth simulado
+  en e2e; no demuestra reingreso ni sync. Contraste 60/60 y QA estática de diseño
+  13 pantallas/60 marcos/0 hallazgos correctos; axe también. Sin Docker, CI remoto, dispositivos ni campo.
+  Revisión propia, un agente. Commit/push autorizados después por el dueño; sin despliegue.
+- **Siguiente exacto (B2b):** renovación antes de vencer con fallos de red/rotación y
+  definición de reingreso tras salir/perder sesión sin reutilizar invitación consumida.
+  Si requiere flujo nuevo, acordarlo y actualizar `002` primero. Destinos con datos
+  conservan el origen separado: no hay merge automático. B sigue abierto, sync sin registrar.
 - **Al cerrar cada sesión:** añadir fecha, incremento/subtarea, archivos, comandos/resultados,
   pruebas omitidas, decisiones y siguiente acción exacta. Conservar resultados históricos como
   históricos; no reemplazarlos por promesas ni marcar casillas por código que sólo compila.
@@ -323,15 +351,15 @@ Retoma LaTiendita en /home/varm/Documents/testModels. Lee AGENTS.md, especialmen
 el traspaso y los specs relevantes según §1.
 
 Ejecuta el primer incremento pendiente de §6.3 con dependencias satisfechas; actualmente B:
-completar migración de datos heredados y continuidad de acceso (B2). A y B1 están terminados;
-el negocio ya se resuelve desde la sesión, pero no se han trasladado datos `local`.
+completar continuidad de acceso (B2b). A, B1 y B2a están terminados; `local` ya tiene
+traslado explícito con respaldo y confirmación de la dueña a una tienda vacía.
 Trabaja secuencialmente con un solo agente,
 sin repetir la auditoría completa ni reabrir stack/decisiones. La tarea es implementar y
 verificar ese incremento, no quedarse en otro plan. Si requiere varias sesiones, termina
 una subtarea verificable y deja la siguiente exacta.
 
-Base: A en 6b2de47 y B1 posterior; 171 tests regulares, 32 e2e y 116 186 B gzip.
-Las dos integraciones PG pasaron en A (no repetidas en B1). Sync no está registrado,
+Base de B2a: acf23df; revisión B2a identificable en git log. 186 tests regulares, 33 e2e y 118 513 B gzip.
+Las dos integraciones PG pasaron en A (no repetidas en B1/B2a). Sync no está registrado,
 restore JSON no encola; CSV sí. No habilites sync prematuramente.
 
 Verifica git status y la base; conserva mis cambios. Usa PG desechable para pruebas, nunca

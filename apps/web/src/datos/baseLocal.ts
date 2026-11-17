@@ -14,6 +14,7 @@ import {
   abrirDb,
   crearRepos,
   escribirMeta,
+  exigirOrigenDisponible,
   leerMeta,
   solicitarPersistencia,
   type LaTienditaDb,
@@ -50,6 +51,7 @@ export async function resolverBaseLocal(base: BaseLocal = baseApp): Promise<Base
   if (!base.seguirSesion) return { ...base };
   const fila = await base.db.sesion_local.get("actual");
   const negocioId = fila?.sesion.negocioId ?? NEGOCIO_LOCAL;
+  if (!fila) await exigirOrigenDisponible(base.db, NEGOCIO_LOCAL);
   if (fila && (!negocioId || negocioId === NEGOCIO_LOCAL)) {
     throw new Error("La sesión no identifica un negocio válido.");
   }

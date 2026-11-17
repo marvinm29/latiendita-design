@@ -5,6 +5,7 @@
  * encola la op de sync en la MISMA transacción (003 §3). Borrado = tombstone
  * (`deletedAt`); el historial de movimientos nunca se toca (C2.5).
  */
+import { exigirOrigenDisponible } from "../meta";
 import { buscarProductos } from "../../indice";
 import type { Producto, UnidadVenta } from "../../tipos";
 import type { LaTienditaDb, ProductoFila } from "../schema";
@@ -97,7 +98,8 @@ export function crearProductosRepo(db: LaTienditaDb, negocioId: string): Product
         serverSeq: null,
         rev: 0,
       };
-      await db.transaction("rw", db.productos, db.outbox, async () => {
+      await db.transaction("rw", db.meta, db.productos, db.outbox, async () => {
+        await exigirOrigenDisponible(db, negocioId);
         await asegurarCodigoLibre(producto.codigoBarras, producto.id);
         await db.productos.add(producto);
         const op = crearOpDe(negocioId, "producto", { alta: producto }, { ahora });
@@ -110,7 +112,8 @@ export function crearProductosRepo(db: LaTienditaDb, negocioId: string): Product
       id: string,
       cambios: Partial<Omit<Producto, "id">>,
     ): Promise<ProductoFila> {
-      return db.transaction("rw", db.productos, db.outbox, db.meta, async () => {
+      return db.transaction("rw", db.meta, db.productos, db.outbox, async () => {
+        await exigirOrigenDisponible(db, negocioId);
         const fila = await db.productos.get(id);
         if (!fila || fila.negocioId !== negocioId || fila.deletedAt !== null) {
           throw new Error(`producto no encontrado: ${id}`);
@@ -153,7 +156,8 @@ export function crearProductosRepo(db: LaTienditaDb, negocioId: string): Product
 
     async borrar(id: string): Promise<ProductoFila> {
       const ahora = Date.now();
-      return db.transaction("rw", db.productos, db.outbox, async () => {
+      return db.transaction("rw", db.meta, db.productos, db.outbox, async () => {
+        await exigirOrigenDisponible(db, negocioId);
         const fila = await db.productos.get(id);
         if (!fila || fila.negocioId !== negocioId || fila.deletedAt !== null) {
           throw new Error(`producto no encontrado: ${id}`);

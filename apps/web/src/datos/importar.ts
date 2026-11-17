@@ -14,6 +14,7 @@
  */
 import {
   stockDerivado,
+  exigirOrigenDisponible,
   type CategoriaFila,
   type ClienteFila,
   type ConteoFila,
@@ -356,8 +357,9 @@ export async function restaurarRespaldo(
 
   return db.transaction(
     "rw",
-    [db.productos, db.movimientos, db.clientes, db.fiados, db.categorias, db.conteos, db.stock_cache],
+    [db.meta, db.productos, db.movimientos, db.clientes, db.fiados, db.categorias, db.conteos, db.stock_cache],
     async () => {
+      await exigirOrigenDisponible(db, negocioId);
       async function fusionar<T extends { id: string; negocioId: string }>(
         tabla: Table<T, string>,
         filas: readonly T[],

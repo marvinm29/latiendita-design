@@ -77,14 +77,15 @@ manda sobre el diseño (si algo contradice el spec, se cambia el spec primero).
 | Plan de sprints | `specs/006-plan-sprints.md` | ✅ escrito — M1 y S3 entregados; M2 y cierre de M3 pendientes |
 | **M0 · Cimientos** | monorepo pnpm (`apps/`, `packages/`, `infra/`) + CI + RLS base + ESLint + gate de tamaño | 🟡 scaffold; Lighthouse y despliegue completo pendientes |
 | **M1 · Núcleo offline** | dominio puro `packages/core` + capa Dexie + UI C2–C5 sobre IndexedDB + conteo persistente + e2e offline + OFF | ✅ 96 tests + 10 e2e (axe AA) |
-| **M2 · Cuentas y acceso** | negocio, invitación de un solo uso, argon2id, sesión rotativa, desbloqueo offline por PIN, cierre de sesión + pantallas de alta/unión/bloqueo/empleados | ✅ S3 + A + B1 (auth/RLS PG16 y aislamiento local por sesión) · ⏳ B2 (migración/continuidad) y C/D (sync) |
+| **M2 · Cuentas y acceso** | negocio, invitación de un solo uso, argon2id, sesión rotativa, desbloqueo offline por PIN, cierre de sesión + pantallas de alta/unión/bloqueo/empleados | ✅ S3 + A + B1 + B2a (auth/RLS PG16, aislamiento local y traslado de heredados con respaldo) · ⏳ B2b (continuidad de acceso) y C/D (sync) |
 | **M3 · Producto** | fiados (C6), PWA (C9), datos CSV/JSON (C10), reportes (C11) e Inicio | 🟡 funciones locales implementadas; integración con sync y backup del servidor pendientes |
 | Decisiones P1/P2/DS-26 | issues #1–#5 en GitHub | ✅ P1 (AGPL-3.0), P2 (código+PIN) y #4 (DS-31) · ⏳ DS-26/#5 |
 
 Números actuales: **60/60 pares de contraste AA** en ambos modos, **13 pantallas / 60 marcos**,
-**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **171 tests**
-(96 core + 55 web + 20 api), 2 integraciones PostgreSQL optativas (9 casos auth + bitácora sync)
-y **32 e2e** (offline C2–C5 + conteo + acceso/cambio de negocio + fiados + PWA + datos + inicio/reportes + OFF + axe AA).
+**42 iconos** Lucide, **0 hallazgos** en la QA estática (`design/tools/qa.py`), **186 tests**
+(96 core + 70 web + 20 api), 2 integraciones PostgreSQL optativas (9 casos auth + bitácora sync)
+y **33 e2e** (offline C2–C5 + conteo + acceso/cambio de negocio + fiados + PWA + datos/traslado heredado + inicio/reportes + OFF + axe AA).
+Bundle actual: **118 513 / 153 600 B gzip** de JS+CSS, incluidos SW y Workbox.
 
 ---
 
@@ -335,7 +336,7 @@ pnpm --filter @latiendita/web test:e2e:install   # una vez: Chromium de Playwrig
 pnpm --filter @latiendita/web test:e2e           # offline + conteo + acceso/empleados + fiados + PWA + datos + reportes + axe AA
 ```
 
-Estado: **M0 🟡 · M1 ✅ · M2 🟡 · M3 🟡**. Auth/RLS tiene integración PG16 (A); catálogo, libros y cola local ya se aíslan por sesión (B1). Los datos heredados `local` se conservan sin asignarlos a una cuenta. El restore JSON conserva conteos y ediciones existentes y rechaza IDs/referencias ajenas; todavía no encola para sync. Siguen pendientes migración explícita y renovación/reingreso (B2), sync (C/D) y operación/backups (E). Detalles en [`docs/TRASPASO.md`](docs/TRASPASO.md).
+Estado: **M0 🟡 · M1 ✅ · M2 🟡 · M3 🟡**. Auth/RLS tiene integración PG16 (A); catálogo, libros y cola local ya se aíslan por sesión (B1). B2a permite trasladar los heredados `local` completos sólo tras confirmación de la dueña, con respaldo descargable y destino local vacío. No elimina ejemplos automáticamente. El restore JSON conserva conteos y ediciones existentes y rechaza IDs/referencias ajenas; todavía no encola para sync. Siguen pendientes renovación/reingreso (B2b), sync (C/D) y operación/backups (E). Detalles en [`docs/TRASPASO.md`](docs/TRASPASO.md).
 
 ---
 
@@ -417,8 +418,8 @@ Las decisiones están registradas y justificadas una por una en [`design/decisio
 2. **Roadmap — ✅ [`specs/004-roadmap.md`](specs/004-roadmap.md):** hitos M0–M4 (tareas, criterios de
    salida, camino crítico), gates de calidad obligatorios, plan de adopción D11 (comunidad + self-host)
    y qué viene después de v1.
-3. **Implementación:** M1, S3, A (auth/RLS en PG16) y B1 (aislamiento local) entregados;
-   M0, M2 y M3 conservan pendientes. Sigue B2 (datos heredados y continuidad de acceso),
+3. **Implementación:** M1, S3, A (auth/RLS en PG16), B1 (aislamiento local) y B2a (traslado de heredados) entregados;
+   M0, M2 y M3 conservan pendientes. Sigue B2b (renovación y reingreso),
    después C/D (sync y LWW/backoff).
    Ver `AGENTS.md` §6 y `specs/006-plan-sprints.md`.
 

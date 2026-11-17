@@ -5,6 +5,7 @@
  * se insertan en el ledger con su op de sync en la MISMA transacción `rw`.
  * El límite de fiado (P5) queda reservado: aquí no se valida.
  */
+import { exigirOrigenDisponible } from "../meta";
 import {
   ordenarLibretaClientes,
   registrarAbono,
@@ -85,7 +86,8 @@ export function crearFiadosRepo(db: LaTienditaDb, negocioId: string): FiadosRepo
   ): Promise<FiadoConOp> {
     const opId = crypto.randomUUID();
     const ahora = input.creadoEn ?? Date.now();
-    return db.transaction("rw", db.clientes, db.fiados, db.outbox, async () => {
+    return db.transaction("rw", db.meta, db.clientes, db.fiados, db.outbox, async () => {
+      await exigirOrigenDisponible(db, negocioId);
       const cliente = await db.clientes.get(input.clienteId);
       if (!cliente || cliente.negocioId !== negocioId || cliente.deletedAt !== null) {
         throw new Error(`cliente no encontrado: ${input.clienteId}`);
@@ -143,7 +145,8 @@ export function crearFiadosRepo(db: LaTienditaDb, negocioId: string): FiadosRepo
         serverSeq: null,
         rev: 0,
       };
-      await db.transaction("rw", db.clientes, db.outbox, async () => {
+      await db.transaction("rw", db.meta, db.clientes, db.outbox, async () => {
+        await exigirOrigenDisponible(db, negocioId);
         await db.clientes.add(cliente);
         const op = crearOpDe(negocioId, "cliente", { alta: cliente }, { ahora });
         await db.outbox.add(filaDeOp(op, negocioId));

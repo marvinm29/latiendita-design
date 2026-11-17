@@ -47,7 +47,7 @@ Comprobado en el repo a la fecha de este documento:
   sync push/pull, RLS de las entidades sincronizadas, LWW y cierre de M2.
 - **S6 ✅** (fiados/reportes) y **S7 🟡**: PWA y datos implementados; se corrigieron los fallos de restore y falta el backup del servidor y la integración con sync.
 
-Conclusión: M1, S3, A y B1 entregados; M2 y el cierre de M3 pendientes. Siguiente: B2 de `AGENTS.md` §6.3 (migración explícita de `local` y renovación/reingreso).
+Conclusión: M1, S3, A, B1 y B2a entregados; M2 y el cierre de M3 pendientes. Siguiente: B2b de `AGENTS.md` §6.3 (renovación y reingreso).
 
 ---
 
@@ -91,8 +91,15 @@ fiados, reportes y CSV/JSON. Cuentas reales sin demo; los datos heredados quedan
 Stock/restore comprueban negocio y referencias; un PIN de A pendiente no desbloquea B.
 Tipos/lint, **171 pruebas regulares**, build, **116 186 B gzip** y **32 e2e sin reintentos** verdes.
 Los e2e simulan auth HTTP; PG no repetido (dos integraciones omitidas en la corrida regular).
-**B sigue abierto:** falta decidir propiedad y migración transaccional con respaldo de `local`,
-además de renovación y reingreso real. No presentar el retorno a A inyectado en pruebas como login recuperable.
+**B2a cerrado el 16/11/2026:** C1.4 incorpora la política elegida: confirmación de la dueña
+para trasladar todo `local` (incluidos ejemplos) a destino local vacío, con respaldo original
+persistente/descargable y transacción única. IDs, libros, cola y marcas LWW conservados;
+sin copiar cursores/confirmaciones. Marca terminal impide resiembra y escrituras tardías.
+Tipos/lint, **186 regulares**, build, **118 513 B gzip** y **33 e2e sin reintentos** correctos.
+15 regresiones web y e2e con cancelación, recarga/desbloqueo offline, descarga y axe.
+PG omitido (2 SKIP), sin cambios API/SQL; evidencia PG de A sólo histórica.
+**B sigue abierto:** faltan renovación y reingreso real. No presentar el retorno a A
+inyectado en pruebas como login recuperable. No habilitar sync antes de C/D.
 
 Antes de dar C10.2 y M3 por cerrados:
 

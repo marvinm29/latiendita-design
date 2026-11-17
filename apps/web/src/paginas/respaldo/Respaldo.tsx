@@ -1,4 +1,5 @@
 import type { VNode } from "preact";
+import { DatosAnteriores } from "./DatosAnteriores";
 import { useEffect, useRef, useState } from "preact/hooks";
 import {
   conBom,
@@ -241,6 +242,8 @@ export function Respaldo(): VNode {
           necesitas internet ni pedirle permiso a nadie.
         </p>
       </section>
+
+      <DatosAnteriores />
 
       <section class="card" aria-labelledby="respaldo-lista">
         <p class="card-title" id="respaldo-lista">

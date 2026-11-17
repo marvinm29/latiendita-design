@@ -7,6 +7,7 @@
  * - `opsListasParaEnviar` delega la elegibilidad (pendiente/error vencido con
  *   backoff) en el dominio `opsListasParaEnviar`.
  */
+import { exigirOrigenDisponible } from "../meta";
 import { marcarEnviando, marcarOk, marcarError, opsListasParaEnviar } from "../../outbox";
 import type { OpOutbox } from "../../tipos";
 import type { LaTienditaDb, OpOutboxFila } from "../schema";
@@ -48,7 +49,8 @@ export function crearOutboxRepo(db: LaTienditaDb, negocioId: string): OutboxRepo
     opId: string,
     mutar: (op: OpOutboxFila) => OpOutbox,
   ): Promise<OpOutboxFila> {
-    return db.transaction("rw", db.outbox, async () => {
+    return db.transaction("rw", db.meta, db.outbox, async () => {
+      await exigirOrigenDisponible(db, negocioId);
       const siguiente: OpOutboxFila = { ...mutar(await obtener(opId)), negocioId };
       await db.outbox.put(siguiente);
       return siguiente;
@@ -58,7 +60,8 @@ export function crearOutboxRepo(db: LaTienditaDb, negocioId: string): OutboxRepo
   return {
     async encolar(op: OpOutbox): Promise<OpOutboxFila> {
       const fila = filaDeOp(op, negocioId);
-      return db.transaction("rw", db.outbox, async () => {
+      return db.transaction("rw", db.meta, db.outbox, async () => {
+        await exigirOrigenDisponible(db, negocioId);
         const existente = await db.outbox.get(op.id);
         if (existente) {
           if (existente.negocioId !== negocioId || existente.endpoint !== op.endpoint || jsonCanonico(existente.payload) !== jsonCanonico(op.payload)) {

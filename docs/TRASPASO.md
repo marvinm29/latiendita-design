@@ -4,7 +4,7 @@
 > `AGENTS.md` es la **entrada corta**; este documento es el **paquete de contexto**: estado real,
 > arquitectura, invariantes, trampas, deuda y protocolo de trabajo.
 >
-> **Última actualización de estado:** 14 de noviembre de 2026 (B1: aislamiento local por sesión).
+> **Última actualización de estado:** 16 de noviembre de 2026 (B2a: traslado explícito de heredados con respaldo).
 > Si cambias código, actualiza §2, §3 y §14 al final de la sesión.
 
 ---
@@ -31,20 +31,30 @@
 - **Estado:** SDD y diseño (F1–F4) entregados. **M0 🟡** (gates/despliegue pendientes) · **M1 ✅**
   · **M2 🟡 S3 entregado** · **M3 🟡** (funciones locales implementadas; integración con sync y backup
   de servidor pendiente). **S4/S5 pendientes.**
-- **Números:** 171 tests regulares (96 core + 55 web + 20 api) y 2 integraciones PostgreSQL optativas
-  (9 casos auth + bitácora sync) · 32 e2e (offline C2–C5 + conteo +
+- **Números:** 186 tests regulares (96 core + 70 web + 20 api) y 2 integraciones PostgreSQL optativas
+  (9 casos auth + bitácora sync) · 33 e2e (offline C2–C5 + conteo +
   acceso/empleados + fiados + PWA + datos + inicio/reportes + OFF + axe AA) · bundle inicial
-  **116 186 B gzip** (presupuesto 153 600 B; incluye SW/Workbox) · 13 pantallas / 60 marcos · WCAG 2.2 AA.
+  **118 513 B gzip** (presupuesto 153 600 B; incluye SW/Workbox) · 13 pantallas / 60 marcos · WCAG 2.2 AA.
 - **A ✅:** auth real, altas atómicas, RLS y rol de API restringido probados en PG16.15.
 - **B1 ✅:** selección del negocio por sesión, aislamiento local y cola preservada al salir.
-- **Siguiente:** **B2 de `AGENTS.md` §6.3** (propiedad/migración explícita de `local` y
-  renovación/reingreso), después C/D (sync, LWW y restore). Docker, backup y campo siguen pendientes.
+- **B2a ✅:** traslado explícito de `local` con confirmación de la dueña, respaldo y destino local vacío.
+- **Siguiente:** **B2b de `AGENTS.md` §6.3** (renovación/reingreso), después C/D (sync, LWW
+  y restore). Docker, backup del servidor y campo siguen pendientes.
 
 ---
 
 ## 2. Estado verificado (no confiar en la memoria: re-verificar)
 
-Comprobación actual (14/11/2026, B1): tipos/lint, **171 pruebas regulares**, build y tamaño
+Comprobación actual (16/11/2026, B2a sobre `acf23df`): tipos/lint,
+**186 regulares** (96 core + 70 web + 20 API), build y **118 513 / 153 600 B gzip** correctos.
+`CI=1 pnpm --filter @latiendita/web test:e2e --retries=0` → **33/33 (24.7 s)**, sin reintentos.
+15 pruebas web nuevas y un e2e con confirmación/cancelación, recarga/desbloqueo offline,
+descarga real, cambio de cuenta y axe. PG omitido (2 SKIP); no cambió API/SQL. Contraste 60/60
+y QA estática 13 pantallas/60 marcos/0 hallazgos correctos; sin modificar tokens/mockups.
+Pruebas/e2e necesitaron salir del sandbox tras EPERM de sockets/arranque bloqueado.
+Sin Docker, CI remoto, dispositivos ni campo. Auth HTTP del e2e simulado; no prueba reingreso.
+
+Comprobación histórica (14/11/2026, B1): tipos/lint, **171 pruebas regulares**, build y tamaño
 **116 186 / 153 600 B gzip**, correctos. **32 e2e Chromium/PWA con CI=1, sin reintentos**,
 fuera del sandbox. La corrida previa tuvo un selector ambiguo en la prueba nueva (31/32);
 se corrigió y se ejecutó de nuevo el conjunto completo. Dentro del sandbox, CI=1 no arrancó
@@ -90,7 +100,9 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
   siguen simulando HTTP; no equivalen a navegador → API → PG real.
 - La sesión **ya selecciona** el negocio para las operaciones locales (B1), sin disparar pull/sync.
   Las cuentas reales empiezan vacías. Sin sesión sigue el modo local M1; sus datos heredados se
-  conservan sin trasladarlos a una cuenta. La política y migración explícita siguen pendientes en B2.
+  conservan sin traslado automático. B2a permite trasladarlos completos desde «Respaldo y datos»
+  sólo con confirmación de propiedad de la dueña y destino local vacío. Incluye ejemplos;
+  el respaldo original permanece descargable por la dueña destino, incluso sin red.
 - La UI permite cerrar sesión; el flujo para volver a entrar y la renovación automática deben revisarse.
 - Sin endpoints de sync registrados en producción: existe una implementación experimental de bitácora
   y materialización inicial de movimientos. Auth dispone de adaptador PostgreSQL probado en una
@@ -102,6 +114,22 @@ de empezar ejecuta `git status --short` y **no borres ni reviertas** archivos qu
 ---
 
 ## 3. Qué se construyó (changelog)
+
+### B2a · Traslado explícito de heredados con respaldo ✅ (16/11/2026; B sigue abierto)
+
+- C1.4 y DS-32 documentan la política elegida por el dueño. Nueva tarjeta en Respaldo y datos:
+  resumen sin escrituras, checkbox de pertenencia y confirmación explícita. Nunca descarta ejemplos.
+- `migracionLocal.ts`: respaldo original (productos/tombstones, libros, clientes, categorías,
+  conteos, unidades, outbox y caché; sin sesión/PIN) guardado antes del traslado en la misma tx.
+  Persiste en `meta` y puede descargarse tras recargar. Cuenta/rol/bloqueo se comprueban tanto
+  al trasladar como al descargar. IDs globales y marcas LWW conservados, sin cambiar esquema.
+- Rechaza destino ocupado, referencias/IDs ajenos y cola desconocida con rollback. No copia
+  cursores ni confirmaciones al destino: `serverSeq=null`, ops `ok`/`enviando` pendientes.
+  Stock se deriva del libro. Repetición idempotente, sin duplicar asientos ni cola.
+- La marca terminal bloquea resiembra, retorno sin cuenta a `local` y escrituras tardías con
+  repos antiguos (comprobación dentro de cada transacción core y restore).
+- 15 regresiones web y un e2e. Pendientes: renovación/reingreso (B2b), contrato/cliente sync
+  y restore sincronizable (C/D). Este traslado no constituye respaldo remoto ni recuperación de acceso.
 
 ### B1 · Aislamiento local por sesión ✅ (14/11/2026; B permanece abierto)
 
@@ -461,7 +489,7 @@ copy en español + docs actualizados + sin romper los invariantes de §5.
 | 12 | ~~Adaptador Postgres/RLS de auth sin probar~~ | ✅ A: migraciones y 9 casos de auth en PG16.15 con rol restringido | — |
 | 13 | ~~La conexión `/auth` usa el rol dueño~~ | ✅ A: búsquedas por funciones acotadas; rol de API sin propiedad ni BYPASSRLS | — |
 | 14 | ~~Sin botón de cerrar sesión~~ | ✅ resuelto: cierre con confirmación en «Más» | — |
-| 15 | B1 liga las operaciones locales a la sesión; migración heredada y pull pendientes | No hay migración implícita de `local` ni recuperación del servidor | B2/D |
+| 15 | B1 liga las operaciones locales a la sesión; B2a traslada heredados con respaldo y confirmación | No hay migración implícita de `local` ni recuperación del servidor; acceso recuperable pendiente | B2b/D |
 | 16 | Import/restore JSON/CSV | restore local corregido; falta integración con sync | S4/S5 (`006` §3) |
 | 17 | ~~Reportes mínimos (C11)~~ | ✅ resuelto: inventario, top y fiados | — |
 | 18 | Backup del servidor (`pg_dump` + runbook) | no hay respaldo automático de Postgres | S4/S7 |
@@ -504,8 +532,8 @@ La integración de restore con sync y el zoom manual continúan pendientes (`006
 
 - `/sync/push` idempotente por `op_id` (`op_log`) y `/sync/pull` por `server_seq` (T-04).
 - Fastify + Drizzle + Postgres + **RLS efectiva**; matriz de permisos por rol (C7).
-- A y B1 completados. Seguir B2 de `AGENTS.md` §6.3: acordar propiedad/migración de `local`
-  y continuidad del acceso; C/D completan persistencia y transporte sync.
+- A, B1 y B2a completados. Seguir B2b de `AGENTS.md` §6.3: renovación y reingreso;
+  C/D completan persistencia y transporte sync.
 - **Gate:** repetir un lote no duplica; aislamiento A/B; migración aditiva.
 
 ### Otros pendientes no bloqueados
@@ -636,6 +664,46 @@ Empieza confirmando que leíste el estado y proponme el siguiente incremento de 
 ---
 
 ## 14. Registro de sesiones
+
+### Sesión 13 (16/11/2026) — B2a: traslado explícito de datos heredados
+
+**Base:** `acf23df`, árbol limpio al comenzar. Node 26.11.1, pnpm 9.15.9. Un solo agente,
+mismo árbol. Commit/push autorizados después por el dueño; sin despliegue. El dueño eligió confirmación de pertenencia por la
+dueña y respaldo antes de trasladar todo; se actualizó C1.4 primero. Plan y registro de
+decisiones en `docs/planes/2026-11-16-b2-datos-heredados.md`; interfaz documentada en DS-32.
+
+**Archivos:** nuevos `datos/migracionLocal{,.test}.ts`, `paginas/respaldo/DatosAnteriores.tsx`
+y `e2e/migracion-local.spec.ts`; cambios en `baseLocal.ts`, `importar.ts`, `Respaldo.tsx`,
+`core/db/meta.ts` y repos de core. Sin cambios de servidor, esquema ni dependencias.
+
+**Comportamiento:** confirmación explícita; respaldo origen persistente y descargable antes
+del traslado dentro de una sola tx. Conserva IDs, libros, cola y marcas LWW. Destino local
+vacío, rechazo de referencias cruzadas/ops desconocidas, sin copiar cursores ni confirmaciones;
+stock según libro. Marca terminal impide resiembra/escrituras tardías. La descarga revalida
+cuenta actual. No se ha migrado ninguna base real: sólo fixtures desechables de las pruebas.
+
+**Pruebas rojas:** módulo/botón ausentes; repositorio antiguo escribiendo después del traslado;
+confirmación heredada; ID de B en payload con negocio local; caché stock 999 frente a libro 10;
+descarga desde pantalla de A después de cambiar a B. Se corrigieron y se verificaron verdes.
+Otras regresiones cubren rollback tras escritura del respaldo, rol/bloqueo, repetición y
+preservación exacta del origen, incluyendo ejemplos editados/tombstones y cola sin marcas LWW.
+
+**Evidencia final:** tipos/lint, `pnpm test` → **186 regulares** (96 core + 70 web + 20 API;
+dos integraciones PG omitidas), `pnpm build`, `pnpm size` → **118 513 / 153 600 B gzip**.
+`CI=1 pnpm --filter @latiendita/web test:e2e --retries=0` → **33/33, 24.7 s**. Descarga real,
+recarga/desbloqueo offline y axe. Contraste 60/60; QA estática 13 pantallas/60 marcos/0 hallazgos.
+Tests/e2e fuera del sandbox después de bloqueos de sockets/servidor dentro de él.
+
+**Límites:** PG no repetido (sin cambios API/SQL), evidencia de A sólo histórica. E2e auth HTTP
+simulado, sin demostrar reingreso ni sync. Sin CI remoto, Docker, dispositivos reales,
+lector/zoom ni campo. Revisión propia del diff y checklist de componentes, sin revisor delegado.
+Datos anteriores con destino ocupado se conservan separados; merge exige política adicional.
+El JSON anterior incluye el archivo de cola/unidades/caché; el restore general actual sólo
+restaura las entidades soportadas por C10 y no importa ese archivo de cola (D sigue pendiente).
+
+**Siguiente exacto:** B2b — renovación antes de vencer, fallos de red/rotación y definición de
+reingreso después de salir o perder sesión sin reutilizar invitaciones consumidas. Si requiere
+flujo nuevo, acordarlo y actualizar `002` antes de construirlo. B sigue abierto; sync sin registrar.
 
 ### Sesión 12 (14/11/2026) — B1: aislamiento local sin mover datos heredados
 

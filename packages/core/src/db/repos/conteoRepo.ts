@@ -9,6 +9,7 @@
  * diferencia en un movimiento de ajuste del libro (C5.2) — sesión, libro y
  * outbox en una sola transacción, para no perder ningún movimiento (C8.4).
  */
+import { exigirOrigenDisponible } from "../meta";
 import { crearMovimiento } from "../../libro";
 import { redondearCantidad } from "../../unidades";
 import type { ConteoFila, ConteoItemFila, LaTienditaDb } from "../schema";
@@ -90,7 +91,10 @@ export function crearConteoRepo(db: LaTienditaDb, negocioId: string): ConteoRepo
         items: [],
       };
       // Sólo se escribe la sesión; la op se encola al cerrar (resultado final).
-      await db.conteos.add(sesion);
+      await db.transaction("rw", db.meta, db.conteos, async () => {
+        await exigirOrigenDisponible(db, negocioId);
+        await db.conteos.add(sesion);
+      });
       return sesion;
     },
 
@@ -111,11 +115,9 @@ export function crearConteoRepo(db: LaTienditaDb, negocioId: string): ConteoRepo
       validarContado(contado);
       return db.transaction(
         "rw",
-        db.conteos,
-        db.productos,
-        db.movimientos,
-        db.stock_cache,
+        [db.meta, db.conteos, db.productos, db.movimientos, db.stock_cache],
         async () => {
+          await exigirOrigenDisponible(db, negocioId);
           const sesion = await obtenerAbierta(conteoId);
           await productoActivo(db, negocioId, productoId);
           const sistema = await leerStockLocal(db, productoId, negocioId);
@@ -138,11 +140,9 @@ export function crearConteoRepo(db: LaTienditaDb, negocioId: string): ConteoRepo
       const ahora = Date.now();
       return db.transaction(
         "rw",
-        db.conteos,
-        db.movimientos,
-        db.stock_cache,
-        db.outbox,
+        [db.meta, db.conteos, db.movimientos, db.stock_cache, db.outbox],
         async () => {
+          await exigirOrigenDisponible(db, negocioId);
           const sesion = await obtenerAbierta(conteoId);
           const items = await recalcularItems(sesion);
           const cerrada: ConteoFila = { ...sesion, estado: "cerrado", cerradoEn: ahora, items };
@@ -158,12 +158,9 @@ export function crearConteoRepo(db: LaTienditaDb, negocioId: string): ConteoRepo
       const ahora = Date.now();
       return db.transaction(
         "rw",
-        db.conteos,
-        db.movimientos,
-        db.productos,
-        db.outbox,
-        db.stock_cache,
+        [db.meta, db.conteos, db.movimientos, db.productos, db.outbox, db.stock_cache],
         async () => {
+          await exigirOrigenDisponible(db, negocioId);
           const sesion = await obtenerAbierta(conteoId);
           const items = await recalcularItems(sesion);
           const cerrada: ConteoFila = {

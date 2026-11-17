@@ -34,6 +34,14 @@
 - C1.1 Marta crea un negocio con nombre; queda como **dueña**.
 - C1.2 Marta genera un **código de invitación** y lo comparte con José; José lo ingresa desde su teléfono y queda vinculado con rol `empleado`.
 - C1.3 José ve solo lo que su rol permite (ver C7).
+- C1.4 Los datos anteriores sin cuenta (`local`) sólo se vinculan a una tienda por
+  confirmación explícita de su dueña, desde «Respaldo y datos». Antes del traslado se
+  guarda un respaldo local descargable del origen, incluidos cola, unidades y conteos.
+  El traslado completo es transaccional, conserva IDs e historial y no elimina ejemplos
+  automáticamente: pueden contener cambios reales. Se advierte que pueden mezclarse
+  ejemplos y datos reales. Sólo se admite una tienda destino sin datos locales; no se
+  fusionan negocios ni se reutiliza el origen para otra cuenta. Cancelar o un fallo
+  conserva el origen íntegro. El traslado no equivale a sincronización ni respaldo remoto.
 
 ```gherkin
 Escenario: empleado se une por código
